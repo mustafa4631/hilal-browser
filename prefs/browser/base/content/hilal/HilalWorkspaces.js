@@ -1281,13 +1281,7 @@
         }
 
         .hilal-ws-count {
-          min-width: 1.5em;
-          padding-inline: var(--space-xxsmall);
-          border-radius: 999px;
-          background: color-mix(in srgb, var(--hilal-ws-accent) 22%, transparent);
-          color: var(--toolbarbutton-icon-fill);
-          font-size: 0.85em;
-          text-align: center;
+          display: none;
         }
 
         .hilal-ws-btn.hilal-ws-drop-target {
