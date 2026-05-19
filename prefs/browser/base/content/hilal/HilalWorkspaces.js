@@ -16,25 +16,18 @@
   const TAB_DROP_TYPE = "application/x-moz-tabbrowser-tab";
   const DEFAULT_WORKSPACE_ID = "default";
   const DEFAULT_WORKSPACE_NAME = "Default";
-  const DEFAULT_ICON = "briefcase";
+  const DEFAULT_EMOJI = "\u{1F5C2}";
   const DEFAULT_COLOR = "purple";
   const CONTAINER_NAME_PREFIX = "Hilal Workspace";
   const INIT_MAX_RETRIES = 80;
   const MAX_NAME_LENGTH = 64;
 
-  const WORKSPACE_ICONS = [
-    "briefcase",
-    "fingerprint",
-    "fence",
-    "circle",
-    "cart",
-    "dollar",
-    "gift",
-    "vacation",
-    "food",
-    "fruit",
-    "tree",
-    "chill",
+  const EMOJIS = [
+    "\u{1F5C2}", "\u{1F3E0}", "\u{1F4BC}", "\u{1F3A8}", "\u{1F4DA}", "\u{1F6E0}", "\u{1F3B5}", "\u{1F310}", "\u{1F4A1}", "\u{1F52C}",
+    "\u{1F3AE}", "\u{1F4DD}", "\u{1F3AF}", "\u{1F680}", "\u{1F319}", "\u{2615}", "\u{1F34E}", "\u{1F30D}", "\u{1F512}", "\u{26A1}",
+    "\u{1F525}", "\u{2744}\u{FE0F}", "\u{1F33F}", "\u{1F431}", "\u{1F436}", "\u{1F98A}", "\u{1F981}", "\u{1F427}", "\u{1F984}", "\u{1F308}",
+    "\u{2B50}", "\u{1F31F}", "\u{1F48E}", "\u{1F381}", "\u{1F380}", "\u{1F3C6}", "\u{1F947}", "\u{1F396}", "\u{1F3C5}", "\u{1F6A9}",
+    "\u{1F4CC}", "\u{1F4CE}", "\u{1F4D0}", "\u{1F527}", "\u{1F528}", "\u{2699}\u{FE0F}", "\u{1F48A}", "\u{1F9EA}", "\u{1F9EC}", "\u{1F9EE}"
   ];
 
   const WORKSPACE_COLORS = [
@@ -108,8 +101,8 @@
       return choices.includes(value) ? value : fallback;
     }
 
-    _defaultIcon(index) {
-      return WORKSPACE_ICONS[index % WORKSPACE_ICONS.length];
+    _defaultEmoji(index) {
+      return EMOJIS[index % EMOJIS.length];
     }
 
     _defaultColor(index) {
@@ -132,16 +125,26 @@
 
       const fallbackName =
         id === DEFAULT_WORKSPACE_ID ? DEFAULT_WORKSPACE_NAME : "Workspace";
-      const iconFallback = this._defaultIcon(index);
+      const emojiFallback = this._defaultEmoji(index);
       const colorFallback = this._defaultColor(index);
       const containerId = Number.isInteger(raw.containerId)
         ? raw.containerId
         : Number.parseInt(raw.containerId, 10) || 0;
 
+      let emoji = typeof raw.emoji === "string" && raw.emoji.trim()
+        ? raw.emoji.trim()
+        : "";
+      if (!emoji && typeof raw.icon === "string" && raw.icon.trim()) {
+        const potentialEmoji = raw.icon.trim();
+        if (EMOJIS.includes(potentialEmoji)) {
+          emoji = potentialEmoji;
+        }
+      }
+
       return {
         id,
         name: this._normalizeName(raw.name, fallbackName),
-        icon: this._normalizeChoice(raw.icon, WORKSPACE_ICONS, iconFallback),
+        emoji: this._normalizeChoice(emoji, EMOJIS, emojiFallback),
         color: this._normalizeChoice(
           raw.color,
           WORKSPACE_COLORS,
@@ -155,7 +158,7 @@
       return {
         id: DEFAULT_WORKSPACE_ID,
         name: DEFAULT_WORKSPACE_NAME,
-        icon: DEFAULT_ICON,
+        emoji: DEFAULT_EMOJI,
         color: DEFAULT_COLOR,
         containerId: 0,
       };
@@ -257,7 +260,7 @@
           try {
             identity = ContextualIdentityService.create(
               this._workspaceContainerName(workspace),
-              workspace.icon,
+              "circle",
               workspace.color
             );
             workspace.containerId = identity.userContextId;
@@ -272,14 +275,14 @@
         const name = this._workspaceContainerName(workspace);
         if (
           identity.name !== name ||
-          identity.icon !== workspace.icon ||
+          identity.icon !== "circle" ||
           identity.color !== workspace.color
         ) {
           try {
             ContextualIdentityService.update(
               workspace.containerId,
               name,
-              workspace.icon,
+              "circle",
               workspace.color
             );
           } catch (e) {
@@ -722,15 +725,15 @@
       this._apply();
     }
 
-    create(name, icon, color) {
+    create(name, emoji, color) {
       const index = this._workspaces.length;
       const workspace = {
         id: this._uuid(),
         name: this._normalizeName(name, "Workspace"),
-        icon: this._normalizeChoice(
-          icon,
-          WORKSPACE_ICONS,
-          this._defaultIcon(index)
+        emoji: this._normalizeChoice(
+          emoji,
+          EMOJIS,
+          this._defaultEmoji(index)
         ),
         color: this._normalizeChoice(
           color,
@@ -746,16 +749,16 @@
       this.switchTo(workspace.id);
     }
 
-    rename(id, name, icon, color) {
+    rename(id, name, emoji, color) {
       const workspace = this._getWorkspaceById(id);
       if (!workspace) {
         return;
       }
       workspace.name = this._normalizeName(name, workspace.name);
-      workspace.icon = this._normalizeChoice(
-        icon,
-        WORKSPACE_ICONS,
-        workspace.icon
+      workspace.emoji = this._normalizeChoice(
+        emoji,
+        EMOJIS,
+        workspace.emoji
       );
       workspace.color = this._normalizeChoice(
         color,
@@ -912,41 +915,42 @@
       title.textContent = titleText;
       box.appendChild(title);
 
-      const iconLabel = document.createElement("label");
-      iconLabel.textContent = "Icon";
-      iconLabel.id = "hilal-ws-icon-label";
-      box.appendChild(iconLabel);
+      const emojiLabel = document.createElement("label");
+      emojiLabel.textContent = "Emoji";
+      emojiLabel.id = "hilal-ws-emoji-label";
+      box.appendChild(emojiLabel);
 
-      const iconGrid = document.createElement("div");
-      iconGrid.id = "hilal-ws-icon-grid";
-      iconGrid.setAttribute("role", "radiogroup");
-      iconGrid.setAttribute("aria-labelledby", iconLabel.id);
-      let selectedIcon = initialWorkspace.icon;
-      for (const icon of WORKSPACE_ICONS) {
+      const emojiGrid = document.createElement("div");
+      emojiGrid.id = "hilal-ws-emoji-grid";
+      emojiGrid.setAttribute("role", "radiogroup");
+      emojiGrid.setAttribute("aria-labelledby", emojiLabel.id);
+      let selectedEmoji = initialWorkspace.emoji;
+      for (const emoji of EMOJIS) {
         const button = document.createElement("button");
         button.type = "button";
-        button.className = `hilal-ws-choice hilal-ws-icon-choice hilal-ws-icon-${icon}`;
-        button.setAttribute("aria-label", icon);
+        button.className = "hilal-ws-choice hilal-ws-emoji-choice";
+        button.textContent = emoji;
+        button.setAttribute("aria-label", emoji);
         button.setAttribute("role", "radio");
         button.setAttribute(
           "aria-checked",
-          icon === selectedIcon ? "true" : "false"
+          emoji === selectedEmoji ? "true" : "false"
         );
-        button.dataset.icon = icon;
-        if (icon === selectedIcon) {
+        button.dataset.emoji = emoji;
+        if (emoji === selectedEmoji) {
           button.classList.add("hilal-ws-choice-selected");
         }
         button.addEventListener("click", () => {
-          selectedIcon = icon;
-          for (const choice of iconGrid.querySelectorAll(".hilal-ws-choice")) {
-            const selected = choice.dataset.icon === icon;
+          selectedEmoji = emoji;
+          for (const choice of emojiGrid.querySelectorAll(".hilal-ws-choice")) {
+            const selected = choice.dataset.emoji === emoji;
             choice.classList.toggle("hilal-ws-choice-selected", selected);
             choice.setAttribute("aria-checked", selected ? "true" : "false");
           }
         });
-        iconGrid.appendChild(button);
+        emojiGrid.appendChild(button);
       }
-      box.appendChild(iconGrid);
+      box.appendChild(emojiGrid);
 
       const colorLabel = document.createElement("label");
       colorLabel.textContent = "Color";
@@ -1007,7 +1011,7 @@
         previousFocus?.focus?.();
       };
       const getName = () => nameInput.value.trim();
-      const getIcon = () => selectedIcon;
+      const getEmoji = () => selectedEmoji;
       const getColor = () => selectedColor;
 
       overlay.addEventListener("click", event => {
@@ -1027,17 +1031,17 @@
       nameInput.focus();
       nameInput.select();
 
-      return { actions, nameInput, close, getName, getIcon, getColor };
+      return { actions, nameInput, close, getName, getEmoji, getColor };
     }
 
     _showCreateDialog() {
       const index = this._workspaces.length;
       const dialog = this._buildDialog("New Workspace", {
         name: "Workspace",
-        icon: this._defaultIcon(index),
+        emoji: this._defaultEmoji(index),
         color: this._defaultColor(index),
       });
-      const { actions, nameInput, close, getName, getIcon, getColor } = dialog;
+      const { actions, nameInput, close, getName, getEmoji, getColor } = dialog;
 
       const cancelBtn = this._makeMozBtn("Cancel");
       const createBtn = this._makeMozBtn("Create", "primary");
@@ -1049,7 +1053,7 @@
       cancelBtn.addEventListener("click", close);
       createBtn.addEventListener("click", () => {
         if (getName()) {
-          this.create(getName(), getIcon(), getColor());
+          this.create(getName(), getEmoji(), getColor());
           close();
         }
       });
@@ -1067,7 +1071,7 @@
 
     _showRenameDialog(workspace) {
       const dialog = this._buildDialog("Edit Workspace", workspace);
-      const { actions, nameInput, close, getName, getIcon, getColor } = dialog;
+      const { actions, nameInput, close, getName, getEmoji, getColor } = dialog;
 
       const deleteBtn = this._makeMozBtn("Delete", "destructive");
       deleteBtn.id = "hilal-ws-dialog-delete";
@@ -1094,7 +1098,7 @@
       cancelBtn.addEventListener("click", close);
       saveBtn.addEventListener("click", () => {
         if (getName()) {
-          this.rename(workspace.id, getName(), getIcon(), getColor());
+          this.rename(workspace.id, getName(), getEmoji(), getColor());
           close();
         }
       });
@@ -1184,13 +1188,6 @@
       menu.querySelector("button:not(:disabled)")?.focus();
     }
 
-    _getIconCSS() {
-      return WORKSPACE_ICONS.map(
-        icon =>
-          `.hilal-ws-icon-${icon} { --hilal-ws-icon: url("resource://usercontext-content/${icon}.svg"); }`
-      ).join("\n");
-    }
-
     _getColorCSS() {
       return Object.entries(COLOR_VALUES)
         .map(
@@ -1202,7 +1199,6 @@
 
     _getCSS() {
       return `
-        ${this._getIconCSS()}
         ${this._getColorCSS()}
 
         #hilal-workspace-strip {
@@ -1263,16 +1259,9 @@
           border-color: color-mix(in srgb, var(--hilal-ws-accent) 55%, transparent);
         }
 
-        .hilal-ws-icon {
-          width: 16px;
-          height: 16px;
-          flex: 0 0 16px;
-          background-image: var(--hilal-ws-icon);
-          background-position: center;
-          background-repeat: no-repeat;
-          background-size: contain;
-          -moz-context-properties: fill;
-          fill: var(--hilal-ws-accent);
+        .hilal-ws-emoji {
+          font-size: 16px;
+          flex-shrink: 0;
         }
 
         .hilal-ws-label {
@@ -1295,6 +1284,19 @@
         .hilal-ws-btn.hilal-ws-drop-target {
           outline: var(--focus-outline);
           outline-offset: var(--focus-outline-offset);
+        }
+
+        /* Inactive buttons show only emoji and are compact squares */
+        .hilal-ws-btn:not(.hilal-ws-active) .hilal-ws-label,
+        .hilal-ws-btn:not(.hilal-ws-active) .hilal-ws-count {
+          display: none;
+        }
+
+        .hilal-ws-btn:not(.hilal-ws-active),
+        #hilal-ws-add {
+          width: var(--button-size-icon);
+          height: var(--button-size-icon);
+          padding: 0;
         }
 
         :host(:not([expanded])) #hilal-workspace-strip {
@@ -1324,7 +1326,6 @@
 
     _getDialogCSS() {
       return `
-        ${this._getIconCSS()}
         ${this._getColorCSS()}
 
         #hilal-ws-dialog-overlay {
@@ -1387,11 +1388,16 @@
           border-color: var(--red-50, #ff613d);
         }
 
-        #hilal-ws-icon-grid,
+        #hilal-ws-emoji-grid,
         #hilal-ws-color-grid {
           display: flex;
           flex-wrap: wrap;
           gap: var(--space-xxsmall);
+        }
+
+        #hilal-ws-emoji-grid {
+          max-height: 130px;
+          overflow-y: auto;
         }
 
         .hilal-ws-choice {
@@ -1407,13 +1413,8 @@
           justify-content: center;
         }
 
-        .hilal-ws-icon-choice {
-          background-image: var(--hilal-ws-icon);
-          background-position: center;
-          background-repeat: no-repeat;
-          background-size: 18px;
-          -moz-context-properties: fill;
-          fill: currentColor;
+        .hilal-ws-emoji-choice {
+          font-size: 18px;
         }
 
         .hilal-ws-color-choice::before {
@@ -1550,7 +1551,6 @@
         button.type = "button";
         button.className = [
           "hilal-ws-btn",
-          `hilal-ws-icon-${workspace.icon}`,
           `hilal-ws-color-${workspace.color}`,
           workspace.id === this._activeId ? "hilal-ws-active" : "",
         ]
@@ -1570,10 +1570,11 @@
           button.setAttribute("aria-current", "true");
         }
 
-        const icon = document.createElement("span");
-        icon.className = "hilal-ws-icon";
-        icon.setAttribute("aria-hidden", "true");
-        button.appendChild(icon);
+        const emojiSpan = document.createElement("span");
+        emojiSpan.className = "hilal-ws-emoji";
+        emojiSpan.setAttribute("aria-hidden", "true");
+        emojiSpan.textContent = workspace.emoji || "\u{1F5C2}";
+        button.appendChild(emojiSpan);
 
         const label = document.createElement("span");
         label.className = "hilal-ws-label";
