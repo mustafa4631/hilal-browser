@@ -11,7 +11,12 @@ export default function LocaleSwitcher({ currentLocale }: { currentLocale: strin
   return (
     <Link
       href={newPath}
-      className="text-sm font-medium text-silver hover:text-hilal-gold transition-colors"
+      className="text-xs font-semibold px-3 py-1 rounded-[20px] transition-colors hover:bg-[rgba(100,160,255,0.1)]"
+      style={{
+        color: '#2b5fa8',
+        border: '1px solid rgba(100,160,255,0.35)',
+        textDecoration: 'none',
+      }}
       aria-label={`Switch to ${otherLocale.toUpperCase()}`}
     >
       {otherLocale.toUpperCase()}

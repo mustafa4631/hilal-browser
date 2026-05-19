@@ -4,66 +4,137 @@ export default function History() {
   const t = useTranslations('history');
 
   const eras = [
-    { key: 'pyqt' as const, era: 'Chromium' },
-    { key: 'electron' as const, era: 'Chromium' },
-    { key: 'anka' as const, era: 'Firefox' },
-    { key: 'huma' as const, era: 'Firefox' },
-    { key: 'hilal' as const, era: 'Firefox' },
+    { key: 'pyqt' as const, era: 'Chromium', icon: '\u{1F331}' },
+    { key: 'electron' as const, era: 'Chromium', icon: '\u{26A1}' },
+    { key: 'anka' as const, era: 'Firefox', icon: '\u{1F985}' },
+    { key: 'huma' as const, era: 'Firefox', icon: '\u{1F989}' },
+    { key: 'hilal' as const, era: 'Current', icon: '\u{1F319}' },
   ];
 
+  const getTagStyle = (era: string) => {
+    if (era === 'Chromium') {
+      return { background: 'rgba(100,160,255,0.12)', color: '#3567b5' };
+    }
+    if (era === 'Firefox') {
+      return { background: 'rgba(255,120,80,0.1)', color: '#c04a20' };
+    }
+    return {
+      background: 'rgba(75,142,240,0.15)',
+      color: '#2b5fa8',
+      border: '1px solid rgba(75,142,240,0.3)',
+    };
+  };
+
   return (
-    <section className="py-20 px-6 bg-charcoal/50">
-      <div className="max-w-3xl mx-auto">
-        <h2 className="font-display font-semibold text-3xl sm:text-4xl text-pure-white text-center mb-4">
-          {t('title')}
+    <section
+      className="px-6 py-[60px]"
+      style={{
+        background: 'rgba(255,255,255,0.5)',
+        borderTop: '1px solid rgba(180,210,255,0.35)',
+        borderBottom: '1px solid rgba(180,210,255,0.35)',
+      }}
+    >
+      <div className="max-w-[860px] mx-auto">
+        <div
+          className="text-[11px] font-semibold uppercase tracking-[1.2px] mb-2.5"
+          style={{ color: '#4a8ef0' }}
+        >
+          History
+        </div>
+        <h2
+          className="font-display font-bold text-[28px] tracking-[-0.5px] mb-2.5"
+          style={{ color: '#1a2b4a' }}
+        >
+          A journey since 2022
         </h2>
-        <p className="text-silver text-center mb-14 max-w-lg mx-auto">
-          {t('subtitle')}
+        <p
+          className="text-[15px] leading-relaxed mb-9 max-w-[520px]"
+          style={{ color: '#5a7aaa' }}
+        >
+          Same vision, different forms. Each chapter pushed further toward a better, freer browser.
         </p>
 
-        <div className="relative">
-          {/* Vertical line */}
-          <div className="absolute left-[19px] top-2 bottom-2 w-px bg-white/10" />
+        <div className="relative flex flex-col">
+          <div
+            className="absolute"
+            style={{
+              left: '19px',
+              top: '8px',
+              bottom: '8px',
+              width: '2px',
+              background: 'rgba(100,160,255,0.2)',
+            }}
+          />
 
-          <div className="space-y-10">
-            {eras.map(({ key }, index) => {
-              const isLast = index === eras.length - 1;
-              return (
-                <div key={key} className="relative flex items-start gap-5">
-                  <div className="relative z-10 flex-shrink-0">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                        isLast
-                          ? 'bg-hilal-gold border-hilal-gold text-midnight'
-                          : 'bg-midnight border-white/20 text-silver'
-                      }`}
-                    >
-                      {isLast ? (
-                        <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor">
-                          <path d="M352 64c-94 24-164 109-164 210s70 186 164 210c-30 15-64 24-100 24C126 508 24 406 24 280S126 52 252 52c36 0 70 8 100 24Z" />
-                        </svg>
-                      ) : (
-                        <span className="text-xs font-display font-bold">{index + 1}</span>
-                      )}
-                    </div>
-                  </div>
+          {eras.map(({ key, era, icon }, index) => {
+            const isLast = index === eras.length - 1;
+            const notes: Record<string, string> = {
+              pyqt: 'The beginning. Built on PyQtEngine with a Chromium base — a rough first experiment in building something independent.',
+              electron: 'Moved to Electron for a richer UI layer, still Chromium underneath. Growing pains, growing ambitions.',
+              anka: 'A pivotal shift — abandoned Chromium entirely and rebuilt on Firefox source code. The soul of Hilal was born here.',
+              huma: 'Refined, restructured, and deepened. Firefox-based development matured into something more intentional.',
+              hilal: 'Rebuilt from scratch on Firefox source. A new name, a new foundation — the most ambitious chapter yet.',
+            };
+            const years: Record<string, string> = {
+              pyqt: '2022',
+              electron: '2022 – 2023',
+              anka: '2023',
+              huma: '2024',
+              hilal: 'Now',
+            };
+            const tags: Record<string, string> = {
+              pyqt: 'PyQtEngine \u00B7 Chromium',
+              electron: 'Electron \u00B7 Chromium',
+              anka: 'Firefox source',
+              huma: 'Firefox source',
+              hilal: 'Firefox source \u00B7 Current',
+            };
 
-                  <div className="pt-1.5">
-                    <h3
-                      className={`font-display font-semibold text-lg ${
-                        isLast ? 'text-hilal-gold' : 'text-pure-white'
-                      }`}
-                    >
-                      {t(`eras.${key}.name`)}
-                    </h3>
-                    <p className="text-sm text-silver mt-1">
-                      {t(`eras.${key}.note`)}
-                    </p>
-                  </div>
+            return (
+              <div key={key} className="relative flex items-start gap-5 py-[18px]">
+                <div
+                  className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-base"
+                  style={{
+                    background: isLast
+                      ? 'rgba(75,142,240,0.15)'
+                      : 'rgba(180,215,255,0.3)',
+                    border: isLast
+                      ? '2px solid #4a8ef0'
+                      : '2px solid rgba(100,160,255,0.3)',
+                  }}
+                >
+                  <span aria-hidden="true">{icon}</span>
                 </div>
-              );
-            })}
-          </div>
+
+                <div className="pt-2 flex-1">
+                  <div
+                    className="text-[11px] font-semibold uppercase tracking-[0.8px] mb-0.5"
+                    style={{ color: '#4a8ef0' }}
+                  >
+                    {years[key]}
+                  </div>
+                  <h3
+                    className="font-display font-semibold text-base mb-[3px]"
+                    style={{ color: '#1a2b4a' }}
+                  >
+                    {t(`eras.${key}.name`)}
+                  </h3>
+                  <p
+                    className="text-[13px] leading-relaxed"
+                    style={{ color: '#5a7aaa' }}
+                  >
+                    {notes[key]}
+                  </p>
+                  <span
+                    className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-[20px] mt-1.5"
+                    style={getTagStyle(era)}
+                  >
+                    {tags[key]}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

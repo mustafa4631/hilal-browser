@@ -8,6 +8,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        'hilal-blue': '#2b5fa8',
+        'hilal-blue-dark': '#1e4a8a',
+        'hilal-accent': '#4a8ef0',
+        'hilal-sky': '#5b9ef5',
+        'hilal-bg': '#f0f6ff',
+        'hilal-text': '#1a2b4a',
+        'hilal-muted': '#5a7aaa',
+        'hilal-border': 'rgba(180,210,255,0.4)',
+        'hilal-card': 'rgba(255,255,255,0.7)',
+        'hilal-tag-chromium': '#3567b5',
+        'hilal-tag-firefox': '#c04a20',
+        'hilal-tag-current': '#2b5fa8',
         'hilal-gold': '#F7C948',
         'moonlight-gold': '#FFE08A',
         midnight: '#121826',
@@ -20,8 +32,8 @@ const config: Config = {
         'private-purple': '#7847D1',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['DM Sans', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        display: ['Sora', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'SF Mono', 'monospace'],
       },
     },
