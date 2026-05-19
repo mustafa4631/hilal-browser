@@ -163,6 +163,7 @@ pref("browser.ml.linkPreview.enabled", false);
 pref("hilal.workspaces.enabled", true);
 pref("hilal.workspaces.data", "[]");
 pref("hilal.workspaces.active", "default");
+pref("hilal.workspaces.pinned.public", false);
 
 // Permission defaults.
 pref("permissions.default.desktop-notification", 2);

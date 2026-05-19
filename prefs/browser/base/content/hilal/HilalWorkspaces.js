@@ -90,6 +90,10 @@
       }
     }
 
+    get _pinnedIsPublic() {
+      return Services.prefs.getBoolPref("hilal.workspaces.pinned.public", false);
+    }
+
     _normalizeName(name, fallback) {
       const normalized = String(name || fallback || "Workspace")
         .replace(/\s+/g, " ")
@@ -358,7 +362,7 @@
           return;
         }
         const tab = event.target;
-        if (this._getTabWorkspace(tab) !== this._activeId) {
+        if (!this._pinnedIsPublic && this._getTabWorkspace(tab) !== this._activeId) {
           this._rememberPinned(tab);
         }
         this._apply();
@@ -409,6 +413,14 @@
       };
       Services.prefs.addObserver(PREF_ENABLED, this._prefEnabledObserver);
 
+      this._prefPinnedPublicObserver = () => {
+        this._apply();
+      };
+      Services.prefs.addObserver(
+        "hilal.workspaces.pinned.public",
+        this._prefPinnedPublicObserver
+      );
+
       window.addEventListener("unload", () => this._destroy(), { once: true });
     }
 
@@ -442,6 +454,12 @@
       }
       if (this._prefEnabledObserver) {
         Services.prefs.removeObserver(PREF_ENABLED, this._prefEnabledObserver);
+      }
+      if (this._prefPinnedPublicObserver) {
+        Services.prefs.removeObserver(
+          "hilal.workspaces.pinned.public",
+          this._prefPinnedPublicObserver
+        );
       }
       this._closeOpenSurfaces();
       this._container?.remove();
@@ -709,13 +727,22 @@
       const selected = gBrowser.selectedTab;
       const selectedWorkspace = this._getTabWorkspace(selected);
       const activeTabs = [];
+      const pinnedIsPublic = this._pinnedIsPublic;
 
       for (const tab of gBrowser.tabs) {
         const workspaceId = this._getTabWorkspace(tab);
-        if (workspaceId === this._activeId) {
+        const isPinnedSession =
+          typeof SessionStore !== "undefined" &&
+          SessionStore.getCustomTabValue(tab, PINNED_KEY) === "true";
+        const isTabPinned = tab.pinned || isPinnedSession;
+
+        if (workspaceId === this._activeId || (pinnedIsPublic && isTabPinned)) {
           if (!tab.hidden || this._isHiddenByWorkspace(tab)) {
             this._showWorkspaceTab(tab);
             activeTabs.push(tab);
+          }
+          if (pinnedIsPublic && isPinnedSession) {
+            this._restorePinned(tab);
           }
           this._scheduleContainerRetarget(tab, workspaceId);
         } else if (tab.pinned) {
@@ -737,11 +764,16 @@
           selected.hidden ||
           selected.closing)
       ) {
-        gBrowser.selectedTab = nextSelected;
+        if (!(pinnedIsPublic && selected.pinned)) {
+          gBrowser.selectedTab = nextSelected;
+        }
       }
 
       for (const tab of gBrowser.tabs) {
         if (this._getTabWorkspace(tab) !== this._activeId) {
+          if (pinnedIsPublic && tab.pinned) {
+            continue;
+          }
           this._hideWorkspaceTab(tab);
         }
       }

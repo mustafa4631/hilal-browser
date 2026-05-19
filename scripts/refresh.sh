@@ -72,6 +72,9 @@ if [ -d "$HILAL_REPO_ROOT/prefs" ]; then
       rel="${rel#./}"
       ff_file="$HILAL_FIREFOX_SRC/$rel"
       if [ -f "$ff_file" ]; then
+        if [ "$ff_file" -ef "$rel" ]; then
+          continue
+        fi
         log "Refreshing prefs overlay: $rel"
         cp -f "$ff_file" "$rel"
       fi

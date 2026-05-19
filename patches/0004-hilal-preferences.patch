@@ -7,10 +7,10 @@ preference declaration error from the old XUL preference= attribute system.
 
 ---
 diff --git a/browser/components/preferences/main.inc.xhtml b/browser/components/preferences/main.inc.xhtml
-index 32e3edbbe933..418522a4c0a1 100644
+index 32e3edbbe933..cf9064ce3826 100644
 --- a/browser/components/preferences/main.inc.xhtml
 +++ b/browser/components/preferences/main.inc.xhtml
-@@ -214,4 +214,20 @@
+@@ -214,4 +214,22 @@
  
  <!-- Network Settings-->
  <html:setting-group groupid="networkProxy" data-category="paneGeneral" data-subcategory="netsettings" hidden="true" data-srd-migrated="" />
@@ -21,6 +21,8 @@ index 32e3edbbe933..418522a4c0a1 100644
 +  <vbox align="start">
 +    <checkbox id="hilalWorkspacesEnabled"
 +              label="Enable workspaces"/>
++    <checkbox id="hilalWorkspacesPinnedPublic"
++              label="Make pinned tabs visible in all workspaces"/>
 +    <hbox>
 +      <description flex="1">Reset all workspace data (cannot be undone).</description>
 +      <button id="hilalWorkspacesReset"
@@ -32,7 +34,7 @@ index 32e3edbbe933..418522a4c0a1 100644
 +</groupbox>
  </html:template>
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
-index dd1f2e21e8b2..7daaf51136cc 100644
+index dd1f2e21e8b2..7c992276ec6e 100644
 --- a/browser/components/preferences/main.js
 +++ b/browser/components/preferences/main.js
 @@ -13,7 +13,7 @@
@@ -53,7 +55,7 @@ index dd1f2e21e8b2..7daaf51136cc 100644
    UpdateListener: "resource://gre/modules/UpdateListener.sys.mjs",
    LinkPreview: "moz-src:///browser/components/genai/LinkPreview.sys.mjs",
    MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
-@@ -830,6 +832,63 @@ var gMainPane = {
+@@ -830,6 +832,82 @@ var gMainPane = {
        AppFileHandler._init();
      }
  
@@ -84,6 +86,9 @@ index dd1f2e21e8b2..7daaf51136cc 100644
 +        }
 +      }
 +    };
++    const hilalWsPinnedPublicCheckbox = /** @type {HTMLInputElement|null} */ (
++      document.getElementById("hilalWorkspacesPinnedPublic")
++    );
 +    if (hilalWsCheckbox) {
 +      hilalWsCheckbox.checked = Services.prefs.getBoolPref(
 +        "hilal.workspaces.enabled",
@@ -93,6 +98,18 @@ index dd1f2e21e8b2..7daaf51136cc 100644
 +        Services.prefs.setBoolPref(
 +          "hilal.workspaces.enabled",
 +          hilalWsCheckbox.checked
++        );
++      });
++    }
++    if (hilalWsPinnedPublicCheckbox) {
++      hilalWsPinnedPublicCheckbox.checked = Services.prefs.getBoolPref(
++        "hilal.workspaces.pinned.public",
++        false
++      );
++      hilalWsPinnedPublicCheckbox.addEventListener("command", function () {
++        Services.prefs.setBoolPref(
++          "hilal.workspaces.pinned.public",
++          hilalWsPinnedPublicCheckbox.checked
 +        );
 +      });
 +    }
@@ -108,8 +125,12 @@ index dd1f2e21e8b2..7daaf51136cc 100644
 +        Services.prefs.setStringPref("hilal.workspaces.data", "[]");
 +        Services.prefs.setStringPref("hilal.workspaces.active", "default");
 +        Services.prefs.setBoolPref("hilal.workspaces.enabled", true);
++        Services.prefs.setBoolPref("hilal.workspaces.pinned.public", false);
 +        if (hilalWsCheckbox) {
 +          hilalWsCheckbox.checked = true;
++        }
++        if (hilalWsPinnedPublicCheckbox) {
++          hilalWsPinnedPublicCheckbox.checked = false;
 +        }
 +      }
 +    });
