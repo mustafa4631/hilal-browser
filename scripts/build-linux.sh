@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# scripts/build-macos.sh
+# scripts/build-linux.sh
 #
-# Thin convenience wrapper around `./mach build` and `./mach package` for Hilal on macOS.
+# Thin convenience wrapper around `./mach build` and `./mach package` for Hilal on Linux.
 #
 # Usage:
-#   scripts/build-macos.sh                 # full build
-#   scripts/build-macos.sh faster          # front-end only
-#   scripts/build-macos.sh binaries        # C++/Rust only
-#   scripts/build-macos.sh run             # build and run
-#   scripts/build-macos.sh package         # build and package
-#   scripts/build-macos.sh -- <args>       # pass arguments to mach build
+#   scripts/build-linux.sh                 # full build
+#   scripts/build-linux.sh faster          # front-end only
+#   scripts/build-linux.sh binaries        # C++/Rust only
+#   scripts/build-linux.sh run             # build and run
+#   scripts/build-linux.sh package         # build and package
+#   scripts/build-linux.sh -- <args>       # pass arguments to mach build
 
 set -euo pipefail
 
@@ -18,17 +18,17 @@ set -euo pipefail
 
 require_firefox_src
 
-if [ "$(uname -s)" != "Darwin" ]; then
-  warn "This script is tuned for macOS. On Linux, please use build-linux.sh."
+if [ "$(uname -s)" != "Linux" ]; then
+  warn "This script is tuned for Linux. On macOS, please use build-macos.sh."
 fi
 
 # Ensure patches/branding are applied
 bash "$(dirname "$0")/apply.sh"
 
-# Copy macOS mozconfig
-if [ -f "$(dirname "$0")/../mozconfigs/macos" ]; then
-  log "Copying mozconfigs/macos -> firefox/mozconfig"
-  cp "$(dirname "$0")/../mozconfigs/macos" "$HILAL_FIREFOX_SRC/mozconfig"
+# Copy Linux mozconfig
+if [ -f "$(dirname "$0")/../mozconfigs/linux" ]; then
+  log "Copying mozconfigs/linux -> firefox/mozconfig"
+  cp "$(dirname "$0")/../mozconfigs/linux" "$HILAL_FIREFOX_SRC/mozconfig"
 fi
 
 cmd=("./mach" "build")
@@ -61,8 +61,7 @@ elif [ "$package_after" = 1 ]; then
   log "Packaging Hilal Browser..."
   (cd "$HILAL_FIREFOX_SRC" && ./mach package)
   log "Package created. Look in:"
-  log "  $HILAL_FIREFOX_SRC/obj-aarch64-apple-darwin*/dist/"
+  log "  $HILAL_FIREFOX_SRC/obj-x86_64-pc-linux-gnu/dist/"
 fi
 
 log "Done."
-
