@@ -31424,3 +31424,15 @@
   }
 }
 
+/* Copy URL Button Styling */
+#copy-url-button {
+  list-style-image: url("chrome://browser/skin/icons/link-square.svg");
+}
+
+#copy-url-button-box[copied="true"] > #copy-url-button {
+  list-style-image: url("chrome://global/skin/icons/check.svg");
+  fill: #00c79a !important;
+  fill-opacity: 1 !important;
+}
+
+
