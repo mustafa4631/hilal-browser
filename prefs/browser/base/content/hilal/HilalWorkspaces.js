@@ -607,12 +607,24 @@
 
     _needsContainerRetarget(tab, workspaceId) {
       const workspace = this._getWorkspaceById(workspaceId);
-      return (
-        this._enabled &&
-        workspace?.containerId &&
-        tab.userContextId !== workspace.containerId &&
-        !tab.closing
-      );
+      if (
+        !this._enabled ||
+        !workspace?.containerId ||
+        tab.userContextId === workspace.containerId ||
+        tab.closing
+      ) {
+        return false;
+      }
+
+      // Do not retarget privileged browser pages (about:, chrome:, resource:) as they cannot load in containers
+      const spec = tab.linkedBrowser?.currentURI?.spec || "";
+      if (/^(about|chrome|resource):/i.test(spec)) {
+        if (!/^(about:newtab|about:blank|about:home)$/i.test(spec)) {
+          return false;
+        }
+      }
+
+      return true;
     }
 
     _scheduleContainerRetarget(tab, workspaceId) {
