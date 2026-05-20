@@ -52,6 +52,8 @@ Cargo.lock.bak
 .AppleDouble
 .LSOverride
 Icon?
+!*icons/
+!*icons/**
 ._*
 Thumbs.db
 desktop.ini
