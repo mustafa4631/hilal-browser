@@ -1801,33 +1801,6 @@
     window.addEventListener("load", initNewTabCentering, { once: true });
   }
 
-  window.gHilalBrowser = {
-    copyCurrentURL() {
-      if (typeof gBrowser === "undefined") {
-        return;
-      }
-      const url = gBrowser.currentURI ? gBrowser.currentURI.spec : "";
-      if (!url) {
-        return;
-      }
-      try {
-        const clipboardHelper = Cc["@mozilla.org/widget/clipboardhelper;1"]
-                                  .getService(Ci.nsIClipboardHelper);
-        clipboardHelper.copyString(url);
-
-        const button = document.getElementById("copy-url-button-box");
-        if (button) {
-          button.setAttribute("copied", "true");
-          setTimeout(() => {
-            button.removeAttribute("copied");
-          }, 1500);
-        }
-      } catch (e) {
-        console.error("Failed to copy URL to clipboard: ", e);
-      }
-    }
-  };
-
   let retries = 0;
   function tryInit() {
     if (!Services.prefs.getBoolPref("sidebar.revamp", false)) {
