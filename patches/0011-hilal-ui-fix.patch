@@ -1,7 +1,7 @@
 Hilal Browser: integrate Firefox-UI-Fix with dynamic settings UI
 
 Integrates Firefox-UI-Fix by @black7375 as a built-in default feature.
-Provides a master toggle in about:preferences under the Hilal Browser section
+Provides a master toggle in about:preferences under the Hilal Browser category
 along with nested sub-toggles to enable/disable specific elements of the theme
 (Connected Tabs, Compact Padding, Dynamic Tab Separators, Bottom Rounded Tab Corners,
 and Close Button only on Hover).
@@ -114,15 +114,18 @@ index b890e0f7917d..b631daa972a2 100644
 +pref("browser.tabs.hoverPreview.enabled", true);
 +pref("browser.urlbar.clipboard.featureGate", true);
 +pref("browser.urlbar.suggest.calculator", true);
-diff --git a/browser/components/preferences/main.inc.xhtml b/browser/components/preferences/main.inc.xhtml
-index e1f11778fed7..7af2d479e12e 100644
---- a/browser/components/preferences/main.inc.xhtml
-+++ b/browser/components/preferences/main.inc.xhtml
-@@ -232,6 +232,21 @@
-               class="accessory-button"
+diff --git a/browser/components/preferences/hilal.inc.xhtml b/browser/components/preferences/hilal.inc.xhtml
+--- a/browser/components/preferences/hilal.inc.xhtml
++++ b/browser/components/preferences/hilal.inc.xhtml
+@@ -29,5 +29,25 @@
                label="Reset Workspaces"/>
      </hbox>
-+    <html:hr style="width: 100%; border: 0; border-top: 1px solid var(--card-border-color); margin-block: 12px;"/>
+   </vbox>
+ </groupbox>
++
++<groupbox id="hilalUiFixGroup" data-category="paneHilal" hidden="true">
++  <label><html:h2 data-l10n-id="hilal-uifix-header"/></label>
++  <vbox align="start">
 +    <checkbox id="hilalUiFixEnabled"
 +              label="Enable UI Enhancements (includes Firefox-UI-Fix by @black7375)"/>
 +    <vbox id="hilalUiFixSubOptions" class="indent">
@@ -137,37 +140,42 @@ index e1f11778fed7..7af2d479e12e 100644
 +      <checkbox id="hilalUiFixCloseOnHover"
 +                label="Show Tab Close Button Only on Hover"/>
 +    </vbox>
-   </vbox>
- </groupbox>
++  </vbox>
++</groupbox>
  </html:template>
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
-index aec7bc5eb903..b81ecad57427 100644
 --- a/browser/components/preferences/main.js
 +++ b/browser/components/preferences/main.js
-@@ -927,6 +927,99 @@ var gMainPane = {
+@@ -1919,4 +1919,148 @@ var gHilalPane = {
        }
      });
- 
-+    // Hilal UI Fix Preferences Bindings
++
 +    const hilalUiFixCheckbox = /** @type {HTMLInputElement|null} */ (
 +      document.getElementById("hilalUiFixEnabled")
 +    );
-+    const hilalUiFixConnectToWindowCheckbox = /** @type {HTMLInputElement|null} */ (
-+      document.getElementById("hilalUiFixConnectToWindow")
++    const hilalUiFixConnectToWindowCheckbox =
++      /** @type {HTMLInputElement|null} */ (
++        document.getElementById("hilalUiFixConnectToWindow")
++      );
++    const hilalUiFixCompactPaddingCheckbox =
++      /** @type {HTMLInputElement|null} */ (
++        document.getElementById("hilalUiFixCompactPadding")
++      );
++    const hilalUiFixDynamicSeparatorCheckbox =
++      /** @type {HTMLInputElement|null} */ (
++        document.getElementById("hilalUiFixDynamicSeparator")
++      );
++    const hilalUiFixBottomRoundedCheckbox =
++      /** @type {HTMLInputElement|null} */ (
++        document.getElementById("hilalUiFixBottomRounded")
++      );
++    const hilalUiFixCloseOnHoverCheckbox =
++      /** @type {HTMLInputElement|null} */ (
++        document.getElementById("hilalUiFixCloseOnHover")
++      );
++    const hilalUiFixSubOptionsContainer = document.getElementById(
++      "hilalUiFixSubOptions"
 +    );
-+    const hilalUiFixCompactPaddingCheckbox = /** @type {HTMLInputElement|null} */ (
-+      document.getElementById("hilalUiFixCompactPadding")
-+    );
-+    const hilalUiFixDynamicSeparatorCheckbox = /** @type {HTMLInputElement|null} */ (
-+      document.getElementById("hilalUiFixDynamicSeparator")
-+    );
-+    const hilalUiFixBottomRoundedCheckbox = /** @type {HTMLInputElement|null} */ (
-+      document.getElementById("hilalUiFixBottomRounded")
-+    );
-+    const hilalUiFixCloseOnHoverCheckbox = /** @type {HTMLInputElement|null} */ (
-+      document.getElementById("hilalUiFixCloseOnHover")
-+    );
-+    const hilalUiFixSubOptionsContainer = document.getElementById("hilalUiFixSubOptions");
 +
 +    const updateHilalUiFixSubOptionsState = () => {
 +      const enabled = hilalUiFixCheckbox ? hilalUiFixCheckbox.checked : true;
@@ -196,53 +204,97 @@ index aec7bc5eb903..b81ecad57427 100644
 +    };
 +
 +    if (hilalUiFixCheckbox) {
-+      hilalUiFixCheckbox.checked = Services.prefs.getBoolPref("hilal.uifix.enabled", true);
++      hilalUiFixCheckbox.checked = Services.prefs.getBoolPref(
++        "hilal.uifix.enabled",
++        true
++      );
 +      hilalUiFixCheckbox.addEventListener("command", function () {
-+        Services.prefs.setBoolPref("hilal.uifix.enabled", hilalUiFixCheckbox.checked);
++        Services.prefs.setBoolPref(
++          "hilal.uifix.enabled",
++          hilalUiFixCheckbox.checked
++        );
 +        updateHilalUiFixSubOptionsState();
 +      });
 +    }
 +
 +    if (hilalUiFixConnectToWindowCheckbox) {
-+      hilalUiFixConnectToWindowCheckbox.checked = Services.prefs.getBoolPref("userChrome.tab.connect_to_window", true);
-+      hilalUiFixConnectToWindowCheckbox.addEventListener("command", function () {
-+        Services.prefs.setBoolPref("userChrome.tab.connect_to_window", hilalUiFixConnectToWindowCheckbox.checked);
-+      });
++      hilalUiFixConnectToWindowCheckbox.checked = Services.prefs.getBoolPref(
++        "userChrome.tab.connect_to_window",
++        true
++      );
++      hilalUiFixConnectToWindowCheckbox.addEventListener(
++        "command",
++        function () {
++          Services.prefs.setBoolPref(
++            "userChrome.tab.connect_to_window",
++            hilalUiFixConnectToWindowCheckbox.checked
++          );
++        }
++      );
 +    }
 +
 +    if (hilalUiFixCompactPaddingCheckbox) {
-+      hilalUiFixCompactPaddingCheckbox.checked = Services.prefs.getBoolPref("userChrome.tab.lepton_like_padding", true);
++      hilalUiFixCompactPaddingCheckbox.checked = Services.prefs.getBoolPref(
++        "userChrome.tab.lepton_like_padding",
++        true
++      );
 +      hilalUiFixCompactPaddingCheckbox.addEventListener("command", function () {
-+        Services.prefs.setBoolPref("userChrome.tab.lepton_like_padding", hilalUiFixCompactPaddingCheckbox.checked);
-+        Services.prefs.setBoolPref("userChrome.tab.photon_like_padding", !hilalUiFixCompactPaddingCheckbox.checked);
++        Services.prefs.setBoolPref(
++          "userChrome.tab.lepton_like_padding",
++          hilalUiFixCompactPaddingCheckbox.checked
++        );
++        Services.prefs.setBoolPref(
++          "userChrome.tab.photon_like_padding",
++          !hilalUiFixCompactPaddingCheckbox.checked
++        );
 +      });
 +    }
 +
 +    if (hilalUiFixDynamicSeparatorCheckbox) {
-+      hilalUiFixDynamicSeparatorCheckbox.checked = Services.prefs.getBoolPref("userChrome.tab.dynamic_separator", true);
-+      hilalUiFixDynamicSeparatorCheckbox.addEventListener("command", function () {
-+        Services.prefs.setBoolPref("userChrome.tab.dynamic_separator", hilalUiFixDynamicSeparatorCheckbox.checked);
-+      });
++      hilalUiFixDynamicSeparatorCheckbox.checked = Services.prefs.getBoolPref(
++        "userChrome.tab.dynamic_separator",
++        true
++      );
++      hilalUiFixDynamicSeparatorCheckbox.addEventListener(
++        "command",
++        function () {
++          Services.prefs.setBoolPref(
++            "userChrome.tab.dynamic_separator",
++            hilalUiFixDynamicSeparatorCheckbox.checked
++          );
++        }
++      );
 +    }
 +
 +    if (hilalUiFixBottomRoundedCheckbox) {
-+      hilalUiFixBottomRoundedCheckbox.checked = Services.prefs.getBoolPref("userChrome.tab.bottom_rounded_corner", true);
++      hilalUiFixBottomRoundedCheckbox.checked = Services.prefs.getBoolPref(
++        "userChrome.tab.bottom_rounded_corner",
++        true
++      );
 +      hilalUiFixBottomRoundedCheckbox.addEventListener("command", function () {
-+        Services.prefs.setBoolPref("userChrome.tab.bottom_rounded_corner", hilalUiFixBottomRoundedCheckbox.checked);
++        Services.prefs.setBoolPref(
++          "userChrome.tab.bottom_rounded_corner",
++          hilalUiFixBottomRoundedCheckbox.checked
++        );
 +      });
 +    }
 +
 +    if (hilalUiFixCloseOnHoverCheckbox) {
-+      hilalUiFixCloseOnHoverCheckbox.checked = Services.prefs.getBoolPref("userChrome.tab.close_button_at_hover", true);
++      hilalUiFixCloseOnHoverCheckbox.checked = Services.prefs.getBoolPref(
++        "userChrome.tab.close_button_at_hover",
++        true
++      );
 +      hilalUiFixCloseOnHoverCheckbox.addEventListener("command", function () {
-+        Services.prefs.setBoolPref("userChrome.tab.close_button_at_hover", hilalUiFixCloseOnHoverCheckbox.checked);
++        Services.prefs.setBoolPref(
++          "userChrome.tab.close_button_at_hover",
++          hilalUiFixCloseOnHoverCheckbox.checked
++        );
 +      });
 +    }
 +
 +    updateHilalUiFixSubOptionsState();
-+
-     // Listen for window unload so we can remove our preference observers.
-     window.addEventListener("unload", this);
+   },
+ };
  
 diff --git a/browser/themes/shared/browser-shared.css b/browser/themes/shared/browser-shared.css
 index db0d3ee8234c..e004a2d29dc8 100644

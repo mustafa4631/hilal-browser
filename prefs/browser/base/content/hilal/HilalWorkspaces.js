@@ -1123,6 +1123,8 @@
     _closeOpenSurfaces() {
       document.getElementById("hilal-ws-dialog-overlay")?.remove();
       document.getElementById("hilal-ws-menu")?.remove();
+      document.getElementById("hilal-ws-context-menu")?.hidePopup();
+      document.getElementById("hilal-ws-context-menu")?.remove();
     }
 
     _focusableElements(root) {
@@ -1368,42 +1370,47 @@
       updateSaveState();
     }
 
-    _showWorkspaceMenu(workspace, anchor) {
+    _showWorkspaceMenu(workspace, anchor, event) {
       this._closeOpenSurfaces();
 
-      const menu = document.createElement("div");
-      menu.id = "hilal-ws-menu";
-      menu.setAttribute("role", "menu");
-
-      const addItem = (label, handler, { disabled = false } = {}) => {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.textContent = label;
-        item.setAttribute("role", "menuitem");
-        item.disabled = disabled;
-        item.addEventListener("click", () => {
-          menu.remove();
-          handler();
-        });
-        menu.appendChild(item);
-        return item;
-      };
+      const popup = document.createXULElement("menupopup");
+      popup.id = "hilal-ws-context-menu";
 
       const currentTab = gBrowser.selectedTab;
       const currentWorkspace = this._getTabWorkspace(currentTab);
-      addItem("Switch", () => this.switchTo(workspace.id), {
+
+      const addMenuItem = (label, handler, { disabled = false } = {}) => {
+        const item = document.createXULElement("menuitem");
+        item.setAttribute("label", label);
+        if (disabled) {
+          item.setAttribute("disabled", "true");
+        }
+        item.addEventListener("command", () => {
+          handler();
+        });
+        popup.appendChild(item);
+        return item;
+      };
+
+      addMenuItem("Switch", () => this.switchTo(workspace.id), {
         disabled: workspace.id === this._activeId,
       });
-      addItem(
+
+      addMenuItem(
         "Move Current Tab Here",
         () => this._moveTabToWorkspace(currentTab, workspace.id),
         { disabled: currentWorkspace === workspace.id }
       );
-      addItem("Copy Current Tab Here", () =>
+
+      addMenuItem("Copy Current Tab Here", () =>
         this._moveTabToWorkspace(currentTab, workspace.id, { copy: true })
       );
-      addItem("Edit", () => this._showRenameDialog(workspace));
-      addItem(
+
+      popup.appendChild(document.createXULElement("menuseparator"));
+
+      addMenuItem("Edit", () => this._showRenameDialog(workspace));
+
+      addMenuItem(
         "Delete",
         () => {
           if (
@@ -1419,26 +1426,14 @@
         { disabled: this._workspaces.length <= 1 }
       );
 
-      const close = event => {
-        if (!menu.contains(event.target)) {
-          menu.remove();
-          document.removeEventListener("mousedown", close, true);
-        }
-      };
-      menu.addEventListener("keydown", event => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          menu.remove();
-          anchor.focus();
-        }
+      popup.addEventListener("popuphidden", () => {
+        popup.remove();
       });
 
-      document.documentElement.appendChild(menu);
-      const rect = anchor.getBoundingClientRect();
-      menu.style.insetInlineStart = `${Math.round(rect.left)}px`;
-      menu.style.insetBlockStart = `${Math.round(rect.bottom + 4)}px`;
-      setTimeout(() => document.addEventListener("mousedown", close, true), 0);
-      menu.querySelector("button:not(:disabled)")?.focus();
+      const popupSet = document.getElementById("mainPopupSet") || document.documentElement;
+      popupSet.appendChild(popup);
+
+      popup.openPopup(anchor, "", 0, 0, true, false, event);
     }
 
     _getColorCSS() {
@@ -1579,8 +1574,7 @@
           background: color-mix(in srgb, currentColor 30%, transparent);
         }
 
-        #hilal-ws-dialog,
-        #hilal-ws-menu {
+        #hilal-ws-dialog {
           background: var(--panel-background-color);
           color: var(--panel-color);
           border: 1px solid var(--panel-border-color);
@@ -1689,37 +1683,6 @@
 
         #hilal-ws-dialog-delete {
           margin-inline-end: auto;
-        }
-
-        #hilal-ws-menu {
-          position: fixed;
-          z-index: 100000;
-          min-width: 220px;
-          padding: var(--space-xxsmall);
-          display: flex;
-          flex-direction: column;
-          gap: 1px;
-        }
-
-        #hilal-ws-menu > button {
-          appearance: none;
-          border: none;
-          border-radius: var(--button-border-radius);
-          background: transparent;
-          color: inherit;
-          padding: var(--space-small) var(--space-medium);
-          text-align: start;
-          font: inherit;
-        }
-
-        #hilal-ws-menu > button:hover,
-        #hilal-ws-menu > button:focus-visible {
-          background: var(--button-background-color-ghost-hover);
-          outline: none;
-        }
-
-        #hilal-ws-menu > button:disabled {
-          opacity: 0.45;
         }
       `;
     }
@@ -1834,7 +1797,7 @@
         );
         button.addEventListener("contextmenu", event => {
           event.preventDefault();
-          this._showWorkspaceMenu(workspace, button);
+          this._showWorkspaceMenu(workspace, button, event);
         });
         button.addEventListener("dragover", event => {
           if (event.dataTransfer.types.includes(TAB_DROP_TYPE)) {

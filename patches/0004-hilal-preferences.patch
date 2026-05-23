@@ -1,22 +1,31 @@
-Hilal Browser: add Hilal settings section to General preferences
+Hilal Browser: add Hilal settings category to preferences
 
-Adds a "Hilal Browser" groupbox to the General pane with checkboxes to
-enable/disable workspaces, toggle public pinned tabs, toggle public tab groups,
-and a Reset Workspaces button. The pref binding is handled manually via JS.
+Adds a dedicated "Hilal Browser" category to about:preferences with
+workspace controls and a Reset Workspaces button. The pref binding is handled
+manually via JS.
 
 ---
-diff --git a/browser/components/preferences/main.inc.xhtml b/browser/components/preferences/main.inc.xhtml
-index 32e3edbbe933..e1f11778fed7 100644
---- a/browser/components/preferences/main.inc.xhtml
-+++ b/browser/components/preferences/main.inc.xhtml
-@@ -214,4 +214,24 @@
- 
- <!-- Network Settings-->
- <html:setting-group groupid="networkProxy" data-category="paneGeneral" data-subcategory="netsettings" hidden="true" data-srd-migrated="" />
+diff --git a/browser/components/preferences/hilal.inc.xhtml b/browser/components/preferences/hilal.inc.xhtml
+new file mode 100644
+--- /dev/null
++++ b/browser/components/preferences/hilal.inc.xhtml
+@@ -0,0 +1,33 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 +
-+<!-- Hilal Browser -->
-+<groupbox id="hilalSettingsGroup" data-category="paneGeneral" hidden="true">
-+  <label><html:h2>Hilal Browser</html:h2></label>
++<!-- Hilal Browser panel -->
++
++<html:template id="template-paneHilal">
++<hbox id="hilalCategory"
++      class="subcategory"
++      hidden="true"
++      data-category="paneHilal">
++  <html:h1 data-l10n-id="hilal-settings-header"/>
++</hbox>
++
++<groupbox id="hilalWorkspacesGroup" data-category="paneHilal" hidden="true">
++  <label><html:h2 data-l10n-id="hilal-workspaces-header"/></label>
 +  <vbox align="start">
 +    <checkbox id="hilalWorkspacesEnabled"
 +              label="Enable workspaces"/>
@@ -33,9 +42,8 @@ index 32e3edbbe933..e1f11778fed7 100644
 +    </hbox>
 +  </vbox>
 +</groupbox>
- </html:template>
++</html:template>
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
-index dd1f2e21e8b2..aec7bc5eb903 100644
 --- a/browser/components/preferences/main.js
 +++ b/browser/components/preferences/main.js
 @@ -13,7 +13,7 @@
@@ -56,13 +64,29 @@ index dd1f2e21e8b2..aec7bc5eb903 100644
    UpdateListener: "resource://gre/modules/UpdateListener.sys.mjs",
    LinkPreview: "moz-src:///browser/components/genai/LinkPreview.sys.mjs",
    MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
-@@ -830,6 +832,101 @@ var gMainPane = {
-       AppFileHandler._init();
-     }
+@@ -1811,6 +1813,114 @@ gMainPane.initialized = new Promise(res => {
+   gMainPane.setInitialized = res;
+ });
  
-+    // Hilal Browser settings.
++var gHilalPane = {
++  init() {
++    /**
++     * @param {string} aId
++     * @param {string} aEventType
++     * @param {(ev: Event) => void} aCallback
++     */
++    function setEventListener(aId, aEventType, aCallback) {
++      document.getElementById(aId).addEventListener(aEventType, aCallback);
++    }
++
 +    const hilalWsCheckbox = /** @type {HTMLInputElement|null} */ (
 +      document.getElementById("hilalWorkspacesEnabled")
++    );
++    const hilalWsPinnedPublicCheckbox = /** @type {HTMLInputElement|null} */ (
++      document.getElementById("hilalWorkspacesPinnedPublic")
++    );
++    const hilalWsGroupsPublicCheckbox = /** @type {HTMLInputElement|null} */ (
++      document.getElementById("hilalWorkspacesGroupsPublic")
 +    );
 +    const resetHilalWorkspaceContainers = () => {
 +      let workspaces = [];
@@ -87,12 +111,7 @@ index dd1f2e21e8b2..aec7bc5eb903 100644
 +        }
 +      }
 +    };
-+    const hilalWsPinnedPublicCheckbox = /** @type {HTMLInputElement|null} */ (
-+      document.getElementById("hilalWorkspacesPinnedPublic")
-+    );
-+    const hilalWsGroupsPublicCheckbox = /** @type {HTMLInputElement|null} */ (
-+      document.getElementById("hilalWorkspacesGroupsPublic")
-+    );
++
 +    if (hilalWsCheckbox) {
 +      hilalWsCheckbox.checked = Services.prefs.getBoolPref(
 +        "hilal.workspaces.enabled",
@@ -154,7 +173,43 @@ index dd1f2e21e8b2..aec7bc5eb903 100644
 +        }
 +      }
 +    });
++  },
++};
 +
-     // Listen for window unload so we can remove our preference observers.
-     window.addEventListener("unload", this);
+ var {
+   InternalHandlerInfoWrapper,
+   getFileDisplayName,
+diff --git a/browser/components/preferences/preferences.js b/browser/components/preferences/preferences.js
+--- a/browser/components/preferences/preferences.js
++++ b/browser/components/preferences/preferences.js
+@@ -485,6 +485,7 @@ function init_all() {
+   Preferences.queueUpdateOfAllElements();
  
+   register_module("paneGeneral", gMainPane);
++  register_module("paneHilal", gHilalPane);
+   register_module("paneHome", gHomePane);
+   register_module("paneSearch", gSearchPane);
+   register_module("panePrivacy", gPrivacyPane);
+diff --git a/browser/components/preferences/preferences.xhtml b/browser/components/preferences/preferences.xhtml
+--- a/browser/components/preferences/preferences.xhtml
++++ b/browser/components/preferences/preferences.xhtml
+@@ -129,6 +129,11 @@
+         iconsrc="chrome://browser/skin/preferences/category-general.svg"
+         data-l10n-id="pane-general-title">
+       </html:moz-page-nav-button>
++      <html:moz-page-nav-button id="category-hilal"
++        view="paneHilal"
++        iconsrc="chrome://global/skin/icons/settings.svg"
++        data-l10n-id="hilal-settings-header">
++      </html:moz-page-nav-button>
+       <html:moz-page-nav-button id="category-home"
+         view="paneHome"
+         iconsrc="chrome://browser/skin/home.svg"
+@@ -254,6 +259,7 @@
+         <vbox id="mainPrefPane">
+ #include searchResults.inc.xhtml
+ #include main.inc.xhtml
++#include hilal.inc.xhtml
+ #include home.inc.xhtml
+ #include search.inc.xhtml
+ #include privacy.inc.xhtml
