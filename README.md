@@ -112,6 +112,7 @@ hilal-browser/              <- this repo
 - `docs/BUILD-MACOS.md` — macOS-specific build notes
 - `docs/BUILD-WINDOWS.md` — Windows-specific build notes
 - `docs/UPSTREAM-SYNC.md` — how to roll forward to a newer Firefox
+- `docs/UPDATES.md` — application update channel, MAR creation, and release signing checklist
 
 ---
 

@@ -247,17 +247,19 @@ Bu rapor, aşağıdaki kaynaklardan derlenerek oluşturulmuştur:
 
 ## BÖLÜM 3 — GÜVENLİK EKSİKLERİ
 
-### 3.1 KRİTİK — Otomatik Güncelleme Sistemi Yok `[DOĞRULANDI]`
+### 3.1 KRİTİK — Otomatik Güncelleme Sistemi Yok `[KISMEN DÜZELTİLDİ - CLIENT PLUMBING EKLENDİ]`
 
 **Kanıt:**
-- `mozconfigs/base:5` — updater devre dışı
+- `mozconfigs/base` artık desktop build'lerde `--enable-updater` ve `--enable-update-channel="$MOZ_UPDATE_CHANNEL"` kullanıyor; varsayılan kanal `hilal-release`.
 - `mozconfigs/android-base:6` — updater devre dışı
-- `.github/workflows/release.yml:18` — sadece GitHub release oluşturuyor; build, sign, notarize, SBOM, update manifest, test yok
+- `patches/0014-hilal-update-policy.patch` Firefox paketine `distribution/policies.json` ekleyerek `AppUpdateURL` değerini Hilal update altyapısına yönlendiriyor.
+- `scripts/make-full-update.sh` packaged build'den complete MAR üretmek için helper ekliyor.
+- `.github/workflows/release.yml:18` — hâlâ sadece GitHub release oluşturuyor; build, sign, notarize, SBOM, update manifest, test yok
 
 **Etki:**
 - Mozilla'nın Firefox 151 güncellemesi (2026-05-19 açıklanan): sandbox escape, same-origin bypass, memory safety açıkları, privilege escalation yamadı
-- Hilal kullanıcıları bu açıklara hâlâ maruz
-- Tarayıcı "güvenli" iddiasıyla dağıtılıyor ama güvenlik yamaları ulaşmıyor
+- Hilal tarafında updater client artık build'e girebilir, ancak üretim güvenliği için imzalı MAR üretimi, platform signing/notarization, update XML yayını ve CI smoke testleri hâlâ tamamlanmalıdır.
+- İmzalı update pipeline bitene kadar kullanıcıların güvenlik yamalarını otomatik ve doğrulanabilir şekilde aldığı söylenemez.
 
 **Rakip karşılaştırma:**
 | Tarayıcı | Güncelleme | Yama hızı |
@@ -267,7 +269,7 @@ Bu rapor, aşağıdaki kaynaklardan derlenerek oluşturulmuştur:
 | Brave | İmzalı otomatik | Günler içinde |
 | Hilal | YOK | Belirsiz |
 
-**Öncelik:** KRİTİK #1
+**Öncelik:** KRİTİK #1 (client tarafı başlatıldı, release pipeline hâlâ açık)
 
 ---
 
@@ -354,19 +356,18 @@ Bu rapor, aşağıdaki kaynaklardan derlenerek oluşturulmuştur:
 
 ---
 
-### 3.7 YÜKSEK — Website Güvenlik Açıkları `[TEKRAR AÇILDI - 2026-05-24]`
+### 3.7 YÜKSEK — Website Güvenlik Açıkları `[DÜZELTİLDİ - 2026-05-24]`
 
 **Kanıt:**
-- `www/package.json` içinde Next.js `14.2.35` sürümüne, next-intl `^3.26.2` sürümüne ve postcss `^8.5.10` sürümüne yükseltilmiştir.
-- Ancak `npm audit --audit-level=moderate` komutu mevcut `www/package-lock.json` ile hâlâ 2 dependency advisory'si döndürmektedir:
-  - `next` aralığı `9.5.0 - 15.5.15` için yüksek seviye DoS, request smuggling/cache poisoning/XSS/SSRF sınıfı advisory'ler
-  - `next-intl <=4.9.1` için orta seviye open redirect ve prototype pollution advisory'leri
-- `npm audit` önerilen temiz yükseltme olarak `next@16.2.6` ve `next-intl@4.12.0` gösteriyor; bu breaking upgrade olduğu için manuel uyumluluk testi gerektirir.
+- `www/package.json` içinde Next.js `16.2.6`, next-intl `4.12.0`, React `19.2.6`, React DOM `19.2.6` ve TypeScript `6.0.3` sürümlerine yükseltilmiştir.
+- `npm audit --audit-level=moderate` artık temiz sonuç vermektedir.
+- Next 16 migration kapsamında `middleware.ts` yerine `proxy.ts` kullanılmış, `next-intl/server` için `setRequestLocale` API'sine geçilmiş ve App Router async `params` tipi uygulanmıştır.
+- React 19 hydration uyarısı oluşturan rastgele SVG mask ID'si `useId()` ile stabil hale getirilmiştir.
 
 **Etki:**
-- Web sitesi bağımlılıklarındaki önceki açıklar azaltılmış olabilir, ancak mevcut audit artık temiz değildir. Public site deploy ediliyorsa bu madde yeniden yüksek öncelikli hale gelmiştir.
+- Web sitesi bağımlılıklarındaki bilinen Next.js ve next-intl advisory'leri kapatılmıştır. Build, TypeScript kontrolü ve production smoke test başarılıdır.
 
-**Öncelik:** YÜKSEK
+**Öncelik:** DÜŞÜK (Çözüldü)
 
 ---
 
@@ -434,12 +435,9 @@ Rakip tarayıcılarda olan, Hilal'de audit sırasında hiç bulunamayan özellik
 
 ### 🔴 KRİTİK (Üretim öncesi zorunlu)
 
-**K-1: İmzalı güncelleme sistemi kur**
-- Hedef: İmzalı MAR/pkg/msix/dmg artifact'lar
-- Update manifest yayınlama
-- Rollback koruması
-- Acil durum kanalı
-- Tekrarlanabilir build notları + SBOM + provenance attestation + yayınlanmış hash'ler
+**K-1: İmzalı güncelleme sistemi kur** `[KISMEN TAMAMLANDI - CLIENT PLUMBING]`
+- Tamamlandı: desktop `MOZ_UPDATER` yeniden etkinleştirildi, Hilal `AppUpdateURL` policy'si paketleniyor, complete MAR helper'ı ve `docs/UPDATES.md` eklendi.
+- Kalan: Hilal-owned MAR signing sertifikaları, platform-signed/notarized pkg/msix/dmg artifact'lar, update manifest yayınlama, rollback koruması, acil durum kanalı, tekrarlanabilir build notları + SBOM + provenance attestation + yayınlanmış hash'ler.
 - **Neden kritik:** Güncelleme olmadan diğer her güvenlik önlemi anlamsız
 
 **K-2: CI/CD pipeline'ını gerçek iş yapacak hale getir**
@@ -479,9 +477,9 @@ Rakip tarayıcılarda olan, Hilal'de audit sırasında hiç bulunamayan özellik
 **O-1: Chrome CSS güvenlik denetimi** `[KISMEN TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
 - CSS kurallarının discard edilme hatası giderilmiş, `8e6e2d0` ile Firefox-UI-Fix suite dinamik ayarlar ile entegre edilmiştir. Kilit ikonu vb. güvenlik göstergelerinin bütünlüğü test edilmiştir.
 
-**O-2: Website bağımlılıklarını güncelle** `[TEKRAR AÇILDI - 2026-05-24]`
-- Next.js `14.2.35` ve next-intl `^3.26.2` önceki açıkları kapatmak için eklenmişti, ancak mevcut `npm audit --audit-level=moderate` çıktısı `next` ve `next-intl` için hâlâ advisory döndürüyor.
-- Breaking upgrade gerektirdiği için `next@16.2.6` / `next-intl@4.12.0` geçişi ayrı test planıyla ele alınmalı.
+**O-2: Website bağımlılıklarını güncelle** `[TAMAMLANDI - 2026-05-24]`
+- Next.js `16.2.6`, next-intl `4.12.0`, React `19.2.6` ve TypeScript `6.0.3` geçişi tamamlandı.
+- `npm audit --audit-level=moderate`, `npm run build` ve `npm run lint` başarılıdır.
 
 **O-3: Statik analiz araçları ekle** `[AÇIK]`
 - `test-profile` local diskte mevcut olsa da sürüm kontrollü test altyapısı olarak repo içinde izlenmiyor.
@@ -560,7 +558,7 @@ Bu bölüm nelerin iyi gittiğini belgeliyor — geliştirme sürecinde bunlar k
 ### Genel Doğrulama Sonucu
 - `[x] Rapor büyük ölçüde doğru, ancak birkaç önemli durum değişmiş`
 - `[x] Raporda önemli hatalar vardı (aşağıda düzeltildi)`
-- `[x] Rapor güncellendi (v0.2.0-alpha.3 local kod durumu + public release farkı + npm audit regresyonu)`
+- `[x] Rapor güncellendi (v0.2.0-alpha.3 local kod durumu + public release farkı + website audit düzeltmesi)`
 
 ### Bölüm Bazlı Doğrulama
 
@@ -574,25 +572,25 @@ Bu bölüm nelerin iyi gittiğini belgeliyor — geliştirme sürecinde bunlar k
 | 2.6 Split View | `[DOĞRULANDI]` | tabsplitview.js:437 üzerinde 2 tab varsayımı doğrulanmıştır. Workspace geçişinde bozulma riski vardır. |
 | 2.7 URL Kopyalama | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | `b99a468` ile `about:config` gibi ayrıcalıklı sayfalara retargeting korumaları eklenmiştir. |
 | 2.8 Privacy seviyeleri | `[KISMEN DOĞRULANDI - YENİ]` | `0013-hilal-privacy-levels.patch` ve `HilalWorkspaces.js` ile Standard / Strict / Tor-like seviyeleri local kodda mevcut. Tor-like, Tor Browser eşdeğeri değildir. |
-| 3.1 Güncelleme sistemi | `[AÇIK]` | Yerleşik güncelleme mekanizması devre dışı bırakılmıştır. Kurulması planlanıyor. |
+| 3.1 Güncelleme sistemi | `[KISMEN DÜZELTİLDİ]` | Desktop updater build'e geri alındı, Hilal `AppUpdateURL` policy'si ve complete MAR helper'ı eklendi. İmzalı release pipeline hâlâ açık. |
 | 3.2 CI/CD | `[AÇIK]` | Sadece GitHub release oluşturulmakta, build/test adımları bulunmamaktadır. |
 | 3.3 Privacy Hardening iddiası | `[YANLIŞ / KISMEN REVİZE]` | Hardening kodda var; ancak yeni `standard` privacy level başlangıçta content blocking'i `strict`ten `standard`a çekiyor. |
 | 3.4 uBO supply chain | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | Eklenti XPI'si sabit sha256 checksum ile apply.sh sürecinde indirilmekte ve doğrulanmaktadır. |
 | 3.5 Mozilla veri toplama | `[YANLIŞ]` | firefox-branding.js (Satır 49-160) ile telemetry, studies ve veri sızıntı yolları kapatılmıştır. |
 | 3.6 CSS riski | `[KISMEN DÜZELTİLDİ - v0.2.0-alpha.3]` | `8e6e2d0` ile dynamic settings entegrasyonu var; güvenlik göstergeleri için otomatik görsel regresyon testi hâlâ yok. |
-| 3.7 Website açıkları | `[TEKRAR AÇILDI]` | `npm audit --audit-level=moderate` mevcut `www` lockfile ile `next` ve `next-intl` advisory'leri döndürüyor. |
+| 3.7 Website açıkları | `[DÜZELTİLDİ]` | `www` Next.js `16.2.6` ve next-intl `4.12.0` sürümlerine taşındı; `npm audit --audit-level=moderate` temiz. |
 | 3.8 Release hygiene | `[KISMEN DÜZELTİLDİ / AÇIK]` | Patch serisi temiz, orphan patch yok; ancak `FIREFOX_COMMIT`, local `firefox/` HEAD'iyle eşleşmiyor ve public latest release alpha.2'de kalmış. |
 
 ### Düzeltilen Bulgular (v0.2.0-alpha.3 Sürümünde Yapılanlar)
 1. **Container Verilerinin Fiziksel Silinmesi (Bölüm 2.1 & Y-2):** `HilalWorkspaces.js` içinde `_removeWorkspaceContainer` fonksiyonunda `Services.clearData` API'si çağrılarak workspace silindiğinde tüm container geçmişi ve verileri temizlenmesi sağlanmıştır.
 2. **uBlock Origin Supply Chain Hardening (Bölüm 2.3 & 3.4 & K-4):** `apply.sh` içerisine sha256 checksum (`9928e79a52cecf7cfa231fdb0699c7d7a427660d94eb10d711ed5a2f10d2eb89`) ve sabit `1.57.2` sürümü doğrulaması entegre edilmiştir.
 3. **Bangs DuckDuckGo Arama Sızıntısı (Bölüm 2.2 & Y-3):** Bilinmeyen bang'lerin DuckDuckGo'ya yönlenmesi iptal edilerek adres barının varsayılan arama motorunu kullanması sağlanmıştır.
-4. **Resmi Web Sitesi Güvenlik Güncellemeleri (Bölüm 3.7 & O-2):** Next.js `14.2.35` yükseltmesi önceki açıkları azaltmıştı; ancak güncel `npm audit` nedeniyle madde tekrar açılmıştır.
+4. **Resmi Web Sitesi Güvenlik Güncellemeleri (Bölüm 3.7 & O-2):** Next.js `16.2.6` ve next-intl `4.12.0` geçişiyle güncel advisory'ler kapatılmıştır.
 5. **Ayrıcalıklı URL Koruması (Bölüm 2.7):** Ayrıcalıklı iç sayfaların (`about:config`, `chrome://...`) container'lara retarget edilmesi engellenmiştir.
 6. **Privacy Seviyeleri (Bölüm 2.8 & Y-4):** `e91a736` ile preferences UI'a Standard / Strict / Tor-like seçenekleri ve runtime pref uygulama katmanı eklenmiştir.
 
 ### Yeni / Revize Bulgular
-1. **Website audit tekrar kırmızı:** `npm audit --audit-level=moderate` sonucu `next` için yüksek, `next-intl` için orta seviye advisory döndürüyor. O-2 artık tamamlandı sayılamaz.
+1. **Website audit kapandı:** `npm audit --audit-level=moderate` artık temiz; O-2 tamamlandı.
 2. **Privacy level baseline çelişkisi:** `firefox-branding.js` strict content blocking tanımlıyor, ancak başlangıçta `standard` privacy level uygulanınca content blocking standard seviyeye düşüyor.
 3. **Release hygiene farkı:** local changelog alpha.3 iken GitHub latest release alpha.2; ayrıca `FIREFOX_COMMIT` ile local `firefox/` HEAD'i farklı.
 4. **Test profile sürüm kontrollü değil:** `test-profile/` local diskte var, fakat `git ls-files test-profile` çıktısı `0`.
@@ -600,7 +598,6 @@ Bu bölüm nelerin iyi gittiğini belgeliyor — geliştirme sürecinde bunlar k
 ### Kalan Kritik Odaklar
 - **K-1 (Güncelleme Sistemi):** İmzalı güncelleme kanalları (MAR/pkg/dmg) ve update manifest oluşturulması.
 - **K-2 (CI/CD Pipeline):** Sadece tag atmak yerine, CI üzerinde gerçek build, lint ve test süreçlerinin işletilmesi.
-- **O-2 (Website bağımlılıkları):** Next.js / next-intl breaking upgrade planı ve deploy testi.
 
 ### Doğrulama Tarihi & Agent Kimliği
 - Tarih: 2026-05-24
@@ -609,4 +606,4 @@ Bu bölüm nelerin iyi gittiğini belgeliyor — geliştirme sürecinde bunlar k
 
 ---
 
-*Rapor sonu. Toplam bölüm: 9. Toplam eylem maddesi: K-4, Y-4, O-4, D-3 = 15 eylem. Tamamlanan/kısmen tamamlanan: K-4, Y-1, Y-2, Y-3, Y-4, 2.1-Sorun1, 2.2-Sorun1, 2.3-Sorun1, 2.3-Sorun2, 2.7-Sorun2. Tekrar açılan: O-2 / 3.7 website bağımlılıkları.*
+*Rapor sonu. Toplam bölüm: 9. Toplam eylem maddesi: K-4, Y-4, O-4, D-3 = 15 eylem. Tamamlanan/kısmen tamamlanan: K-4, Y-1, Y-2, Y-3, Y-4, O-2, 2.1-Sorun1, 2.2-Sorun1, 2.3-Sorun1, 2.3-Sorun2, 2.7-Sorun2, 3.7 website bağımlılıkları.*

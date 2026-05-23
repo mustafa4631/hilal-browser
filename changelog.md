@@ -8,6 +8,7 @@ All notable changes to the Hilal Browser project will be documented in this file
 
 ### Added
 - **Dynamic Firefox-UI-Fix Preferences Integration**: Integrated the Firefox-UI-Fix suite with dynamic options in the Settings UI (preferences page).
+- **Desktop Application Update Plumbing**: Enabled Firefox's desktop updater for Hilal builds, bundled a Hilal `AppUpdateURL` policy, and added a helper for creating complete MAR updates.
 - **Premium Onboarding Welcome Screen**: Implemented a beautiful premium onboarding/welcome overlay displayed on the first run of the browser.
 - **Bangs Search Fallback Control**: Prevented unknown bangs from automatically redirecting to DuckDuckGo, giving more predictable address bar search behavior.
 - **uBlock Origin Pinning & Verification**: Hardened uBlock Origin default installation by pinning to `1.57.2` with SHA-256 checksum verification during environment setup.
@@ -15,7 +16,7 @@ All notable changes to the Hilal Browser project will be documented in this file
 - **Browser Test Profile & Audit Report**: Initialized a developer test profile and added tools/scaffolding for testing preference configurations, along with a comprehensive workspace audit report.
 
 ### Changed
-- **Website/www Security Update**: Upgraded website dependencies (Next.js, next-intl, postcss) to fix security vulnerabilities.
+- **Website/www Security Update**: Upgraded the website to Next.js `16.2.6`, next-intl `4.12.0`, React `19.2.6`, and TypeScript `6.0.3`; migrated middleware to `proxy.ts` and fixed React hydration warnings.
 - **Refactored Workspace Patches**: Modularized the workspaces codebase and refactored core workspace preference structures.
 
 ### Fixed

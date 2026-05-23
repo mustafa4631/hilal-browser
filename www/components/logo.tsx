@@ -1,5 +1,10 @@
+'use client';
+
+import { useId } from 'react';
+
 export function HilalLogo({ className = '', size = 28 }: { className?: string; size?: number }) {
-  const maskId = `crescent-cutout-${Math.random().toString(36).slice(2, 9)}`;
+  const maskId = `crescent-cutout-${useId().replace(/:/g, '')}`;
+
   return (
     <svg
       width={size}
