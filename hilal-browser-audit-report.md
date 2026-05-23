@@ -1,10 +1,15 @@
 # HİLAL BROWSER — KAPSAMLİ DENETİM RAPORU
-**Rapor Versiyonu:** 1.1 (Güncellendi)  
-**Rapor Tarihi:** 2026-05-24  
-**Hazırlayan:** Antigravity AI (Gemini 3.5 Flash)  
-**Hedef Kitle:** Doğrulayıcı AI Agent + Proje Geliştirici  
-**Repo:** https://github.com/VastSea0/hilal-browser  
-**İncelenen Sürüm:** v0.2.0-alpha.3 (yayın tarihi: 2026-05-24)
+**Rapor Versiyonu:** 1.2 (Codex doğrulama güncellemesi)
+
+**Rapor Tarihi:** 2026-05-24
+
+**Hazırlayan:** Antigravity AI (Gemini 3.5 Flash); doğrulama güncellemesi: Codex
+
+**Hedef Kitle:** Doğrulayıcı AI Agent + Proje Geliştirici
+
+**Repo:** https://github.com/VastSea0/hilal-browser
+
+**İncelenen Sürüm:** local `main` / v0.2.0-alpha.3 kod durumu (public GitHub "Latest release" hâlâ v0.2.0-alpha.2, 2026-05-19)
 
 ---
 
@@ -38,11 +43,11 @@ Bu rapor, aşağıdaki kaynaklardan derlenerek oluşturulmuştur:
 | Temel motor | Firefox (upstream overlay mimarisi) |
 | Mimari tipi | Patch + overlay katmanı, Firefox fork değil |
 | Aktif geliştirici sayısı | 1 (VastSea0) + 2 katkıda bulunan |
-| Toplam overlay dosyası | ~363 (Firefox'un 464.397 dosyasının üstüne) |
-| Mevcut sürüm | v0.2.0-alpha.2 |
+| Toplam overlay dosyası | ~364 overlay/support dosyası; toplam versiyonlanan dosya 369 |
+| Mevcut sürüm | local changelog: v0.2.0-alpha.3; public GitHub latest release: v0.2.0-alpha.2 |
 | Desteklenen platformlar | macOS (birincil), Windows (PowerShell build mevcut) |
 | GitHub yıldız / fork | 8 yıldız / 0 fork |
-| Açık issue sayısı | 6 |
+| Açık issue sayısı | 0 |
 | Lisans | Mozilla Public License 2.0 |
 
 **Genel değerlendirme:** Erken alpha aşamasında, tek geliştirici tarafından yürütülen, Firefox üzerine inşa edilmiş bir tarayıcı projesidir. Mimari kararlar teknik olarak sağlıklıdır ancak üretim olgunluğuna ulaşmak için kritik eksikler mevcuttur.
@@ -126,10 +131,10 @@ Bu rapor, aşağıdaki kaynaklardan derlenerek oluşturulmuştur:
 **Gerçek durum:** Özellik güvenli şekilde çalışıyor. İyileştirmeler:
 
 **Sorun 1 — Supply chain riski:** `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
-- `689fe89` ile uBlock Origin sürümü `1.57.2` olarak sabitlenmiş ve sha256 checksum doğrulaması (`9928e79a52cecf7cfa231fdb0699c7d7a427660d94eb10d711ed5a2f10d2eb89`) entegre edilmiştir. Bu sayede tedarik zinciri ve tekrarlanabilir derleme riski sıfırlanmıştır.
+- `689fe89` ile uBlock Origin sürümü `1.57.2` olarak sabitlenmiş ve sha256 checksum doğrulaması (`9928e79a52cecf7cfa231fdb0699c7d7a427660d94eb10d711ed5a2f10d2eb89`) entegre edilmiştir. AMO `latest.xpi` değişkenliği ortadan kalkmış; kalan risk indirme kaynağına ve hash'in güncel tutulmasına indirgenmiştir.
 
 **Sorun 2 — Aktivasyon sorunu:** `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
-- `354c214` ile pre-installed eklentilerin ilk açılışta otomatik taranması ve yüklenmesi sağlanarak uBO'nun hemen aktif olmama sorunu giderilmiştir.
+- `patches/0008-hilal-ublock.patch` içinde `extensions.autoDisableScopes = 0` ve `extensions.startupScanScopes = 8` ayarları ile pre-installed eklentilerin ilk açılışta otomatik taranması ve yüklenmesi sağlanarak uBO'nun hemen aktif olmama sorunu giderilmiştir.
 
 **Sorun 3 — Onboarding bilgilendirmesi eklendi:** `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
 - `67b671f` ile ilk çalıştırmada gösterilen premium onboarding welcome ekranına "uBlock Origin dahil" ve gizlilik/güvenlik odaklı bilgilendirme eklenmiştir.
@@ -157,8 +162,6 @@ Bu rapor, aşağıdaki kaynaklardan derlenerek oluşturulmuştur:
   - `widget/cocoa/nsCocoaWindow.mm:1267` — `UpdateVibrancy` fonksiyonu içinde pencere tipi `TopLevel` iken tam pencere vibrancy maskesi Cocoa seviyesinde zorlanıyor: `regions[VibrancyType::Sidebar].OrWith(LayoutDeviceIntRect(0, 0, mBounds.width, mBounds.height));`
   - `widget/cocoa/nsCocoaWindow.mm:5105` ve `5620` — `mWindow.opaque = !hilalTransparentChrome;` ve `mWindow.backgroundColor = NSColor.clearColor;` atamaları ile ana pencereler şeffaf hale getiriliyor.
 - **Ciddiyet:** YOK (Kanıtlar tam olarak doğrulanmıştır)
-
----
 
 ### 2.5 Dikey Sekmeler + Kompakt Sidebar `[DOĞRULANDI]`
 
@@ -223,6 +226,25 @@ Bu rapor, aşağıdaki kaynaklardan derlenerek oluşturulmuştur:
 
 ---
 
+### 2.8 Gizlilik Seviyeleri `[KISMEN DOĞRULANDI - YENİ]`
+
+**İddia:** Hilal artık Standard, Strict ve Tor-like privacy seviyeleri sunar.
+
+**Kod kanıtı:**
+- `branding/hilal/pref/firefox-branding.js:47` — varsayılan `hilal.privacy.level = "standard"` pref'i
+- `prefs/browser/base/content/hilal/HilalWorkspaces.js:55-100` — seviyelerin gerçek Firefox pref karşılıkları
+- `prefs/browser/base/content/hilal/HilalWorkspaces.js:180-190` — seçilen seviyeyi pref'lere uygulayan `_applyPrivacyLevel`
+- `prefs/browser/base/content/hilal/HilalWorkspaces.js:408-412` ve `593-599` — başlangıçta uygulama ve pref observer
+- `patches/0013-hilal-privacy-levels.patch` — about:preferences içinde Standard / Strict / Tor-like radyo grubu
+
+**Gerçek durum:** Özellik local kodda mevcuttur ve `patches/series` içinde uygulanacak sıraya eklenmiştir. Ancak isimlendirme iddialı: "Tor-like" seviyesi Tor routing, NoScript veya circuit izolasyonu sağlamaz; `privacy.resistFingerprinting`, WebRTC kapatma, WebGL kapatma, first-party isolation, referrer ve query stripping gibi pref sertleştirmelerini uygular.
+
+**Yeni sorun — Standard seviyesi baseline'ı zayıflatıyor:** `[YENİ BULGU]`
+- `firefox-branding.js` varsayılan baseline'da `browser.contentblocking.category = "strict"` ayarlı iken, `_applyPrivacyLevel()` başlangıçta `standard` seviyesini uyguluyor ve bunu `standard` kategorisine düşürüyor. Bu davranış bilinçli bir ürün tercihi olabilir, ancak rapordaki "varsayılan strict tracking protection" iddiasıyla çelişiyor.
+- **Ciddiyet:** ORTA (gizlilik beklentisi ve dokümantasyon tutarlılığı)
+
+---
+
 ## BÖLÜM 3 — GÜVENLİK EKSİKLERİ
 
 ### 3.1 KRİTİK — Otomatik Güncelleme Sistemi Yok `[DOĞRULANDI]`
@@ -265,7 +287,7 @@ Bu rapor, aşağıdaki kaynaklardan derlenerek oluşturulmuştur:
 
 ---
 
-### 3.3 YÜKSEK — "Privacy Hardening" İddiası Kodda Karşılanmıyor `[YANLIŞ]`
+### 3.3 YÜKSEK — "Privacy Hardening" İddiası Kodda Karşılanmıyor `[YANLIŞ / KISMEN REVİZE]`
 
 **Kanıt:**
 - `changelog.md [0.1.0]` — "Privacy Hardening: Enhanced default privacy preferences and telemetry blocks" yazıyor
@@ -280,8 +302,13 @@ Bu rapor, aşağıdaki kaynaklardan derlenerek oluşturulmuştur:
   - **Sponsored Content & Pocket:** Pocket ve sponsored content entegrasyonları `extensions.pocket.enabled = false` ve `browser.newtabpage.activity-stream.showSponsored = false` (Satır 96-107) ayarları ile devre dışıdır.
   - **Search & Suggestion Calls:** Adres çubuğu ve arama motoru otomatik önerileri `browser.search.suggest.enabled = false` ve `browser.urlbar.suggest.searches = false` (Satır 110-128) ile kapatılmıştır.
 
+**Revize not (Codex, 2026-05-24):**
+- Privacy hardening iddiası kodda karşılanmaktadır; bu yüzden orijinal "kodda yok" bulgusu yanlıştır.
+- Ancak `hilal.privacy.level = "standard"` artık başlangıçta `_applyPrivacyLevel()` tarafından uygulanıyor ve `browser.contentblocking.category` değerini `strict` yerine `standard` yapıyor. Bu nedenle "varsayılan olarak strict tracking protection" iddiası artık koşulsuz doğru değildir.
+
 **Etki:**
-- Hilal Browser varsayılan olarak Betterfox/Arkenfox esintili son derece gelişmiş bir gizlilik baseline'ı sunar. Kullanıcı verileri Mozilla veya Normandy sunucularına sızdırılmaz.
+- Hilal Browser telemetri, Normandy, sponsored content, Pocket, unsolicited search suggestions ve çeşitli background network çağrılarını varsayılan olarak kapatır.
+- Tracking protection sertliği ise artık seçilen privacy seviyesine bağlıdır; `Strict` veya `Tor-like` seçilmediği sürece `browser.contentblocking.category` standard seviyeye çekilir.
 
 **Öncelik:** DÜŞÜK (Mevcut ayarlar zaten sağlamdır)
 
@@ -327,26 +354,34 @@ Bu rapor, aşağıdaki kaynaklardan derlenerek oluşturulmuştur:
 
 ---
 
-### 3.7 ORTA — Website Güvenlik Açıkları `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
+### 3.7 YÜKSEK — Website Güvenlik Açıkları `[TEKRAR AÇILDI - 2026-05-24]`
 
 **Kanıt:**
 - `www/package.json` içinde Next.js `14.2.35` sürümüne, next-intl `^3.26.2` sürümüne ve postcss `^8.5.10` sürümüne yükseltilmiştir.
+- Ancak `npm audit --audit-level=moderate` komutu mevcut `www/package-lock.json` ile hâlâ 2 dependency advisory'si döndürmektedir:
+  - `next` aralığı `9.5.0 - 15.5.15` için yüksek seviye DoS, request smuggling/cache poisoning/XSS/SSRF sınıfı advisory'ler
+  - `next-intl <=4.9.1` için orta seviye open redirect ve prototype pollution advisory'leri
+- `npm audit` önerilen temiz yükseltme olarak `next@16.2.6` ve `next-intl@4.12.0` gösteriyor; bu breaking upgrade olduğu için manuel uyumluluk testi gerektirir.
 
 **Etki:**
-- Web sitesi bağımlılıklarındaki güvenlik açıkları tamamen giderilmiştir. `npm audit` artık temiz sonuç vermektedir.
+- Web sitesi bağımlılıklarındaki önceki açıklar azaltılmış olabilir, ancak mevcut audit artık temiz değildir. Public site deploy ediliyorsa bu madde yeniden yüksek öncelikli hale gelmiştir.
 
-**Öncelik:** DÜŞÜK (Çözüldü)
+**Öncelik:** YÜKSEK
 
 ---
 
-### 3.8 ORTA — Local/Release Hygiene Sorunları `[KISMEN DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
+### 3.8 ORTA — Local/Release Hygiene Sorunları `[KISMEN DÜZELTİLDİ / AÇIK]`
 
 **Kanıt:**
-- `test-profile` ve kapsamlı test/reorganizasyon altyapısı geliştirilmiş, repo içi kullanılmayan yamalar elden geçirilmiştir. Ancak `patches/0001-hilal-local-changes.patch` dosyası hâlâ seriye dahil olmamasına rağmen reponun içindedir.
+- `patches/series` artık `0013-hilal-privacy-levels.patch` dahil 13 yamayı sıralıyor; `patches/0001-hilal-local-changes.patch` repo içinde bulunmamaktadır. Önceki rapordaki orphan patch iddiası yanlıştır.
+- `FIREFOX_COMMIT` değeri `923c4d7d35ebb5693f5bda5dec9083f7c4f993b3`, local `firefox/` checkout HEAD'i ise `15541e093f907050a1058df80ebb1ab12860f751`; pin ile çalışma ağacı eşleşmiyor.
+- `test-profile/` dizini local diskte mevcut, ancak `git ls-files test-profile` çıktısı `0`; yani sürüm kontrollü test artifact'i değildir.
+- Public GitHub "Latest release" hâlâ v0.2.0-alpha.2 görünürken local changelog v0.2.0-alpha.3'ü tanımlıyor.
 
 **Etki:**
 - Audit edilebilirlik zayıf
 - Hangi patchin hangi Firefox sürümüne uygulandığı belirsiz
+- Local doğrulama ile public release arasında sürüm/commit farkı oluşabiliyor
 
 **Öncelik:** ORTA (Temizlik süreci devam ediyor)
 
@@ -359,10 +394,10 @@ Rakip tarayıcılarda olan, Hilal'de audit sırasında hiç bulunamayan özellik
 | Özellik | Kim sunuyor | Hilal durumu |
 |---|---|---|
 | Tor routing / New Circuit | Tor Browser | Yok |
-| Güvenlik seviyeleri (Low/Med/High) | Tor Browser | Yok |
+| Güvenlik seviyeleri (Low/Med/High) | Tor Browser | Kısmen var: Standard / Strict / Tor-like pref seviyeleri eklendi; Tor routing/circuit izolasyonu yok |
 | NoScript tarzı script kontrolü | Tor Browser | Yok |
 | Native Shields dashboard | Brave | Yok |
-| Fingerprint randomizasyonu | Brave | Yok |
+| Fingerprint randomizasyonu | Brave | Yok; Tor-like seviyede Firefox RFP etkinleştiriliyor ama randomizasyon/dashboard yok |
 | Bounce tracking koruması | Brave, Firefox | Yok |
 | Safety Check (birleşik denetim) | Chrome, Edge | Yok |
 | Privacy Report UI | Safari | Yok |
@@ -384,7 +419,7 @@ Rakip tarayıcılarda olan, Hilal'de audit sırasında hiç bulunamayan özellik
 | Workspace + container (yerleşik) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | HTTPS-Only varsayılan | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ |
 | DNS-over-HTTPS varsayılan | ✅ | Kısmen | ✅ | ✅ | ✅ | — | ❌ |
-| Fingerprint koruması | Kısmen | Kısmen | ✅ | Kısmen | ❌ | ✅ | ❌ |
+| Fingerprint koruması | Kısmen | Kısmen | ✅ | Kısmen | ❌ | ✅ | Kısmen (Tor-like seviyede RFP) |
 | Bang kısayolları (yerleşik) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | macOS native görünüm | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
 | Dikey sekmeler varsayılan | ❌ | Deneysel | ❌ | ❌ | ✅ | ❌ | ✅ |
@@ -424,8 +459,9 @@ Rakip tarayıcılarda olan, Hilal'de audit sırasında hiç bulunamayan özellik
 
 ### 🟠 YÜKSEK (İlk kararlı sürüm için)
 
-**Y-1: Gerçek Hilal privacy baseline oluştur** `[KISMEN TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
-- `firefox-branding.js` içindeki Betterfox tabanlı sertleştirmelerin yanı sıra, premium onboarding welcome ekranı üzerinden ilk çalıştırmada ve ayarlarda gizlilik tercihleri güçlendirilmiştir.
+**Y-1: Gerçek Hilal privacy baseline oluştur** `[KISMEN TAMAMLANDI - REVİZE]`
+- `firefox-branding.js` içindeki Betterfox tabanlı sertleştirmelerin yanı sıra, `0013-hilal-privacy-levels.patch` ile Standard / Strict / Tor-like tercihleri eklenmiştir.
+- Açık nokta: varsayılan `standard` seviye, branding dosyasındaki `strict` content blocking baseline'ını başlangıçta `standard` seviyeye düşürüyor. Ürün kararı netleştirilmeli ve dokümantasyon buna göre yazılmalıdır.
 
 **Y-2: Workspace silme dürüstlüğü ve güçlendirme** `[TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
 - `Services.clearData.deleteDataFromOriginAttributesPattern` kullanılarak container silindiğinde tüm site verileri artık fiziksel ve güvenli bir şekilde silinmektedir.
@@ -433,20 +469,23 @@ Rakip tarayıcılarda olan, Hilal'de audit sırasında hiç bulunamayan özellik
 **Y-3: Bang'leri opt-in ve şeffaf yap** `[KISMEN TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
 - Bilinmeyen bang'lerin sessizce DuckDuckGo'ya yönlendirilme davranışı iptal edilmiş, varsayılan tarayıcı arama motoruna güvenli fallback eklenmiştir.
 
-**Y-4: Privacy modları ekle**
-- Standart, Katı, Tor-benzeri
-- Katı: güçlü cookie/storage partitioning, query stripping, fingerprint koruması, WebRTC sızıntı kontrolü, güvenli referrer policy
+**Y-4: Privacy modları ekle** `[KISMEN TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
+- Standard, Strict ve Tor-like seçenekleri preferences UI'a eklendi.
+- `HilalWorkspaces.js` seçilen seviyeyi first-party isolation, RFP, WebRTC, WebGL, clipboard events, referrer policy ve query stripping pref'lerine uyguluyor.
+- Açık nokta: Tor-like adı Tor Browser eşdeğerliği ima etmemeli; NoScript, Tor routing/circuit izolasyonu, per-site script policy ve kullanıcıya net etki açıklaması yok.
 
 ### 🟡 ORTA (Sonraki sprint'ler için)
 
 **O-1: Chrome CSS güvenlik denetimi** `[KISMEN TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
 - CSS kurallarının discard edilme hatası giderilmiş, `8e6e2d0` ile Firefox-UI-Fix suite dinamik ayarlar ile entegre edilmiştir. Kilit ikonu vb. güvenlik göstergelerinin bütünlüğü test edilmiştir.
 
-**O-2: Website bağımlılıklarını güncelle** `[TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
-- Next.js `14.2.35` sürümüne, next-intl `^3.26.2` sürümüne ve postcss `^8.5.10` sürümüne yükseltilerek web sitesindeki tüm zafiyetler kapatılmıştır.
+**O-2: Website bağımlılıklarını güncelle** `[TEKRAR AÇILDI - 2026-05-24]`
+- Next.js `14.2.35` ve next-intl `^3.26.2` önceki açıkları kapatmak için eklenmişti, ancak mevcut `npm audit --audit-level=moderate` çıktısı `next` ve `next-intl` için hâlâ advisory döndürüyor.
+- Breaking upgrade gerektirdiği için `next@16.2.6` / `next-intl@4.12.0` geçişi ayrı test planıyla ele alınmalı.
 
-**O-3: Statik analiz araçları ekle** `[KISMEN TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
-- `test-profile` dizini ve audit report altyapısı kurularak statik/dinamik denetimlerin ilk adımı atılmıştır.
+**O-3: Statik analiz araçları ekle** `[AÇIK]`
+- `test-profile` local diskte mevcut olsa da sürüm kontrollü test altyapısı olarak repo içinde izlenmiyor.
+- CI'da `npm audit`, lint, patch apply check ve Firefox chrome smoke testleri henüz çalışmıyor.
 
 **O-4: Veri akışı envanteri yayınla**
 - Her varsayılan ağ bağlantısı
@@ -519,9 +558,9 @@ Bu bölüm nelerin iyi gittiğini belgeliyor — geliştirme sürecinde bunlar k
 ## BÖLÜM 9 — AGENT NOTLARI (Doğrulayıcı Agent Tarafından Doldurulacak)
 
 ### Genel Doğrulama Sonucu
-`[ ] Rapor büyük ölçüde doğru`  
-`[ ] Raporda önemli hatalar var (aşağıda belirt)`  
-`[x] Rapor güncellendi (v0.2.0-alpha.3 ile kritik eksiklikler giderildi)`
+- `[x] Rapor büyük ölçüde doğru, ancak birkaç önemli durum değişmiş`
+- `[x] Raporda önemli hatalar vardı (aşağıda düzeltildi)`
+- `[x] Rapor güncellendi (v0.2.0-alpha.3 local kod durumu + public release farkı + npm audit regresyonu)`
 
 ### Bölüm Bazlı Doğrulama
 
@@ -529,36 +568,45 @@ Bu bölüm nelerin iyi gittiğini belgeliyor — geliştirme sürecinde bunlar k
 |---|---|---|
 | 2.1 Workspace | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | `Services.clearData` entegre edilerek container verileri silindiğinde artık çerezler ve depolama da silinmektedir. Boş tab grupları d18a211 ile otomatik daraltılmaktadır. |
 | 2.2 Bang | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | `b0c8f83` ile bilinmeyen bang'lerin sessizce DuckDuckGo'ya yönlendirilme davranışı kaldırılarak varsayılan arama motoruna güvenli fallback sağlanmıştır. |
-| 2.3 uBO | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | Eklenti `1.57.2` olarak sabitlendi ve sha256 checksum kontrolü getirilerek apply.sh içerisine yerleştirildi. Ayrıca ilk açılıştaki scanning sorunu çözülmüştür. |
+| 2.3 uBO | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | Eklenti `1.57.2` olarak sabitlendi ve sha256 checksum kontrolü getirilerek apply.sh içerisine yerleştirildi. İlk açılış scanning davranışı `patches/0008-hilal-ublock.patch` içindeki extension scope pref'leriyle çözülmüştür. |
 | 2.4 macOS Vibrancy | `[DOĞRULANDI - GÜÇLENDİRİLDİ]` | Kod kanıtı ve dosya/satır numaraları bulunarak eklenmiştir. HUDWindow ve OrWith kullanımı ispatlandı. |
 | 2.5 Dikey Sekmeler | `[DOĞRULANDI]` | firefox-branding.js:35-37 üzerinde varsayılan olarak aktiftir. |
 | 2.6 Split View | `[DOĞRULANDI]` | tabsplitview.js:437 üzerinde 2 tab varsayımı doğrulanmıştır. Workspace geçişinde bozulma riski vardır. |
 | 2.7 URL Kopyalama | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | `b99a468` ile `about:config` gibi ayrıcalıklı sayfalara retargeting korumaları eklenmiştir. |
+| 2.8 Privacy seviyeleri | `[KISMEN DOĞRULANDI - YENİ]` | `0013-hilal-privacy-levels.patch` ve `HilalWorkspaces.js` ile Standard / Strict / Tor-like seviyeleri local kodda mevcut. Tor-like, Tor Browser eşdeğeri değildir. |
 | 3.1 Güncelleme sistemi | `[AÇIK]` | Yerleşik güncelleme mekanizması devre dışı bırakılmıştır. Kurulması planlanıyor. |
 | 3.2 CI/CD | `[AÇIK]` | Sadece GitHub release oluşturulmakta, build/test adımları bulunmamaktadır. |
-| 3.3 Privacy Hardening iddiası | `[YANLIŞ]` | Hilal, Betterfox tabanlı son derece güçlü gizlilik sertleştirmelerini firefox-branding.js içinde varsayılan sunar. |
+| 3.3 Privacy Hardening iddiası | `[YANLIŞ / KISMEN REVİZE]` | Hardening kodda var; ancak yeni `standard` privacy level başlangıçta content blocking'i `strict`ten `standard`a çekiyor. |
 | 3.4 uBO supply chain | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | Eklenti XPI'si sabit sha256 checksum ile apply.sh sürecinde indirilmekte ve doğrulanmaktadır. |
 | 3.5 Mozilla veri toplama | `[YANLIŞ]` | firefox-branding.js (Satır 49-160) ile telemetry, studies ve veri sızıntı yolları kapatılmıştır. |
-| 3.6 CSS riski | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | `b20703e` ile native media query pref syntax'a geçilmiş ve stil kayıpları engellenmiştir. |
-| 3.7 Website açıkları | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | Next.js 14.2.35 ve diğer bağımlılık güncellemeleri ile zafiyetler giderilmiştir. |
-| 3.8 Release hygiene | `[KISMEN DÜZELTİLDİ - v0.2.0-alpha.3]` | test-profile ve test betikleri eklenmiştir. |
+| 3.6 CSS riski | `[KISMEN DÜZELTİLDİ - v0.2.0-alpha.3]` | `8e6e2d0` ile dynamic settings entegrasyonu var; güvenlik göstergeleri için otomatik görsel regresyon testi hâlâ yok. |
+| 3.7 Website açıkları | `[TEKRAR AÇILDI]` | `npm audit --audit-level=moderate` mevcut `www` lockfile ile `next` ve `next-intl` advisory'leri döndürüyor. |
+| 3.8 Release hygiene | `[KISMEN DÜZELTİLDİ / AÇIK]` | Patch serisi temiz, orphan patch yok; ancak `FIREFOX_COMMIT`, local `firefox/` HEAD'iyle eşleşmiyor ve public latest release alpha.2'de kalmış. |
 
 ### Düzeltilen Bulgular (v0.2.0-alpha.3 Sürümünde Yapılanlar)
 1. **Container Verilerinin Fiziksel Silinmesi (Bölüm 2.1 & Y-2):** `HilalWorkspaces.js` içinde `_removeWorkspaceContainer` fonksiyonunda `Services.clearData` API'si çağrılarak workspace silindiğinde tüm container geçmişi ve verileri temizlenmesi sağlanmıştır.
 2. **uBlock Origin Supply Chain Hardening (Bölüm 2.3 & 3.4 & K-4):** `apply.sh` içerisine sha256 checksum (`9928e79a52cecf7cfa231fdb0699c7d7a427660d94eb10d711ed5a2f10d2eb89`) ve sabit `1.57.2` sürümü doğrulaması entegre edilmiştir.
 3. **Bangs DuckDuckGo Arama Sızıntısı (Bölüm 2.2 & Y-3):** Bilinmeyen bang'lerin DuckDuckGo'ya yönlenmesi iptal edilerek adres barının varsayılan arama motorunu kullanması sağlanmıştır.
-4. **Resmi Web Sitesi Güvenlik Güncellemeleri (Bölüm 3.7 & O-2):** Next.js sürümü `14.2.35` sürümüne yükseltilerek kritik ve orta seviye bağımlılık açıkları yamalanmıştır.
+4. **Resmi Web Sitesi Güvenlik Güncellemeleri (Bölüm 3.7 & O-2):** Next.js `14.2.35` yükseltmesi önceki açıkları azaltmıştı; ancak güncel `npm audit` nedeniyle madde tekrar açılmıştır.
 5. **Ayrıcalıklı URL Koruması (Bölüm 2.7):** Ayrıcalıklı iç sayfaların (`about:config`, `chrome://...`) container'lara retarget edilmesi engellenmiştir.
+6. **Privacy Seviyeleri (Bölüm 2.8 & Y-4):** `e91a736` ile preferences UI'a Standard / Strict / Tor-like seçenekleri ve runtime pref uygulama katmanı eklenmiştir.
+
+### Yeni / Revize Bulgular
+1. **Website audit tekrar kırmızı:** `npm audit --audit-level=moderate` sonucu `next` için yüksek, `next-intl` için orta seviye advisory döndürüyor. O-2 artık tamamlandı sayılamaz.
+2. **Privacy level baseline çelişkisi:** `firefox-branding.js` strict content blocking tanımlıyor, ancak başlangıçta `standard` privacy level uygulanınca content blocking standard seviyeye düşüyor.
+3. **Release hygiene farkı:** local changelog alpha.3 iken GitHub latest release alpha.2; ayrıca `FIREFOX_COMMIT` ile local `firefox/` HEAD'i farklı.
+4. **Test profile sürüm kontrollü değil:** `test-profile/` local diskte var, fakat `git ls-files test-profile` çıktısı `0`.
 
 ### Kalan Kritik Odaklar
 - **K-1 (Güncelleme Sistemi):** İmzalı güncelleme kanalları (MAR/pkg/dmg) ve update manifest oluşturulması.
 - **K-2 (CI/CD Pipeline):** Sadece tag atmak yerine, CI üzerinde gerçek build, lint ve test süreçlerinin işletilmesi.
+- **O-2 (Website bağımlılıkları):** Next.js / next-intl breaking upgrade planı ve deploy testi.
 
 ### Doğrulama Tarihi & Agent Kimliği
 - Tarih: 2026-05-24
-- Agent: Antigravity AI (Google DeepMind Advanced Agentic Coding Team)
-- Kullanılan araçlar: `view_file`, `grep_search`, `run_command`
+- Agent: Codex
+- Kullanılan araçlar: `rg`, `git status`, `git log`, `git diff`, `npm audit --audit-level=moderate`, GitHub repo sayfası, Mozilla MFSA 2026-46 advisory
 
 ---
 
-*Rapor sonu. Toplam bölüm: 9. Toplam eylem maddesi: K-4, Y-4, O-4, D-3 = 15 eylem. (Çözülen/Tamamlanan: K-4, Y-2, Y-3, O-2, O-3, 2.1-Sorun1, 2.2-Sorun1, 2.3-Sorun1, 2.3-Sorun2, 2.7-Sorun2).*
+*Rapor sonu. Toplam bölüm: 9. Toplam eylem maddesi: K-4, Y-4, O-4, D-3 = 15 eylem. Tamamlanan/kısmen tamamlanan: K-4, Y-1, Y-2, Y-3, Y-4, 2.1-Sorun1, 2.2-Sorun1, 2.3-Sorun1, 2.3-Sorun2, 2.7-Sorun2. Tekrar açılan: O-2 / 3.7 website bağımlılıkları.*
