@@ -118,7 +118,7 @@ diff --git a/browser/themes/shared/browser-shared.css b/browser/themes/shared/br
 index f38e980ba766..db0d3ee8234c 100644
 --- a/browser/themes/shared/browser-shared.css
 +++ b/browser/themes/shared/browser-shared.css
-@@ -248,6 +248,75 @@ body {
+@@ -248,6 +248,79 @@ body {
    }
  }
  
@@ -176,14 +176,18 @@ index f38e980ba766..db0d3ee8234c 100644
 +    z-index: 1;
 +  }
 +
-+  :root:not([macOSNativeFullscreen]) #navigator-toolbox,
 +  :root:not([macOSNativeFullscreen]) #sidebar-main,
 +  :root:not([macOSNativeFullscreen]) .chrome-block {
 +    background-color: var(--hilal-glass-toolbar-background) !important;
 +  }
 +
++  :root:not([macOSNativeFullscreen]) #navigator-toolbox,
++  :root:not([macOSNativeFullscreen]) #titlebar,
++  :root:not([macOSNativeFullscreen]) #toolbar-menubar,
++  :root:not([macOSNativeFullscreen]) #TabsToolbar,
 +  :root:not([macOSNativeFullscreen]) .browser-toolbar:not(.browser-titlebar) {
-+    background-color: transparent !important;
++    background: transparent !important;
++    background-image: none !important;
 +  }
 +
 +  :root:not([macOSNativeFullscreen]) .browserContainer > findbar {
