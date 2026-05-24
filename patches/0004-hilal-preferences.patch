@@ -4,15 +4,14 @@ Adds a dedicated "Hilal Browser" category to about:preferences with
 workspace controls and a Reset Workspaces button. The pref binding is handled
 manually via JS.
 
----
 diff --git a/browser/components/preferences/hilal.inc.xhtml b/browser/components/preferences/hilal.inc.xhtml
 new file mode 100644
 --- /dev/null
 +++ b/browser/components/preferences/hilal.inc.xhtml
 @@ -0,0 +1,33 @@
-+# This Source Code Form is subject to the terms of the Mozilla Public
-+# License, v. 2.0. If a copy of the MPL was not distributed with this
-+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++<!-- This Source Code Form is subject to the terms of the Mozilla Public
++   - License, v. 2.0. If a copy of the MPL was not distributed with this
++   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 +
 +<!-- Hilal Browser panel -->
 +
@@ -64,30 +63,19 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
    UpdateListener: "resource://gre/modules/UpdateListener.sys.mjs",
    LinkPreview: "moz-src:///browser/components/genai/LinkPreview.sys.mjs",
    MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
-@@ -1811,6 +1813,114 @@ gMainPane.initialized = new Promise(res => {
+@@ -1786,6 +1788,103 @@ gMainPane.initialized = new Promise(res => {
    gMainPane.setInitialized = res;
  });
  
 +var gHilalPane = {
 +  init() {
-+    /**
-+     * @param {string} aId
-+     * @param {string} aEventType
-+     * @param {(ev: Event) => void} aCallback
-+     */
 +    function setEventListener(aId, aEventType, aCallback) {
 +      document.getElementById(aId).addEventListener(aEventType, aCallback);
 +    }
 +
-+    const hilalWsCheckbox = /** @type {HTMLInputElement|null} */ (
-+      document.getElementById("hilalWorkspacesEnabled")
-+    );
-+    const hilalWsPinnedPublicCheckbox = /** @type {HTMLInputElement|null} */ (
-+      document.getElementById("hilalWorkspacesPinnedPublic")
-+    );
-+    const hilalWsGroupsPublicCheckbox = /** @type {HTMLInputElement|null} */ (
-+      document.getElementById("hilalWorkspacesGroupsPublic")
-+    );
++    const hilalWsCheckbox = document.getElementById("hilalWorkspacesEnabled");
++    const hilalWsPinnedPublicCheckbox = document.getElementById("hilalWorkspacesPinnedPublic");
++    const hilalWsGroupsPublicCheckbox = document.getElementById("hilalWorkspacesGroupsPublic");
 +    const resetHilalWorkspaceContainers = () => {
 +      let workspaces = [];
 +      try {
