@@ -8,7 +8,7 @@ diff --git a/browser/modules/HilalBangs.sys.mjs b/browser/modules/HilalBangs.sys
 new file mode 100644
 --- /dev/null
 +++ b/browser/modules/HilalBangs.sys.mjs
-@@ -0,0 +1,225 @@
+@@ -0,0 +1,219 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -212,9 +212,6 @@ new file mode 100644
 +  },
 +
 +  setCustomBangs(bangs) {
-+    const { Services } = ChromeUtils.importESModule(
-+      "resource://gre/modules/Services.sys.mjs"
-+    );
 +    Services.prefs.setStringPref(
 +      "hilal.bangs.custom",
 +      JSON.stringify(bangs)
@@ -222,9 +219,6 @@ new file mode 100644
 +  },
 +
 +  _readCustomBangs() {
-+    const { Services } = ChromeUtils.importESModule(
-+      "resource://gre/modules/Services.sys.mjs"
-+    );
 +    try {
 +      return JSON.parse(
 +        Services.prefs.getStringPref("hilal.bangs.custom", "[]")
