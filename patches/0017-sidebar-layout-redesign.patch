@@ -4,11 +4,44 @@ Date: Sun, 24 May 2026 14:59:09 +0300
 Subject: [PATCH] Hilal Browser: redesign sidebar workspace layout
 
 
+diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/sidebar/browser-sidebar.js
+index ef7b67413392..72c986e9769a 100644
+--- a/browser/components/sidebar/browser-sidebar.js
++++ b/browser/components/sidebar/browser-sidebar.js
+@@ -1049,6 +1049,9 @@ var SidebarController = {
+    * True if the sidebar is currently open.
+    */
+   get isOpen() {
++    if (Services.prefs.getBoolPref("hilal.workspaces.enabled", true)) {
++      return this.sidebarContainer ? !this.sidebarContainer.hidden : false;
++    }
+     return this._box ? !this._box.hidden : false;
+   },
+ 
+@@ -2091,7 +2094,17 @@ var SidebarController = {
+       }
+ 
+       this.selectMenuItem(commandID);
+-      this._box.hidden = this._splitter.hidden = false;
++      if (Services.prefs.getBoolPref("hilal.workspaces.enabled", true)) {
++        const isStandardPanel = [
++          "viewHistorySidebar",
++          "viewBookmarksSidebar",
++          "viewTabsSidebar",
++          "viewGenaiChatSidebar"
++        ].includes(commandID);
++        this._box.hidden = this._splitter.hidden = !isStandardPanel;
++      } else {
++        this._box.hidden = this._splitter.hidden = false;
++      }
+ 
+       this._box.setAttribute("checked", "true");
+       this._state.command = commandID;
 diff --git a/browser/components/sidebar/sidebar-main.css b/browser/components/sidebar/sidebar-main.css
-index d16a3b60b365..71eb8e64dcee 100644
+index d16a3b60b365..ce72576f3dda 100644
 --- a/browser/components/sidebar/sidebar-main.css
 +++ b/browser/components/sidebar/sidebar-main.css
-@@ -18,6 +18,444 @@
+@@ -18,6 +18,443 @@
    width: 100%;
  }
  
@@ -27,18 +60,17 @@ index d16a3b60b365..71eb8e64dcee 100644
 +  --hilal-sidebar-blue: light-dark(#2563eb, #74a7ff);
 +  color: var(--hilal-sidebar-text);
 +  display: block;
-+  inline-size: 424px;
-+  max-inline-size: 75vw;
-+  min-inline-size: 360px;
++  inline-size: 260px;
++  max-inline-size: 50vw;
++  min-inline-size: 220px;
 +}
 +
-+:host([hilal-sidebar]) .wrapper,
 +:host([hilal-sidebar]) #hilal-workspace-strip {
 +  display: none;
 +}
 +
 +.hilal-sidebar-layout {
-+  background: var(--hilal-sidebar-background);
++  background: transparent;
 +  block-size: 100%;
 +  box-sizing: border-box;
 +  display: flex;
@@ -48,7 +80,7 @@ index d16a3b60b365..71eb8e64dcee 100644
 +
 +.hilal-workspace-rail {
 +  align-items: center;
-+  background: color-mix(in srgb, var(--hilal-sidebar-background) 88%, var(--hilal-sidebar-text));
++  background: color-mix(in srgb, var(--hilal-sidebar-text) 5%, transparent);
 +  border-inline-end: 1px solid var(--hilal-sidebar-border);
 +  box-sizing: border-box;
 +  display: flex;
@@ -151,7 +183,7 @@ index d16a3b60b365..71eb8e64dcee 100644
 +}
 +
 +.hilal-sidebar-panel {
-+  background: var(--hilal-sidebar-background);
++  background: transparent;
 +  box-sizing: border-box;
 +  display: flex;
 +  flex: 1 1 auto;
@@ -454,7 +486,7 @@ index d16a3b60b365..71eb8e64dcee 100644
    display: grid;
    grid-template-rows: auto min-content min-content;
 diff --git a/browser/components/sidebar/sidebar-main.mjs b/browser/components/sidebar/sidebar-main.mjs
-index 8acc798e5d22..990734447385 100644
+index 8acc798e5d22..e3adb064b97c 100644
 --- a/browser/components/sidebar/sidebar-main.mjs
 +++ b/browser/components/sidebar/sidebar-main.mjs
 @@ -18,8 +18,9 @@ import "chrome://browser/content/sidebar/sidebar-pins-promo.mjs";
@@ -516,7 +548,7 @@ index 8acc798e5d22..990734447385 100644
      this._toolsIntersectionObserver?.disconnect();
      this._toolsResizeObserver?.disconnect();
      this.ownerDocument
-@@ -163,6 +184,323 @@ export default class SidebarMain extends MozLitElement {
+@@ -163,6 +184,324 @@ export default class SidebarMain extends MozLitElement {
        ?.disconnectedCallback();
    }
  
@@ -710,7 +742,7 @@ index 8acc798e5d22..990734447385 100644
 +  }
 +
 +  getHilalTabTitle(tab) {
-+    return tab.label || tab.getAttribute("label") || "Yeni sekme";
++    return tab.label || tab.getAttribute("label") || this.fluentStrings.formatValueSync("hilal-sidebar-new-tab");
 +  }
 +
 +  getHilalTabIcon(tab) {
@@ -725,7 +757,7 @@ index 8acc798e5d22..990734447385 100644
 +    return (
 +      bookmark.title ||
 +      this.getHilalBookmarkUrl(bookmark).replace(/^https?:\/\//, "") ||
-+      "Yer imi"
++      this.fluentStrings.formatValueSync("hilal-sidebar-bookmark-fallback")
 +    );
 +  }
 +
@@ -738,10 +770,10 @@ index 8acc798e5d22..990734447385 100644
 +  getHilalBookmarkBadge(bookmark) {
 +    const text = `${this.getHilalBookmarkTitle(bookmark)} ${this.getHilalBookmarkUrl(bookmark)}`;
 +    if (/privacy|gizlilik|security|protect|track|cover/i.test(text)) {
-+      return "Gizlilik";
++      return this.fluentStrings.formatValueSync("hilal-sidebar-badge-privacy");
 +    }
 +    if (/tool|audit|developer|github|mdn|docs|araç/i.test(text)) {
-+      return "Araç";
++      return this.fluentStrings.formatValueSync("hilal-sidebar-badge-tool");
 +    }
 +    return "";
 +  }
@@ -820,16 +852,17 @@ index 8acc798e5d22..990734447385 100644
 +  openHilalFooterItem(item) {
 +    switch (item) {
 +      case "history":
-+        window.PlacesCommandHook.showPlacesOrganizer("History");
++        window.SidebarController.show("viewHistorySidebar");
 +        break;
 +      case "downloads":
-+        window.BrowserCommands.downloadsUI();
++        if (window.DownloadsPanel) {
++          window.DownloadsPanel.showPanel(true);
++        } else {
++          window.BrowserCommands.downloadsUI();
++        }
 +        break;
 +      case "privacy":
-+        window.switchToTabHavingURI("about:protections", true, {
-+          triggeringPrincipal:
-+            Services.scriptSecurityManager.getSystemPrincipal(),
-+        });
++        window.openTrustedLinkIn("about:protections", "tab");
 +        break;
 +      case "settings":
 +        window.openPreferences();
@@ -840,7 +873,7 @@ index 8acc798e5d22..990734447385 100644
    get isToolsDragging() {
      return this.toolsSplitter.getAttribute("state") === "dragging";
    }
-@@ -509,6 +847,16 @@ export default class SidebarMain extends MozLitElement {
+@@ -509,6 +848,16 @@ export default class SidebarMain extends MozLitElement {
  
    async handleEvent(e) {
      switch (e.type) {
@@ -857,7 +890,7 @@ index 8acc798e5d22..990734447385 100644
        case "command":
          switch (e.target.id) {
            case "sidebar-context-menu-manage-extension":
-@@ -649,6 +997,9 @@ export default class SidebarMain extends MozLitElement {
+@@ -649,6 +998,9 @@ export default class SidebarMain extends MozLitElement {
    }
  
    updated() {
@@ -867,7 +900,7 @@ index 8acc798e5d22..990734447385 100644
      if (
        window.SidebarController.sidebarRevampVisibility !== "expand-on-hover"
      ) {
-@@ -790,7 +1141,267 @@ export default class SidebarMain extends MozLitElement {
+@@ -790,7 +1142,327 @@ export default class SidebarMain extends MozLitElement {
      return container && !container.hidden;
    }
  
@@ -881,6 +914,8 @@ index 8acc798e5d22..990734447385 100644
 +  hilalWorkspaceTemplate(workspace) {
 +    const active = workspace.id === this.hilalActiveId;
 +    const count = this.countHilalTabs(workspace.id);
++    const tooltip = this.fluentStrings.formatValueSync("hilal-sidebar-workspace-tooltip", { name: workspace.name, count });
++    const ariaLabel = this.fluentStrings.formatValueSync("hilal-sidebar-workspace-aria-label", { name: workspace.name, count });
 +    return html`
 +      <button
 +        class=${classMap({
@@ -888,8 +923,8 @@ index 8acc798e5d22..990734447385 100644
 +          "hilal-workspace-active": active,
 +        })}
 +        type="button"
-+        title=${`${workspace.name} (${count})`}
-+        aria-label=${`${workspace.name}, ${count} sekme`}
++        title=${tooltip}
++        aria-label=${ariaLabel}
 +        aria-current=${active ? "true" : nothing}
 +        @click=${() => this.switchHilalWorkspace(workspace)}
 +        @contextmenu=${event => this.showHilalWorkspaceMenu(workspace, event)}
@@ -924,6 +959,16 @@ index 8acc798e5d22..990734447385 100644
 +            this.selectHilalTab(tab);
 +          }
 +        }}
++        @contextmenu=${event => {
++          event.preventDefault();
++          event.stopPropagation();
++          const popup = document.getElementById("tabContextMenu");
++          if (popup) {
++            window.TabContextMenu.contextTab = tab;
++            window.TabContextMenu.contextTabs = [tab];
++            popup.openPopupAtScreen(event.screenX, event.screenY, true);
++          }
++        }}
 +      >
 +        ${when(
 +          loading,
@@ -946,8 +991,7 @@ index 8acc798e5d22..990734447385 100644
 +        <button
 +          class="hilal-tab-close"
 +          type="button"
-+          title="Sekmeyi kapat"
-+          aria-label="Sekmeyi kapat"
++          data-l10n-id="hilal-sidebar-close-tab"
 +          @click=${event => this.closeHilalTab(tab, event)}
 +        >
 +          ${this.hilalIcon("close")}
@@ -958,17 +1002,75 @@ index 8acc798e5d22..990734447385 100644
 +
 +  hilalBookmarkTemplate(bookmark) {
 +    const badge = this.getHilalBookmarkBadge(bookmark);
++    const guid = bookmark.guid;
++    const uri = this.getHilalBookmarkUrl(bookmark);
++    const title = this.getHilalBookmarkTitle(bookmark);
 +    return html`
 +      <button
 +        class="hilal-row hilal-bookmark-row"
 +        type="button"
-+        title=${this.getHilalBookmarkTitle(bookmark)}
++        title=${title}
 +        @click=${() => this.openHilalBookmark(bookmark)}
++        @contextmenu=${event => {
++          event.preventDefault();
++          event.stopPropagation();
++          const popup = document.getElementById("placesContext");
++          if (popup) {
++            const node = {
++              bookmarkGuid: guid,
++              type: Ci.nsINavHistoryResultNode.RESULT_TYPE_URI,
++              uri: uri,
++              title: title,
++              itemId: bookmark.id || -1,
++              parent: {
++                bookmarkGuid: bookmark.parentGuid || "",
++                type: Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER,
++              }
++            };
++            const mockController = {
++              isCommandEnabled: (cmd) => {
++                return ["placesCmd_delete", "placesCmd_copy", "placesCmd_open", "placesCmd_open:tab", "placesCmd_open:window", "placesCmd_open:privatewindow"].includes(cmd);
++              },
++              doCommand: (cmd) => {
++                if (cmd === "placesCmd_delete" || cmd === "placesCmd_deleteBookmark") {
++                  lazy.PlacesUtils.bookmarks.remove(guid).catch(console.error);
++                } else if (cmd === "placesCmd_copy") {
++                  Cc["@mozilla.org/widget/clipboardhelper;1"]
++                    .getService(Ci.nsIClipboardHelper)
++                    .copyString(uri);
++                } else if (cmd === "placesCmd_open" || cmd === "placesCmd_open:tab") {
++                  window.openTrustedLinkIn(uri, "tab");
++                } else if (cmd === "placesCmd_open:window") {
++                  window.openTrustedLinkIn(uri, "window");
++                } else if (cmd === "placesCmd_open:privatewindow") {
++                  window.openTrustedLinkIn(uri, "window", { private: true });
++                }
++              }
++            };
++            const mockView = {
++              selectedNode: node,
++              selectedNodes: [node],
++              buildContextMenu: (p) => true,
++              destroyContextMenu: () => { mockView._contextMenuShown = false; },
++              singleClickOpens: false,
++              insertionPoint: null,
++              result: {
++                root: {},
++                sortingMode: 0
++              },
++              _contextMenuShown: true,
++              controllers: {
++                getControllerForCommand: (cmd) => mockController
++              }
++            };
++            popup.triggerNode = event.currentTarget;
++            event.currentTarget._placesView = mockView;
++            popup.openPopupAtScreen(event.screenX, event.screenY, true);
++          }
++        }}
 +      >
 +        ${this.hilalIcon("bookmark")}
-+        <span class="hilal-row-title"
-+          >${this.getHilalBookmarkTitle(bookmark)}</span
-+        >
++        <span class="hilal-row-title">${title}</span>
 +        <span class="hilal-row-spacer"></span>
 +        ${when(
 +          badge,
@@ -978,21 +1080,23 @@ index 8acc798e5d22..990734447385 100644
 +    `;
 +  }
 +
-+  hilalFooterRowTemplate(item, icon, label) {
++  hilalFooterRowTemplate(item, icon, l10nId) {
 +    return html`
 +      <button
 +        class="hilal-footer-row"
 +        type="button"
++        data-l10n-id=${l10nId}
 +        @click=${() => this.openHilalFooterItem(item)}
 +      >
 +        ${this.hilalIcon(icon)}
-+        <span>${label}</span>
++        <span></span>
 +      </button>
 +    `;
 +  }
 +
 +  hilalSidebarTemplate() {
 +    const activeWorkspace = this.activeHilalWorkspace;
++    const workspaceFallback = this.fluentStrings.formatValueSync("hilal-sidebar-workspace-fallback");
 +    return html`
 +      <link
 +        rel="stylesheet"
@@ -1016,8 +1120,7 @@ index 8acc798e5d22..990734447385 100644
 +            <button
 +              id="hilal-workspace-add"
 +              type="button"
-+              title="Yeni çalışma alanı"
-+              aria-label="Yeni çalışma alanı"
++              data-l10n-id="hilal-sidebar-add-workspace"
 +              @click=${() => this.showHilalCreateWorkspace()}
 +            >
 +              ${this.hilalIcon("plus")}
@@ -1030,14 +1133,13 @@ index 8acc798e5d22..990734447385 100644
 +              ${activeWorkspace?.emoji || "\u{1F5C2}"}
 +            </span>
 +            <span class="hilal-panel-title">
-+              ${activeWorkspace?.name || "Workspace"}
++              ${activeWorkspace?.name || workspaceFallback}
 +            </span>
 +            <span class="hilal-row-spacer"></span>
 +            <button
 +              class="hilal-icon-button"
 +              type="button"
-+              title="Ara"
-+              aria-label="Ara"
++              data-l10n-id="hilal-sidebar-search-button"
 +              aria-pressed=${this.hilalSearchOpen ? "true" : "false"}
 +              @click=${() => this.toggleHilalSearch()}
 +            >
@@ -1046,8 +1148,7 @@ index 8acc798e5d22..990734447385 100644
 +            <button
 +              class="hilal-icon-button"
 +              type="button"
-+              title="Çalışma alanı menüsü"
-+              aria-label="Çalışma alanı menüsü"
++              data-l10n-id="hilal-sidebar-workspace-menu"
 +              @click=${event => this.showHilalActiveWorkspaceMenu(event)}
 +            >
 +              ${this.hilalIcon("menu")}
@@ -1059,7 +1160,7 @@ index 8acc798e5d22..990734447385 100644
 +              <input
 +                id="hilal-sidebar-search"
 +                type="search"
-+                placeholder="Ara"
++                data-l10n-id="hilal-sidebar-search-input"
 +                .value=${this.hilalSearchQuery}
 +                @input=${event => {
 +                  this.hilalSearchQuery = event.target.value;
@@ -1073,12 +1174,12 @@ index 8acc798e5d22..990734447385 100644
 +            @click=${() => this.openHilalNewTab()}
 +          >
 +            ${this.hilalIcon("plus")}
-+            <span>Yeni sekme</span>
++            <span data-l10n-id="hilal-sidebar-new-tab"></span>
 +          </button>
 +          <div class="hilal-panel-scroll">
 +            <section class="hilal-section" aria-labelledby="hilal-tabs-heading">
 +              <div class="hilal-section-heading" id="hilal-tabs-heading">
-+                <span>AÇIK SEKMELER</span>
++                <span data-l10n-id="hilal-sidebar-open-tabs"></span>
 +                <span class="hilal-count-badge">${this.hilalTabs.length}</span>
 +              </div>
 +              <div class="hilal-row-list">
@@ -1094,7 +1195,7 @@ index 8acc798e5d22..990734447385 100644
 +              aria-labelledby="hilal-bookmarks-heading"
 +            >
 +              <div class="hilal-section-heading" id="hilal-bookmarks-heading">
-+                <span>YER İMLERİ</span>
++                <span data-l10n-id="hilal-sidebar-bookmarks"></span>
 +              </div>
 +              <div class="hilal-row-list">
 +                ${repeat(
@@ -1107,20 +1208,12 @@ index 8acc798e5d22..990734447385 100644
 +          </div>
 +          <footer class="hilal-sidebar-footer">
 +            <div class="hilal-footer-group">
-+              ${this.hilalFooterRowTemplate("history", "history", "Geçmiş")}
-+              ${this.hilalFooterRowTemplate(
-+                "downloads",
-+                "downloads",
-+                "İndirilenler"
-+              )}
-+              ${this.hilalFooterRowTemplate(
-+                "privacy",
-+                "shield",
-+                "Gizlilik Raporu"
-+              )}
++              ${this.hilalFooterRowTemplate("history", "history", "hilal-sidebar-history")}
++              ${this.hilalFooterRowTemplate("downloads", "downloads", "hilal-sidebar-downloads")}
++              ${this.hilalFooterRowTemplate("privacy", "shield", "hilal-sidebar-privacy")}
 +            </div>
 +            <div class="hilal-footer-group">
-+              ${this.hilalFooterRowTemplate("settings", "settings", "Ayarlar")}
++              ${this.hilalFooterRowTemplate("settings", "settings", "hilal-sidebar-settings")}
 +            </div>
 +          </footer>
 +        </section>
