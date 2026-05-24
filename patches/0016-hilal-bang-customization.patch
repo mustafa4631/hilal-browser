@@ -272,4 +272,238 @@ index 4bde36b82390..e23505052f4e 100644
 +hilal-bangs-homeurl-label = Home URL (optional):
 +hilal-bangs-default-label = (default)
 +hilal-bangs-custom-label = (custom)
+diff --git a/browser/components/preferences/hilal.inc.xhtml b/browser/components/preferences/hilal.inc.xhtml
+--- a/browser/components/preferences/hilal.inc.xhtml
++++ b/browser/components/preferences/hilal.inc.xhtml
+@@ -67,4 +67,57 @@
+     </vbox>
+   </vbox>
+ </groupbox>
++
++<groupbox id="hilalBangsGroup" data-category="paneHilal" hidden="true">
++  <label><html:h2 data-l10n-id="hilal-bangs-header"/></label>
++  <vbox align="start" class="indent" flex="1">
++    <richlistbox id="hilalBangsList" style="height: 150px; min-width: 400px; margin-bottom: 10px;">
++    </richlistbox>
++    
++    <hbox spacing="10">
++      <button id="hilalBangsAdd"
++              is="highlightable-button"
++              class="accessory-button"
++              data-l10n-id="hilal-bangs-add-button"/>
++      <button id="hilalBangsRemove"
++              is="highlightable-button"
++              class="accessory-button"
++              data-l10n-id="hilal-bangs-remove-button"
++              disabled="true"/>
++    </hbox>
++
++    <vbox id="hilalBangsForm" hidden="true" style="margin-top: 10px; padding: 10px; border: 1px solid var(--in-content-border-color); border-radius: 4px; background-color: var(--in-content-box-background);">
++      <grid>
++        <columns>
++          <column/>
++          <column flex="1"/>
++        </columns>
++        <rows>
++          <row align="center">
++            <label data-l10n-id="hilal-bangs-trigger-label"/>
++            <html:input id="hilalBangsTrigger" type="text" placeholder="e.g., g"/>
++          </row>
++          <row align="center">
++            <label data-l10n-id="hilal-bangs-searchurl-label"/>
++            <html:input id="hilalBangsSearchUrl" type="text" placeholder="https://www.google.com/search?q={query}"/>
++          </row>
++          <row align="center">
++            <label data-l10n-id="hilal-bangs-homeurl-label"/>
++            <html:input id="hilalBangsHomeUrl" type="text" placeholder="https://www.google.com"/>
++          </row>
++        </rows>
++      </grid>
++      <hbox spacing="10" style="margin-top: 10px;">
++        <button id="hilalBangsSave"
++                is="highlightable-button"
++                class="accessory-button"
++                data-l10n-id="hilal-bangs-save-button"/>
++        <button id="hilalBangsCancel"
++                is="highlightable-button"
++                class="accessory-button"
++                data-l10n-id="hilal-bangs-cancel-button"/>
++      </hbox>
++    </vbox>
++  </vbox>
++</groupbox>
+ </html:template>
+diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
+--- a/browser/components/preferences/main.js
++++ b/browser/components/preferences/main.js
+@@ -2070,6 +2070,169 @@
+     }
+ 
+     updateHilalUiFixSubOptionsState();
++
++    // -- Hilal Bangs Customization -------------------------------------------
++    const { HilalBangs } = ChromeUtils.importESModule(
++      "resource:///modules/HilalBangs.sys.mjs"
++    );
++
++    const bangsList = document.getElementById("hilalBangsList");
++    const bangsAddBtn = document.getElementById("hilalBangsAdd");
++    const bangsRemoveBtn = document.getElementById("hilalBangsRemove");
++    const bangsForm = document.getElementById("hilalBangsForm");
++    const bangsTriggerInput = document.getElementById("hilalBangsTrigger");
++    const bangsSearchUrlInput = document.getElementById("hilalBangsSearchUrl");
++    const bangsHomeUrlInput = document.getElementById("hilalBangsHomeUrl");
++    const bangsSaveBtn = document.getElementById("hilalBangsSave");
++    const bangsCancelBtn = document.getElementById("hilalBangsCancel");
++
++    const refreshBangsList = () => {
++      if (!bangsList) {
++        return;
++      }
++      bangsList.textContent = "";
++
++      const defaults = HilalBangs.getDefaultBangs();
++      const customs = HilalBangs.getCustomBangs() || [];
++
++      const addRow = (trigger, search, home, isCustom) => {
++        const item = document.createXULElement("richlistitem");
++        item.setAttribute("style", "padding: 6px; border-bottom: 1px solid var(--in-content-border-color); align-items: center; display: flex; flex-direction: row;");
++        item.setAttribute("trigger", trigger);
++        item.setAttribute("isCustom", isCustom ? "true" : "false");
++
++        const triggerLabel = document.createXULElement("label");
++        triggerLabel.setAttribute("value", "!" + trigger);
++        triggerLabel.setAttribute("style", "font-weight: bold; width: 80px; min-width: 80px; margin-right: 10px;");
++        item.appendChild(triggerLabel);
++
++        const typeLabel = document.createXULElement("label");
++        typeLabel.setAttribute("value", isCustom ? "(custom)" : "(default)");
++        typeLabel.setAttribute("style", "color: gray; width: 80px; min-width: 80px; margin-right: 10px;");
++        item.appendChild(typeLabel);
++
++        const urlLabel = document.createXULElement("label");
++        urlLabel.setAttribute("value", search);
++        urlLabel.setAttribute("flex", "1");
++        urlLabel.setAttribute("crop", "end");
++        item.appendChild(urlLabel);
++
++        bangsList.appendChild(item);
++      };
++
++      // Add custom bangs first
++      for (const entry of customs) {
++        if (entry && entry.trigger) {
++          addRow(entry.trigger, entry.search, entry.home || "", true);
++        }
++      }
++
++      // Add default bangs
++      for (const [trigger, data] of Object.entries(defaults)) {
++        addRow(trigger, data.search, data.home, false);
++      }
++    };
++
++    if (bangsList) {
++      bangsList.addEventListener("select", () => {
++        const selected = bangsList.selectedItem;
++        if (selected) {
++          const isCustom = selected.getAttribute("isCustom") === "true";
++          if (bangsRemoveBtn) {
++            bangsRemoveBtn.disabled = !isCustom;
++          }
++        } else {
++          if (bangsRemoveBtn) {
++            bangsRemoveBtn.disabled = true;
++          }
++        }
++      });
++    }
++
++    if (bangsAddBtn) {
++      bangsAddBtn.addEventListener("command", () => {
++        if (bangsForm) {
++          bangsForm.hidden = false;
++        }
++        if (bangsTriggerInput) {
++          bangsTriggerInput.value = "";
++          bangsTriggerInput.focus();
++        }
++        if (bangsSearchUrlInput) {
++          bangsSearchUrlInput.value = "";
++        }
++        if (bangsHomeUrlInput) {
++          bangsHomeUrlInput.value = "";
++        }
++      });
++    }
++
++    if (bangsCancelBtn) {
++      bangsCancelBtn.addEventListener("command", () => {
++        if (bangsForm) {
++          bangsForm.hidden = true;
++        }
++      });
++    }
++
++    if (bangsSaveBtn) {
++      bangsSaveBtn.addEventListener("command", () => {
++        const trigger = bangsTriggerInput ? bangsTriggerInput.value.trim().toLowerCase().replace(/^!/, "") : "";
++        const search = bangsSearchUrlInput ? bangsSearchUrlInput.value.trim() : "";
++        const home = bangsHomeUrlInput ? bangsHomeUrlInput.value.trim() : "";
++
++        if (!trigger || !search) {
++          Services.prompt.alert(window, "Invalid Input", "Trigger and Search URL are required.");
++          return;
++        }
++
++        // Check if trigger is already in use by default bangs
++        const defaults = HilalBangs.getDefaultBangs();
++        if (trigger in defaults) {
++          Services.prompt.alert(window, "Duplicate Trigger", "The trigger '!" + trigger + "' is reserved as a default bang.");
++          return;
++        }
++
++        const customs = HilalBangs.getCustomBangs() || [];
++        const existingIndex = customs.findIndex(c => c.trigger === trigger);
++
++        if (existingIndex >= 0) {
++          customs[existingIndex] = { trigger, search, home };
++        } else {
++          customs.push({ trigger, search, home });
++        }
++
++        HilalBangs.setCustomBangs(customs);
++        refreshBangsList();
++
++        if (bangsForm) {
++          bangsForm.hidden = true;
++        }
++      });
++    }
++
++    if (bangsRemoveBtn) {
++      bangsRemoveBtn.addEventListener("command", () => {
++        const selected = bangsList ? bangsList.selectedItem : null;
++        if (!selected) {
++          return;
++        }
++
++        const trigger = selected.getAttribute("trigger");
++        const isCustom = selected.getAttribute("isCustom") === "true";
++
++        if (isCustom && trigger) {
++          if (Services.prompt.confirm(window, "Remove Bang", "Are you sure you want to remove the custom bang '!" + trigger + "'?")) {
++            const customs = HilalBangs.getCustomBangs() || [];
++            const filtered = customs.filter(c => c.trigger !== trigger);
++            HilalBangs.setCustomBangs(filtered);
++            refreshBangsList();
++          }
++        }
++      });
++    }
++
++    refreshBangsList();
+   },
+ };
+
 
