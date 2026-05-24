@@ -1155,10 +1155,10 @@
         background: color-mix(in srgb, rgb(255, 255, 255) 15%, -moz-dialog) !important;
       }
     }
-    :root:is(:not([lwtheme]), :not(:-moz-lwtheme)):not([customizing="true"]) tab[visuallyselected] > stack::before,
-    :root:is(:not([lwtheme]), :not(:-moz-lwtheme)):not([customizing="true"]) tab[visuallyselected] > stack::after,
-    :root[lwt-default-theme-in-dark-mode]:not([customizing="true"]) tab[visuallyselected] > stack::before,
-    :root[lwt-default-theme-in-dark-mode]:not([customizing="true"]) tab[visuallyselected] > stack::after {
+    :root:is(:not([lwtheme]), :not(:-moz-lwtheme)):not([customizing]) tab[visuallyselected] > stack::before,
+    :root:is(:not([lwtheme]), :not(:-moz-lwtheme)):not([customizing]) tab[visuallyselected] > stack::after,
+    :root[lwt-default-theme-in-dark-mode]:not([customizing]) tab[visuallyselected] > stack::before,
+    :root[lwt-default-theme-in-dark-mode]:not([customizing]) tab[visuallyselected] > stack::after {
       fill: color-mix(in srgb, rgb(255, 255, 255) 15%, -moz-dialog) !important;
     }
   }
@@ -4359,7 +4359,7 @@
     overflow-clip-margin: 0;
   }
   /* neighbouring tabs should "pinch" together */
-  :root[customizing="true"] #tabbrowser-arrowscrollbox-periphery,
+  :root[customizing] #tabbrowser-arrowscrollbox-periphery,
   #tabbrowser-tabs:not([hasadjacentnewtabbutton]):not([overflow="true"])
     > #pinned-tabs-container
     > #tabbrowser-arrowscrollbox-periphery,
@@ -7412,8 +7412,8 @@
               --uc-tab-corner-left-side-svg: url("chrome://browser/skin/icons/tab-bottom-corner-left.svg");
               --uc-tab-corner-right-side-svg: url("chrome://browser/skin/icons/tab-bottom-corner-right.svg");
             }
-            :root:not([customizing="true"]) .tabbrowser-tab .tab-background::before,
-            :root:not([customizing="true"]) .tabbrowser-tab .tab-background::after {
+            :root:not([customizing]) .tabbrowser-tab .tab-background::before,
+            :root:not([customizing]) .tabbrowser-tab .tab-background::after {
               /* Box */
               display: block;
               position: absolute;
@@ -7432,14 +7432,14 @@
               background-position-y: bottom;
             }
             @media -moz-pref("userChrome.tab.bottom_rounded_corner.all") {
-              :root:not([customizing="true"]) .tabbrowser-tab .tab-background::before,
-              :root:not([customizing="true"]) .tabbrowser-tab .tab-background::after {
+              :root:not([customizing]) .tabbrowser-tab .tab-background::before,
+              :root:not([customizing]) .tabbrowser-tab .tab-background::after {
                 content: "";
               }
             }
             @media not -moz-pref("userChrome.tab.color_like_toolbar") {
-              :root:not([customizing="true"]) .tabbrowser-tab .tab-background::before,
-              :root:not([customizing="true"]) .tabbrowser-tab .tab-background::after {
+              :root:not([customizing]) .tabbrowser-tab .tab-background::before,
+              :root:not([customizing]) .tabbrowser-tab .tab-background::after {
                 /* Based on tab background
                    background-image: linear-gradient(var(--lwt-selected-tab-background-color, transparent), var(--lwt-selected-tab-background-color, transparent)), linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor)), var(--lwt-header-image, none);
 
@@ -7453,49 +7453,49 @@
                 ) !important;
               }
             }
-            :root:not([customizing="true"]) .tabbrowser-tab .tab-background::before {
+            :root:not([customizing]) .tabbrowser-tab .tab-background::before {
               left: var(--uc-tab-corner-position);
               background-image: var(--uc-tab-corner-left-side-svg);
             }
-            :root:not([customizing="true"]) .tabbrowser-tab .tab-background::after {
+            :root:not([customizing]) .tabbrowser-tab .tab-background::after {
               right: var(--uc-tab-corner-position);
               background-image: var(--uc-tab-corner-right-side-svg);
             }
-            :root:not([customizing="true"]) .tabbrowser-tab[visuallyselected] .tab-background::before,
-            :root:not([customizing="true"]) .tabbrowser-tab[visuallyselected] .tab-background::after {
+            :root:not([customizing]) .tabbrowser-tab[visuallyselected] .tab-background::before,
+            :root:not([customizing]) .tabbrowser-tab[visuallyselected] .tab-background::after {
               fill: var(--tab-selected-bgcolor, var(--toolbar-bgcolor));
               stroke: var(--tab-line-color, var(--tabs-border-color, rgba(128, 128, 142, 0.9)));
             }
             @media not -moz-pref("userChrome.tab.bottom_rounded_corner.all") {
-              :root:not([customizing="true"]) .tabbrowser-tab[visuallyselected] .tab-background::before,
-              :root:not([customizing="true"]) .tabbrowser-tab[visuallyselected] .tab-background::after {
+              :root:not([customizing]) .tabbrowser-tab[visuallyselected] .tab-background::before,
+              :root:not([customizing]) .tabbrowser-tab[visuallyselected] .tab-background::after {
                 content: "";
               }
             }
-            :root:not([customizing="true"]) .tabbrowser-tab[multiselected] .tab-background::before,
-            :root:not([customizing="true"]) .tabbrowser-tab[multiselected] .tab-background::after {
+            :root:not([customizing]) .tabbrowser-tab[multiselected] .tab-background::before,
+            :root:not([customizing]) .tabbrowser-tab[multiselected] .tab-background::after {
               fill: var(--tab-selected-bgcolor, var(--toolbar-bgcolor));
             }
-            :root:not([customizing="true"])
+            :root:not([customizing])
               .tabbrowser-tab:hover:not([visuallyselected], [multiselected])
               .tab-background::before,
-            :root:not([customizing="true"])
+            :root:not([customizing])
               .tabbrowser-tab:hover:not([visuallyselected], [multiselected])
               .tab-background::after {
               fill: color-mix(in srgb, currentColor 11%, transparent);
             }
             @media -moz-pref("userChrome.tab.multi_selected") {
-              :root:not([customizing="true"])
+              :root:not([customizing])
                 .tabbrowser-tab[multiselected]:not([visuallyselected])
                 .tab-background::before,
-              :root:not([customizing="true"])
+              :root:not([customizing])
                 .tabbrowser-tab[multiselected]:not([visuallyselected])
                 .tab-background::after {
                 fill: color-mix(in srgb, currentColor 65%, transparent);
                 opacity: 0.3;
               }
             }
-            :root:not([customizing="true"]):is(
+            :root:not([customizing]):is(
                 [style*="--lwt-accent-color: rgb(28, 27, 34); --lwt-text-color: rgba(251, 251, 254);"],
                 [builtintheme][devtoolstheme="dark"]
               )
@@ -7503,7 +7503,7 @@
               #tabbrowser-tabs:not([noshadowfortests])
               .tabbrowser-tab[visuallyselected]
               .tab-background::before,
-            :root:not([customizing="true"]):is(
+            :root:not([customizing]):is(
                 [style*="--lwt-accent-color: rgb(28, 27, 34); --lwt-text-color: rgba(251, 251, 254);"],
                 [builtintheme][devtoolstheme="dark"]
               )
@@ -7515,13 +7515,13 @@
               stroke: var(--toolbar-color);
             }
             @media (-moz-gtk-csd-available) {
-              :root:not([customizing="true"]) {
+              :root:not([customizing]) {
                 /* Fill color for GTK */
               }
-              :root:not([customizing="true"]):not([lwtheme="true"])
+              :root:not([customizing]):not([lwtheme="true"])
                 .tabbrowser-tab:is([visuallyselected], [multiselected])
                 .tab-background::before,
-              :root:not([customizing="true"]):not([lwtheme="true"])
+              :root:not([customizing]):not([lwtheme="true"])
                 .tabbrowser-tab:is([visuallyselected], [multiselected])
                 .tab-background::after {
                 /* As GTK Toolbar's background-color + background-image
@@ -7532,11 +7532,11 @@
                 stroke: transparent;
                 opacity: 1;
               }
-              :root:not([customizing="true"]):not([lwtheme="true"])
+              :root:not([customizing]):not([lwtheme="true"])
                 #TabsToolbar[brighttext]
                 .tabbrowser-tab[visuallyselected]
                 .tab-background::before,
-              :root:not([customizing="true"]):not([lwtheme="true"])
+              :root:not([customizing]):not([lwtheme="true"])
                 #TabsToolbar[brighttext]
                 .tabbrowser-tab[visuallyselected]
                 .tab-background::after {
@@ -7814,8 +7814,8 @@
   .tabbrowser-tab[usercontextid] .tab-context-line {
     --identity-icon-color: none;
   }
-  :root:not([customizing="true"]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::before,
-  :root:not([customizing="true"]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::after {
+  :root:not([customizing]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::before,
+  :root:not([customizing]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::after {
     /* As Selected Tab - Box Shadow */
     stroke: var(--toolbar-color) !important;
   }
@@ -7939,8 +7939,8 @@
     .tabbrowser-tab[usercontextid] .tab-context-line {
       --identity-icon-color: none;
     }
-    :root:not([customizing="true"]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::before,
-    :root:not([customizing="true"]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::after {
+    :root:not([customizing]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::before,
+    :root:not([customizing]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::after {
       /* As Selected Tab - Box Shadow */
       stroke: var(--toolbar-color) !important;
     }
@@ -9318,40 +9318,40 @@
     margin-top: var(--uc-navbar-sideblock-height) !important;
     -moz-window-dragging: drag;
   }
-  :root[customizing="true"] #wrapper-urlbar-container {
+  :root[customizing] #wrapper-urlbar-container {
     left: 50%;
   }
-  :root[customizing="true"] #browser[collapsed="true"] {
+  :root[customizing] #browser[collapsed="true"] {
     visibility: visible !important;
   }
-  :root[customizing="true"] #browser[collapsed="true"] #appcontent {
+  :root[customizing] #browser[collapsed="true"] #appcontent {
     visibility: collapse;
   }
-  :root[customizing="true"] #browser[collapsed="true"] #sidebar-box {
+  :root[customizing] #browser[collapsed="true"] #sidebar-box {
     position: absolute;
     height: 100%;
   }
-  :root[customizing="true"] #browser[collapsed="true"] #sidebar-box[positionend] {
+  :root[customizing] #browser[collapsed="true"] #sidebar-box[positionend] {
     right: 0;
   }
-  :root[customizing="true"] #customization-container {
+  :root[customizing] #customization-container {
     --uc-customization-conatiner-margin: var(--uc-navbar-height-default);
     width: calc(100% - var(--uc-sidebar-activate-width));
     height: calc(100% - var(--uc-customization-conatiner-margin));
   }
   @media -moz-pref("userChrome.hidden.tabbar") {
-    :root[customizing="true"] #customization-container {
+    :root[customizing] #customization-container {
       --uc-customization-conatiner-margin: calc(var(--uc-navbar-height-default) - var(--uc-tabbar-height-default));
     }
   }
-  :root[customizing="true"]:has(#sidebar-box:not([positionend])) #customization-container {
+  :root[customizing]:has(#sidebar-box:not([positionend])) #customization-container {
     margin-inline-start: var(--uc-sidebar-activate-width);
   }
-  :root[customizing="true"]:has(#sidebar-box[positionend]) #customization-container {
+  :root[customizing]:has(#sidebar-box[positionend]) #customization-container {
     margin-inline-end: var(--uc-sidebar-activate-width);
   }
-  :root[customizing="true"] #customization-palette-container,
-  :root[customizing="true"] #customization-panel-container {
+  :root[customizing] #customization-palette-container,
+  :root[customizing] #customization-panel-container {
     flex-shrink: 0.5 !important;
   }
 }
@@ -10490,7 +10490,7 @@
 @-moz-document url("chrome://browser/content/browser.xhtml")
 {
   @media -moz-pref("userChrome.autohide.back_button") {
-    :root:not([customizing="true"]) #back-button[disabled="true"] {
+    :root:not([customizing]) #back-button[disabled="true"] {
       margin-left: var(--uc-toolbarbutton-hide-size) !important;
       opacity: 0 !important;
       pointer-events: none;
@@ -10506,7 +10506,7 @@
     }
   }
   @media -moz-pref("userChrome.autohide.forward_button") {
-    :root:not([customizing="true"]) #forward-button[disabled="true"] {
+    :root:not([customizing]) #forward-button[disabled="true"] {
       margin-left: var(--uc-toolbarbutton-hide-size) !important;
       opacity: 0 !important;
       pointer-events: none;
@@ -15863,10 +15863,10 @@
   }
 }
 @media (-moz-bool-pref: "userChrome.theme.system_default") and (-moz-bool-pref: "layout.css.osx-font-smoothing.enabled") {
-  :root:is(:not([lwtheme]), :not(:-moz-lwtheme)):not([customizing="true"]) tab[visuallyselected] > stack::before,
-  :root:is(:not([lwtheme]), :not(:-moz-lwtheme)):not([customizing="true"]) tab[visuallyselected] > stack::after,
-  :root[lwt-default-theme-in-dark-mode]:not([customizing="true"]) tab[visuallyselected] > stack::before,
-  :root[lwt-default-theme-in-dark-mode]:not([customizing="true"]) tab[visuallyselected] > stack::after {
+  :root:is(:not([lwtheme]), :not(:-moz-lwtheme)):not([customizing]) tab[visuallyselected] > stack::before,
+  :root:is(:not([lwtheme]), :not(:-moz-lwtheme)):not([customizing]) tab[visuallyselected] > stack::after,
+  :root[lwt-default-theme-in-dark-mode]:not([customizing]) tab[visuallyselected] > stack::before,
+  :root[lwt-default-theme-in-dark-mode]:not([customizing]) tab[visuallyselected] > stack::after {
     fill: color-mix(in srgb, rgb(255, 255, 255) 15%, -moz-dialog) !important;
   }
 }
@@ -19214,7 +19214,7 @@
   }
 }
 @media (-moz-bool-pref: "userChrome.padding.tabbar_width") {
-  :root[customizing="true"] #tabbrowser-arrowscrollbox-periphery,
+  :root[customizing] #tabbrowser-arrowscrollbox-periphery,
   #tabbrowser-tabs:not([hasadjacentnewtabbutton]):not([overflow="true"])
     > #pinned-tabs-container
     > #tabbrowser-arrowscrollbox-periphery,
@@ -22692,8 +22692,8 @@
     --uc-tab-corner-left-side-svg: url("chrome://browser/skin/icons/tab-bottom-corner-left.svg");
     --uc-tab-corner-right-side-svg: url("chrome://browser/skin/icons/tab-bottom-corner-right.svg");
   }
-  :root:not([customizing="true"]) .tabbrowser-tab .tab-background::before,
-  :root:not([customizing="true"]) .tabbrowser-tab .tab-background::after {
+  :root:not([customizing]) .tabbrowser-tab .tab-background::before,
+  :root:not([customizing]) .tabbrowser-tab .tab-background::after {
     /* Box */
     display: block;
     position: absolute;
@@ -22713,14 +22713,14 @@
   }
 }
 @media (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner") and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.wave")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.australis")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome_legacy")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.edge")) and (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.all") {
-  :root:not([customizing="true"]) .tabbrowser-tab .tab-background::before,
-  :root:not([customizing="true"]) .tabbrowser-tab .tab-background::after {
+  :root:not([customizing]) .tabbrowser-tab .tab-background::before,
+  :root:not([customizing]) .tabbrowser-tab .tab-background::after {
     content: "";
   }
 }
 @media (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner") and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.wave")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.australis")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome_legacy")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.edge")) and (not (-moz-bool-pref: "userChrome.tab.color_like_toolbar")) {
-  :root:not([customizing="true"]) .tabbrowser-tab .tab-background::before,
-  :root:not([customizing="true"]) .tabbrowser-tab .tab-background::after {
+  :root:not([customizing]) .tabbrowser-tab .tab-background::before,
+  :root:not([customizing]) .tabbrowser-tab .tab-background::after {
     /* Based on tab background
        background-image: linear-gradient(var(--lwt-selected-tab-background-color, transparent), var(--lwt-selected-tab-background-color, transparent)), linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor)), var(--lwt-header-image, none);
 
@@ -22732,55 +22732,55 @@
   }
 }
 @media (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner") and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.wave")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.australis")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome_legacy")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.edge")) {
-  :root:not([customizing="true"]) .tabbrowser-tab .tab-background::before {
+  :root:not([customizing]) .tabbrowser-tab .tab-background::before {
     left: var(--uc-tab-corner-position);
     background-image: var(--uc-tab-corner-left-side-svg);
   }
 }
 @media (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner") and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.wave")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.australis")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome_legacy")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.edge")) {
-  :root:not([customizing="true"]) .tabbrowser-tab .tab-background::after {
+  :root:not([customizing]) .tabbrowser-tab .tab-background::after {
     right: var(--uc-tab-corner-position);
     background-image: var(--uc-tab-corner-right-side-svg);
   }
 }
 @media (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner") and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.wave")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.australis")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome_legacy")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.edge")) {
-  :root:not([customizing="true"]) .tabbrowser-tab[visuallyselected] .tab-background::before,
-  :root:not([customizing="true"]) .tabbrowser-tab[visuallyselected] .tab-background::after {
+  :root:not([customizing]) .tabbrowser-tab[visuallyselected] .tab-background::before,
+  :root:not([customizing]) .tabbrowser-tab[visuallyselected] .tab-background::after {
     fill: var(--tab-selected-bgcolor, var(--toolbar-bgcolor));
     stroke: var(--tab-line-color, var(--tabs-border-color, rgba(128, 128, 142, 0.9)));
   }
 }
 @media (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner") and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.wave")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.australis")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome_legacy")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.edge")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.all")) {
-  :root:not([customizing="true"]) .tabbrowser-tab[visuallyselected] .tab-background::before,
-  :root:not([customizing="true"]) .tabbrowser-tab[visuallyselected] .tab-background::after {
+  :root:not([customizing]) .tabbrowser-tab[visuallyselected] .tab-background::before,
+  :root:not([customizing]) .tabbrowser-tab[visuallyselected] .tab-background::after {
     content: "";
   }
 }
 @media (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner") and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.wave")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.australis")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome_legacy")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.edge")) {
-  :root:not([customizing="true"]) .tabbrowser-tab[multiselected] .tab-background::before,
-  :root:not([customizing="true"]) .tabbrowser-tab[multiselected] .tab-background::after {
+  :root:not([customizing]) .tabbrowser-tab[multiselected] .tab-background::before,
+  :root:not([customizing]) .tabbrowser-tab[multiselected] .tab-background::after {
     fill: var(--tab-selected-bgcolor, var(--toolbar-bgcolor));
   }
 }
 @media (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner") and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.wave")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.australis")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome_legacy")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.edge")) {
-  :root:not([customizing="true"])
+  :root:not([customizing])
     .tabbrowser-tab:hover:not([visuallyselected], [multiselected])
     .tab-background::before,
-  :root:not([customizing="true"])
+  :root:not([customizing])
     .tabbrowser-tab:hover:not([visuallyselected], [multiselected])
     .tab-background::after {
     fill: color-mix(in srgb, currentColor 11%, transparent);
   }
 }
 @media (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner") and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.wave")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.australis")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome_legacy")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.edge")) and (-moz-bool-pref: "userChrome.tab.multi_selected") {
-  :root:not([customizing="true"]) .tabbrowser-tab[multiselected]:not([visuallyselected]) .tab-background::before,
-  :root:not([customizing="true"]) .tabbrowser-tab[multiselected]:not([visuallyselected]) .tab-background::after {
+  :root:not([customizing]) .tabbrowser-tab[multiselected]:not([visuallyselected]) .tab-background::before,
+  :root:not([customizing]) .tabbrowser-tab[multiselected]:not([visuallyselected]) .tab-background::after {
     fill: color-mix(in srgb, currentColor 65%, transparent);
     opacity: 0.3;
   }
 }
 @media (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner") and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.wave")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.australis")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome_legacy")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.edge")) {
-  :root:not([customizing="true"]):is(
+  :root:not([customizing]):is(
       [style*="--lwt-accent-color: rgb(28, 27, 34); --lwt-text-color: rgba(251, 251, 254);"],
       [builtintheme][devtoolstheme="dark"]
     )
@@ -22788,7 +22788,7 @@
     #tabbrowser-tabs:not([noshadowfortests])
     .tabbrowser-tab[visuallyselected]
     .tab-background::before,
-  :root:not([customizing="true"]):is(
+  :root:not([customizing]):is(
       [style*="--lwt-accent-color: rgb(28, 27, 34); --lwt-text-color: rgba(251, 251, 254);"],
       [builtintheme][devtoolstheme="dark"]
     )
@@ -22801,13 +22801,13 @@
   }
 }
 @media (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner") and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.wave")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.australis")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.chrome_legacy")) and (not (-moz-bool-pref: "userChrome.tab.bottom_rounded_corner.edge")) and (-moz-gtk-csd-available) {
-  :root:not([customizing="true"]) {
+  :root:not([customizing]) {
     /* Fill color for GTK */
   }
-  :root:not([customizing="true"]):not([lwtheme="true"])
+  :root:not([customizing]):not([lwtheme="true"])
     .tabbrowser-tab:is([visuallyselected], [multiselected])
     .tab-background::before,
-  :root:not([customizing="true"]):not([lwtheme="true"])
+  :root:not([customizing]):not([lwtheme="true"])
     .tabbrowser-tab:is([visuallyselected], [multiselected])
     .tab-background::after {
     /* As GTK Toolbar's background-color + background-image
@@ -22818,11 +22818,11 @@
     stroke: transparent;
     opacity: 1;
   }
-  :root:not([customizing="true"]):not([lwtheme="true"])
+  :root:not([customizing]):not([lwtheme="true"])
     #TabsToolbar[brighttext]
     .tabbrowser-tab[visuallyselected]
     .tab-background::before,
-  :root:not([customizing="true"]):not([lwtheme="true"])
+  :root:not([customizing]):not([lwtheme="true"])
     #TabsToolbar[brighttext]
     .tabbrowser-tab[visuallyselected]
     .tab-background::after {
@@ -23218,8 +23218,8 @@
   .tabbrowser-tab[usercontextid] .tab-context-line {
     --identity-icon-color: none;
   }
-  :root:not([customizing="true"]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::before,
-  :root:not([customizing="true"]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::after {
+  :root:not([customizing]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::before,
+  :root:not([customizing]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::after {
     /* As Selected Tab - Box Shadow */
     stroke: var(--toolbar-color) !important;
   }
@@ -23355,8 +23355,8 @@
   }
 }
 @media (not (-moz-bool-pref: "userChrome.tab.photon_like_contextline")) and (-moz-bool-pref: "userChrome.tab.supernova_like_contextline") {
-  :root:not([customizing="true"]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::before,
-  :root:not([customizing="true"]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::after {
+  :root:not([customizing]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::before,
+  :root:not([customizing]) #TabsToolbar[brighttext] tab[visuallyselected] > stack::after {
     /* As Selected Tab - Box Shadow */
     stroke: var(--toolbar-color) !important;
   }
@@ -24807,46 +24807,46 @@
   }
 }
 @media (-moz-bool-pref: "userChrome.navbar.as_sidebar") {
-  :root[customizing="true"] #wrapper-urlbar-container {
+  :root[customizing] #wrapper-urlbar-container {
     left: 50%;
   }
-  :root[customizing="true"] #browser[collapsed="true"] {
+  :root[customizing] #browser[collapsed="true"] {
     visibility: visible !important;
   }
-  :root[customizing="true"] #browser[collapsed="true"] #appcontent {
+  :root[customizing] #browser[collapsed="true"] #appcontent {
     visibility: collapse;
   }
-  :root[customizing="true"] #browser[collapsed="true"] #sidebar-box {
+  :root[customizing] #browser[collapsed="true"] #sidebar-box {
     position: absolute;
     height: 100%;
   }
-  :root[customizing="true"] #browser[collapsed="true"] #sidebar-box[positionend] {
+  :root[customizing] #browser[collapsed="true"] #sidebar-box[positionend] {
     right: 0;
   }
-  :root[customizing="true"] #customization-container {
+  :root[customizing] #customization-container {
     --uc-customization-conatiner-margin: var(--uc-navbar-height-default);
     width: calc(100% - var(--uc-sidebar-activate-width));
     height: calc(100% - var(--uc-customization-conatiner-margin));
   }
 }
 @media (-moz-bool-pref: "userChrome.navbar.as_sidebar") and (-moz-bool-pref: "userChrome.hidden.tabbar") {
-  :root[customizing="true"] #customization-container {
+  :root[customizing] #customization-container {
     --uc-customization-conatiner-margin: calc(var(--uc-navbar-height-default) - var(--uc-tabbar-height-default));
   }
 }
 @media (-moz-bool-pref: "userChrome.navbar.as_sidebar") {
-  :root[customizing="true"]:has(#sidebar-box:not([positionend])) #customization-container {
+  :root[customizing]:has(#sidebar-box:not([positionend])) #customization-container {
     margin-inline-start: var(--uc-sidebar-activate-width);
   }
 }
 @media (-moz-bool-pref: "userChrome.navbar.as_sidebar") {
-  :root[customizing="true"]:has(#sidebar-box[positionend]) #customization-container {
+  :root[customizing]:has(#sidebar-box[positionend]) #customization-container {
     margin-inline-end: var(--uc-sidebar-activate-width);
   }
 }
 @media (-moz-bool-pref: "userChrome.navbar.as_sidebar") {
-  :root[customizing="true"] #customization-palette-container,
-  :root[customizing="true"] #customization-panel-container {
+  :root[customizing] #customization-palette-container,
+  :root[customizing] #customization-panel-container {
     flex-shrink: 0.5 !important;
   }
 }
@@ -26070,7 +26070,7 @@
 @-moz-document url("chrome://browser/content/browser.xhtml")
 {
   @media (-moz-bool-pref: "userChrome.autohide.back_button") {
-    :root:not([customizing="true"]) #back-button[disabled="true"] {
+    :root:not([customizing]) #back-button[disabled="true"] {
       margin-left: var(--uc-toolbarbutton-hide-size) !important;
       opacity: 0 !important;
       pointer-events: none;
@@ -26086,7 +26086,7 @@
     }
   }
   @media (-moz-bool-pref: "userChrome.autohide.forward_button") {
-    :root:not([customizing="true"]) #forward-button[disabled="true"] {
+    :root:not([customizing]) #forward-button[disabled="true"] {
       margin-left: var(--uc-toolbarbutton-hide-size) !important;
       opacity: 0 !important;
       pointer-events: none;
@@ -31390,4 +31390,21 @@
     --menuitem-image: url("chrome://browser/skin/icons/pwa-remove.svg");
   }
 }
+}
+
+:root[customizing] #navigator-toolbox {
+  margin-bottom: 0 !important;
+  animation: none !important;
+  transition-delay: 0s !important;
+}
+
+:root[customizing] #titlebar,
+:root[customizing] #TabsToolbar,
+:root[customizing] #nav-bar,
+:root[customizing] #PersonalToolbar {
+  margin-bottom: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transition-delay: 0s !important;
 }
