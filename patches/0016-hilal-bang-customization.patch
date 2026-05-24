@@ -247,21 +247,21 @@ index 360866be9b80..a1406f177274 100644
      "UpdatePolicyEnforcer.sys.mjs",
      "URILoadingHelper.sys.mjs",
 diff --git a/browser/app/profile/firefox.js b/browser/app/profile/firefox.js
-index 618f83bc4a43..8094c88b77a9 100644
+index b890e0f7917d..0000000000000 100644
 --- a/browser/app/profile/firefox.js
 +++ b/browser/app/profile/firefox.js
-@@ -3611,3 +3611,4 @@ pref("browser.contentsharing.newBadge.enabled", true);
- 
+@@ -3600,4 +3600,5 @@ pref("distribution.mozillaonline.ignore", false);
+ // When enabled, Firefox ignores the distribution.ini file if global.id is MozillaOnline.
  pref("distribution.mozillaonline.ignore", false);
 +pref("hilal.bangs.custom", "[]");
+ 
+ // Hilal Browser - UI Fix Integration
 diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser/locales/en-US/browser/preferences/preferences.ftl
 index 4bde36b82390..e23505052f4e 100644
 --- a/browser/locales/en-US/browser/preferences/preferences.ftl
 +++ b/browser/locales/en-US/browser/preferences/preferences.ftl
-@@ -2748,3 +2748,8 @@ security-privacy-issue-warning-ech =
- security-privacy-issue-warning-proxy-autodetection =
-   .label = Proxy auto-configuration is enabled
-   .description = Proxy auto-configuration could let untrusted networks to monitor your activity.
+@@ -2757,1 +2757,10 @@ hilal-uifix-header = UI Enhancements
+ hilal-uifix-header = UI Enhancements
 +hilal-bangs-header = Bangs
 +hilal-bangs-add-button = Add Bang
 +hilal-bangs-remove-button = Remove Selected
@@ -272,3 +272,4 @@ index 4bde36b82390..e23505052f4e 100644
 +hilal-bangs-homeurl-label = Home URL (optional):
 +hilal-bangs-default-label = (default)
 +hilal-bangs-custom-label = (custom)
+

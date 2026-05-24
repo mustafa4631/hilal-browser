@@ -40,10 +40,10 @@ diff --git a/browser/components/preferences/hilal.inc.xhtml b/browser/components
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
 --- a/browser/components/preferences/main.js
 +++ b/browser/components/preferences/main.js
-@@ -1831,6 +1831,11 @@ var gHilalPane = {
-     const hilalWsGroupsPublicCheckbox = /** @type {HTMLInputElement|null} */ (
-       document.getElementById("hilalWorkspacesGroupsPublic")
-     );
+@@ -1822,6 +1822,11 @@ var gHilalPane = {
+     const hilalWsCheckbox = document.getElementById("hilalWorkspacesEnabled");
+     const hilalWsPinnedPublicCheckbox = document.getElementById("hilalWorkspacesPinnedPublic");
+     const hilalWsGroupsPublicCheckbox = document.getElementById("hilalWorkspacesGroupsPublic");
 +    const hilalPrivacyLevelRadioGroup = /** @type {HTMLElement|null} */ (
 +      document.getElementById("hilalPrivacyLevel")
 +    );
@@ -52,7 +52,7 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
      const resetHilalWorkspaceContainers = () => {
        let workspaces = [];
        try {
-@@ -1893,6 +1899,16 @@ var gHilalPane = {
+@@ -1880,6 +1885,16 @@ var gHilalPane = {
          );
        });
      }
@@ -69,7 +69,7 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
      setEventListener("hilalWorkspacesReset", "command", function () {
        if (
          Services.prompt.confirm(
-@@ -1908,6 +1924,7 @@ var gHilalPane = {
+@@ -1893,6 +1908,7 @@ var gHilalPane = {
          Services.prefs.setBoolPref("hilal.workspaces.enabled", true);
          Services.prefs.setBoolPref("hilal.workspaces.pinned.public", false);
          Services.prefs.setBoolPref("hilal.workspaces.groups.public", false);
@@ -77,7 +77,7 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
          if (hilalWsCheckbox) {
            hilalWsCheckbox.checked = true;
          }
-@@ -1917,5 +1934,8 @@ var gHilalPane = {
+@@ -1902,5 +1918,8 @@ var gHilalPane = {
          if (hilalWsGroupsPublicCheckbox) {
            hilalWsGroupsPublicCheckbox.checked = false;
          }

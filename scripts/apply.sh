@@ -42,6 +42,15 @@ if [ "$FORCE" = 1 ]; then
   warn "         and removing branding/hilal + prefs overlays."
   git -C "$HILAL_FIREFOX_SRC" reset --hard HEAD
   rm -rf "$HILAL_FIREFOX_SRC/browser/branding/hilal"
+  # Remove untracked files created by Hilal patches (new files not tracked by Firefox git).
+  git -C "$HILAL_FIREFOX_SRC" clean -fd \
+    browser/components/preferences/hilal.inc.xhtml \
+    browser/base/content/hilal/ \
+    browser/themes/shared/hilal-ui-fix.css \
+    browser/app/distribution/policies.json \
+    browser/app/distribution/extensions/ \
+    browser/modules/HilalBangs.sys.mjs \
+    > /dev/null 2>&1 || true
 fi
 
 if [ -d "$HILAL_FIREFOX_SRC/browser/branding/huma" ]; then
