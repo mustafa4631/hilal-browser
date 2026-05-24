@@ -1,186 +1,46 @@
-Add browser-wide Bangs! support
+Hilal Browser: add bangs (!) support with shared HilalBangs module
 
----
+Refactors existing bangs support to use a shared HilalBangs module that
+supports customizable bang definitions via the hilal.bangs.custom pref.
 
 diff --git a/browser/components/urlbar/UrlbarUtils.sys.mjs b/browser/components/urlbar/UrlbarUtils.sys.mjs
-index 90ca04272688..5d68524cdb51 100644
+index c12cb44d30e9..40cb59f3a060 100644
 --- a/browser/components/urlbar/UrlbarUtils.sys.mjs
 +++ b/browser/components/urlbar/UrlbarUtils.sys.mjs
-@@ -727,6 +727,212 @@ export var UrlbarUtils = {
+@@ -38,20 +38,21 @@ const lazy = XPCOMUtils.declareLazy({
+   SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
+   SearchSuggestionController:
+     "moz-src:///toolkit/components/search/SearchSuggestionController.sys.mjs",
+   UrlbarPrefs: "moz-src:///browser/components/urlbar/UrlbarPrefs.sys.mjs",
+   UrlbarProviderInterventions:
+     "moz-src:///browser/components/urlbar/UrlbarProviderInterventions.sys.mjs",
+   UrlbarProviderOpenTabs:
+     "moz-src:///browser/components/urlbar/UrlbarProviderOpenTabs.sys.mjs",
+   UrlbarProviderSearchTips:
+     "moz-src:///browser/components/urlbar/UrlbarProviderSearchTips.sys.mjs",
++  HilalBangs: "resource:///modules/HilalBangs.sys.mjs",
+   UrlbarSearchUtils:
+     "moz-src:///browser/components/urlbar/UrlbarSearchUtils.sys.mjs",
+   UrlbarTokenizer:
+     "moz-src:///browser/components/urlbar/UrlbarTokenizer.sys.mjs",
+   UrlUtils: "resource://gre/modules/UrlUtils.sys.mjs",
+   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+   setTimeout: "resource://gre/modules/Timer.sys.mjs",
+ 
+   historyEnabled: {
+     pref: "places.history.enabled",
+@@ -720,20 +721,56 @@ export var UrlbarUtils = {
+    *
+    * @param {SearchEngine} engine
+    *   The engine to generate the query for.
+    * @param {string} query
+    *   The query string to search for.
+    * @returns {Array}
+    *   Returns an array containing the query url (string) and the
     *    post data (object).
     */
    getSearchQueryUrl(engine, query) {
-+    const BANGS_MAP = {
-+      g: {
-+        search: "https://www.google.com/search?q={query}",
-+        home: "https://www.google.com",
-+      },
-+      google: {
-+        search: "https://www.google.com/search?q={query}",
-+        home: "https://www.google.com",
-+      },
-+      yt: {
-+        search: "https://www.youtube.com/results?search_query={query}",
-+        home: "https://www.youtube.com",
-+      },
-+      youtube: {
-+        search: "https://www.youtube.com/results?search_query={query}",
-+        home: "https://www.youtube.com",
-+      },
-+      w: {
-+        search: "https://en.wikipedia.org/wiki/Special:Search?search={query}",
-+        home: "https://www.wikipedia.org",
-+      },
-+      wikipedia: {
-+        search: "https://en.wikipedia.org/wiki/Special:Search?search={query}",
-+        home: "https://www.wikipedia.org",
-+      },
-+      d: {
-+        search: "https://duckduckgo.com/?q={query}",
-+        home: "https://duckduckgo.com",
-+      },
-+      duckduckgo: {
-+        search: "https://duckduckgo.com/?q={query}",
-+        home: "https://duckduckgo.com",
-+      },
-+      gh: {
-+        search: "https://github.com/search?q={query}",
-+        home: "https://github.com",
-+      },
-+      github: {
-+        search: "https://github.com/search?q={query}",
-+        home: "https://github.com",
-+      },
-+      r: {
-+        search: "https://www.reddit.com/search/?q={query}",
-+        home: "https://www.reddit.com",
-+      },
-+      reddit: {
-+        search: "https://www.reddit.com/search/?q={query}",
-+        home: "https://www.reddit.com",
-+      },
-+      a: {
-+        search: "https://www.amazon.com/s?k={query}",
-+        home: "https://www.amazon.com",
-+      },
-+      amazon: {
-+        search: "https://www.amazon.com/s?k={query}",
-+        home: "https://www.amazon.com",
-+      },
-+      n: {
-+        search: "https://www.netflix.com/search?q={query}",
-+        home: "https://www.netflix.com",
-+      },
-+      netflix: {
-+        search: "https://www.netflix.com/search?q={query}",
-+        home: "https://www.netflix.com",
-+      },
-+      imdb: {
-+        search: "https://www.imdb.com/find?q={query}",
-+        home: "https://www.imdb.com",
-+      },
-+      tr: {
-+        search: "https://translate.google.com/?sl=auto&tl=en&text={query}",
-+        home: "https://translate.google.com",
-+      },
-+      translate: {
-+        search: "https://translate.google.com/?sl=auto&tl=en&text={query}",
-+        home: "https://translate.google.com",
-+      },
-+      tw: {
-+        search: "https://twitter.com/search?q={query}",
-+        home: "https://twitter.com",
-+      },
-+      twitter: {
-+        search: "https://twitter.com/search?q={query}",
-+        home: "https://twitter.com",
-+      },
-+      x: { search: "https://x.com/search?q={query}", home: "https://x.com" },
-+      maps: {
-+        search: "https://www.google.com/maps/search/{query}",
-+        home: "https://maps.google.com",
-+      },
-+      b: {
-+        search: "https://www.bing.com/search?q={query}",
-+        home: "https://www.bing.com",
-+      },
-+      bing: {
-+        search: "https://www.bing.com/search?q={query}",
-+        home: "https://www.bing.com",
-+      },
-+      y: {
-+        search: "https://search.yahoo.com/search?p={query}",
-+        home: "https://yahoo.com",
-+      },
-+      yahoo: {
-+        search: "https://search.yahoo.com/search?p={query}",
-+        home: "https://yahoo.com",
-+      },
-+      ebay: {
-+        search: "https://www.ebay.com/sch/i.html?_nkw={query}",
-+        home: "https://www.ebay.com",
-+      },
-+      wiki: {
-+        search: "https://en.wikipedia.org/wiki/Special:Search?search={query}",
-+        home: "https://www.wikipedia.org",
-+      },
-+      wa: {
-+        search: "https://www.wolframalpha.com/input?i={query}",
-+        home: "https://www.wolframalpha.com",
-+      },
-+      wolfram: {
-+        search: "https://www.wolframalpha.com/input?i={query}",
-+        home: "https://www.wolframalpha.com",
-+      },
-+      stack: {
-+        search: "https://stackoverflow.com/search?q={query}",
-+        home: "https://stackoverflow.com",
-+      },
-+      so: {
-+        search: "https://stackoverflow.com/search?q={query}",
-+        home: "https://stackoverflow.com",
-+      },
-+      twitch: {
-+        search: "https://www.twitch.tv/search?term={query}",
-+        home: "https://www.twitch.tv",
-+      },
-+      pinterest: {
-+        search: "https://www.pinterest.com/search/pins/?q={query}",
-+        home: "https://www.pinterest.com",
-+      },
-+      spotify: {
-+        search: "https://open.spotify.com/search/{query}",
-+        home: "https://open.spotify.com",
-+      },
-+      steam: {
-+        search: "https://store.steampowered.com/search/?term={query}",
-+        home: "https://store.steampowered.com",
-+      },
-+      medium: {
-+        search: "https://medium.com/search?q={query}",
-+        home: "https://medium.com",
-+      },
-+      quora: {
-+        search: "https://www.quora.com/search?q={query}",
-+        home: "https://www.quora.com",
-+      },
-+      facebook: {
-+        search: "https://www.facebook.com/search/top/?q={query}",
-+        home: "https://www.facebook.com",
-+      },
-+      fb: {
-+        search: "https://www.facebook.com/search/top/?q={query}",
-+        home: "https://www.facebook.com",
-+      },
-+      instagram: {
-+        search: "https://www.instagram.com/explore/tags/{query}",
-+        home: "https://www.instagram.com",
-+      },
-+      ig: {
-+        search: "https://www.instagram.com/explore/tags/{query}",
-+        home: "https://www.instagram.com",
-+      },
-+    };
++    const BANGS_MAP = lazy.HilalBangs.getBangsMap();
 +
 +    if (query) {
 +      const trimmed = query.trim();
@@ -219,185 +79,51 @@ index 90ca04272688..5d68524cdb51 100644
      let submission = engine.getSubmission(query);
      return [submission.uri.spec, submission.postData];
    },
+ 
+   /**
+    * Ranks a URL prefix from 3 - 0 with the following preferences:
+    * https:// > https://www. > http:// > http://www.
+    * Higher is better for the purposes of deduping URLs.
+    * Returns -1 if the prefix does not match any of the above.
+    *
 diff --git a/browser/modules/URILoadingHelper.sys.mjs b/browser/modules/URILoadingHelper.sys.mjs
-index c10e1e3a34f8..264fd2157196 100644
+index c10e1e3a34f8..fdda1de24421 100644
 --- a/browser/modules/URILoadingHelper.sys.mjs
 +++ b/browser/modules/URILoadingHelper.sys.mjs
-@@ -462,6 +462,226 @@ export const URILoadingHelper = {
+@@ -4,20 +4,21 @@
+ 
+ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+ import { BrowserUtils } from "resource://gre/modules/BrowserUtils.sys.mjs";
+ import { PrivateBrowsingUtils } from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
+ 
+ const lazy = {};
+ 
+ ChromeUtils.defineESModuleGetters(lazy, {
+   AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
+   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
++  HilalBangs: "resource:///modules/HilalBangs.sys.mjs",
+ });
+ 
+ ChromeUtils.defineLazyGetter(lazy, "ReferrerInfo", () =>
+   Components.Constructor(
+     "@mozilla.org/referrer-info;1",
+     "nsIReferrerInfo",
+     "init"
+   )
+ );
+ 
+@@ -455,20 +456,70 @@ export const URILoadingHelper = {
+    * @param {boolean}  params.isContentWindowPrivate
+    *                   Save content as coming from a private window.
+    * @param {Document} params.initiatingDoc
+    *                   Used to determine where to prompt for a filename.
+    */
+   openLinkIn(window, url, where, params) {
+     if (!where || !url) {
        return;
      }
  
-+    const BANGS_MAP = {
-+      g: {
-+        search: "https://www.google.com/search?q={query}",
-+        home: "https://www.google.com",
-+      },
-+      google: {
-+        search: "https://www.google.com/search?q={query}",
-+        home: "https://www.google.com",
-+      },
-+      yt: {
-+        search: "https://www.youtube.com/results?search_query={query}",
-+        home: "https://www.youtube.com",
-+      },
-+      youtube: {
-+        search: "https://www.youtube.com/results?search_query={query}",
-+        home: "https://www.youtube.com",
-+      },
-+      w: {
-+        search: "https://en.wikipedia.org/wiki/Special:Search?search={query}",
-+        home: "https://www.wikipedia.org",
-+      },
-+      wikipedia: {
-+        search: "https://en.wikipedia.org/wiki/Special:Search?search={query}",
-+        home: "https://www.wikipedia.org",
-+      },
-+      d: {
-+        search: "https://duckduckgo.com/?q={query}",
-+        home: "https://duckduckgo.com",
-+      },
-+      duckduckgo: {
-+        search: "https://duckduckgo.com/?q={query}",
-+        home: "https://duckduckgo.com",
-+      },
-+      gh: {
-+        search: "https://github.com/search?q={query}",
-+        home: "https://github.com",
-+      },
-+      github: {
-+        search: "https://github.com/search?q={query}",
-+        home: "https://github.com",
-+      },
-+      r: {
-+        search: "https://www.reddit.com/search/?q={query}",
-+        home: "https://www.reddit.com",
-+      },
-+      reddit: {
-+        search: "https://www.reddit.com/search/?q={query}",
-+        home: "https://www.reddit.com",
-+      },
-+      a: {
-+        search: "https://www.amazon.com/s?k={query}",
-+        home: "https://www.amazon.com",
-+      },
-+      amazon: {
-+        search: "https://www.amazon.com/s?k={query}",
-+        home: "https://www.amazon.com",
-+      },
-+      n: {
-+        search: "https://www.netflix.com/search?q={query}",
-+        home: "https://www.netflix.com",
-+      },
-+      netflix: {
-+        search: "https://www.netflix.com/search?q={query}",
-+        home: "https://www.netflix.com",
-+      },
-+      imdb: {
-+        search: "https://www.imdb.com/find?q={query}",
-+        home: "https://www.imdb.com",
-+      },
-+      tr: {
-+        search: "https://translate.google.com/?sl=auto&tl=en&text={query}",
-+        home: "https://translate.google.com",
-+      },
-+      translate: {
-+        search: "https://translate.google.com/?sl=auto&tl=en&text={query}",
-+        home: "https://translate.google.com",
-+      },
-+      tw: {
-+        search: "https://twitter.com/search?q={query}",
-+        home: "https://twitter.com",
-+      },
-+      twitter: {
-+        search: "https://twitter.com/search?q={query}",
-+        home: "https://twitter.com",
-+      },
-+      x: { search: "https://x.com/search?q={query}", home: "https://x.com" },
-+      maps: {
-+        search: "https://www.google.com/maps/search/{query}",
-+        home: "https://maps.google.com",
-+      },
-+      b: {
-+        search: "https://www.bing.com/search?q={query}",
-+        home: "https://www.bing.com",
-+      },
-+      bing: {
-+        search: "https://www.bing.com/search?q={query}",
-+        home: "https://www.bing.com",
-+      },
-+      y: {
-+        search: "https://search.yahoo.com/search?p={query}",
-+        home: "https://yahoo.com",
-+      },
-+      yahoo: {
-+        search: "https://search.yahoo.com/search?p={query}",
-+        home: "https://yahoo.com",
-+      },
-+      ebay: {
-+        search: "https://www.ebay.com/sch/i.html?_nkw={query}",
-+        home: "https://www.ebay.com",
-+      },
-+      wiki: {
-+        search: "https://en.wikipedia.org/wiki/Special:Search?search={query}",
-+        home: "https://www.wikipedia.org",
-+      },
-+      wa: {
-+        search: "https://www.wolframalpha.com/input?i={query}",
-+        home: "https://www.wolframalpha.com",
-+      },
-+      wolfram: {
-+        search: "https://www.wolframalpha.com/input?i={query}",
-+        home: "https://www.wolframalpha.com",
-+      },
-+      stack: {
-+        search: "https://stackoverflow.com/search?q={query}",
-+        home: "https://stackoverflow.com",
-+      },
-+      so: {
-+        search: "https://stackoverflow.com/search?q={query}",
-+        home: "https://stackoverflow.com",
-+      },
-+      twitch: {
-+        search: "https://www.twitch.tv/search?term={query}",
-+        home: "https://www.twitch.tv",
-+      },
-+      pinterest: {
-+        search: "https://www.pinterest.com/search/pins/?q={query}",
-+        home: "https://www.pinterest.com",
-+      },
-+      spotify: {
-+        search: "https://open.spotify.com/search/{query}",
-+        home: "https://open.spotify.com",
-+      },
-+      steam: {
-+        search: "https://store.steampowered.com/search/?term={query}",
-+        home: "https://store.steampowered.com",
-+      },
-+      medium: {
-+        search: "https://medium.com/search?q={query}",
-+        home: "https://medium.com",
-+      },
-+      quora: {
-+        search: "https://www.quora.com/search?q={query}",
-+        home: "https://www.quora.com",
-+      },
-+      facebook: {
-+        search: "https://www.facebook.com/search/top/?q={query}",
-+        home: "https://www.facebook.com",
-+      },
-+      fb: {
-+        search: "https://www.facebook.com/search/top/?q={query}",
-+        home: "https://www.facebook.com",
-+      },
-+      instagram: {
-+        search: "https://www.instagram.com/explore/tags/{query}",
-+        home: "https://www.instagram.com",
-+      },
-+      ig: {
-+        search: "https://www.instagram.com/explore/tags/{query}",
-+        home: "https://www.instagram.com",
-+      },
-+    };
++    const BANGS_MAP = lazy.HilalBangs.getBangsMap();
 +
 +    if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
 +      try {
@@ -450,3 +176,10 @@ index c10e1e3a34f8..264fd2157196 100644
      let {
        allowThirdPartyFixup,
        postData,
+       charset,
+       allowInheritPrincipal,
+       forceAllowDataURI,
+       forceNonPrivate,
+       skipTabAnimation,
+       allowPinnedTabHostChange,
+       userContextId,
