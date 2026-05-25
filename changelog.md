@@ -4,6 +4,27 @@ All notable changes to the Hilal Browser project will be documented in this file
 
 ---
 
+## [0.2.0-alpha.4] - 2026-05-26
+
+### Added
+- **Workspace-Specific Bookmark Folders**: Each workspace now has a dedicated bookmark folder for context-isolated bookmarking, with URL filtering tied to the active workspace.
+- **Bang Customization UI**: Added a dedicated Bangs settings panel in the Hilal Preferences page, allowing users to view default bangs and add or remove custom bang definitions with trigger, search URL, and home URL fields.
+- **Smart Bang Fallback**: Unknown bangs are now explicitly routed to DuckDuckGo's bang handler (`https://duckduckgo.com/?q=!bang+query`) as a deliberate UX choice, leveraging DuckDuckGo's extensive bang ecosystem.
+- **Dynamic Sidebar Shortcut Favicons**: Custom sidebar shortcuts now display favicons fetched from Firefox's `page-icon:` cache instead of performing a live web request, preserving privacy.
+- **Full Localization of Preferences and Welcome Screen**: All hardcoded label strings in the preferences panel and welcome screen have been replaced with Fluent `data-l10n-id` bindings and new FTL definitions.
+
+### Changed
+- **Patch Apply Checksum Validation**: `scripts/apply.sh` now computes a content hash of the entire patch series and skips re-applying patches if nothing has changed, speeding up incremental builds.
+- **Hilal Preferences UI Reorganization**: Sidebar, workspace, privacy, and UI fix preference modules have been refactored into separate, focused blocks within `hilal.inc.xhtml`.
+
+### Fixed
+- **Workspace Tab Operations in Customization Mode**: Prevented workspace tab move/retarget operations from running while the browser is in sidebar customization mode, which could corrupt tab state.
+- **Patch Apply Conflicts**: Fixed a line-offset conflict in `0016-hilal-bang-customization.patch` caused by duplicate Fluent string definitions already introduced by `0005-hilal-l10n.patch`.
+- **Website TypeScript Compilation**: Fixed a `Cannot find namespace 'React'` TypeScript compiler error in `www/src/App.tsx` by adding the React namespace import.
+- **macOS Window Margins**: Adjusted macOS window margins and eliminated stacked paddings that were causing visual misalignment.
+
+---
+
 ## [0.2.0-alpha.3] - 2026-05-24
 
 ### Added
