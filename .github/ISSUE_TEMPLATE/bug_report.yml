@@ -1,0 +1,97 @@
+name: Bug report
+description: Report a reproducible problem in Hilal Browser.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve Hilal Browser. Please include enough detail for someone else to reproduce the problem.
+
+  - type: input
+    id: version
+    attributes:
+      label: Hilal Browser version
+      description: "Example: 0.2.0-alpha.3"
+      placeholder: 0.2.0-alpha.3
+    validations:
+      required: true
+
+  - type: input
+    id: commit
+    attributes:
+      label: Commit or release artifact
+      description: Paste the commit SHA, tag, or downloaded artifact name if known.
+      placeholder: b9990e9 or Hilal-Browser-0.2.0-alpha.3-mac.dmg
+    validations:
+      required: false
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the exact steps that trigger the problem.
+      placeholder: |
+        1. Open Hilal Browser
+        2. Go to ...
+        3. Click ...
+        4. See ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, screenshots, or crash details
+      description: Paste terminal output, browser console output, crash IDs, or attach screenshots if useful.
+      render: shell
+    validations:
+      required: false
+
+  - type: dropdown
+    id: regression
+    attributes:
+      label: Is this a regression?
+      options:
+        - "Unknown"
+        - "No"
+        - "Yes"
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Add anything else that may help with debugging.
+    validations:
+      required: false

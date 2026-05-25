@@ -1,0 +1,96 @@
+name: Build or release issue
+description: Report a problem with setup, patch application, build, packaging, or release artifacts.
+title: "[Build]: "
+labels:
+  - build
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for problems with `scripts/setup-firefox.sh`, `scripts/apply.sh`, build scripts, packaging, or release artifacts.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Firefox setup
+        - Patch application
+        - macOS build
+        - Linux build
+        - Windows build
+        - Packaging
+        - GitHub release
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: hilal_commit
+    attributes:
+      label: Hilal repository commit
+      description: Run `git rev-parse HEAD` in this repository.
+      placeholder: b9990e94d3d0be431497d34844db410eea166a1c
+    validations:
+      required: true
+
+  - type: input
+    id: firefox_commit
+    attributes:
+      label: Firefox upstream commit or version
+      description: Include the Firefox checkout commit or version that the patch series targets.
+      placeholder: 152.0a1 or 15541e093f90
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and architecture
+      placeholder: macOS 15 arm64, Ubuntu 24.04 x86_64, Windows 11 x64
+    validations:
+      required: true
+
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands run
+      description: Paste the exact commands you ran.
+      render: shell
+      placeholder: |
+        scripts/setup-firefox.sh
+        scripts/apply.sh --force
+        scripts/build-macos.sh package
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Error output
+      description: Paste the relevant output. If the log is long, include the first error and the final failure.
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks completed
+      options:
+        - label: I tested from a clean checkout or clean Firefox worktree.
+          required: false
+        - label: I ran `scripts/apply.sh --force`.
+          required: false
+        - label: I confirmed which Firefox upstream commit or version is being used.
+          required: false
+        - label: For release artifacts, I checked that required defaults, policies, and bundled extensions are present.
+          required: false
+
+  - type: textarea
+    id: artifact
+    attributes:
+      label: Artifact details
+      description: If this is about a packaged build, include artifact filename, size, checksum, and download location.
+    validations:
+      required: false

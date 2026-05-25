@@ -1,0 +1,72 @@
+name: Feature request
+description: Suggest an improvement or new feature for Hilal Browser.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Hilal Browser stays close to upstream Firefox. Please explain why the feature belongs in Hilal instead of upstream Firefox or an extension.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What user problem does this solve?
+      placeholder: Describe the workflow, privacy concern, or usability issue.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What should Hilal Browser do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Mention any Firefox setting, extension, or existing workaround that already helps.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature area
+      options:
+        - Privacy and security
+        - Welcome flow
+        - Settings
+        - Workspaces
+        - Sidebar
+        - Search and bangs
+        - Branding
+        - Build or release tooling
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy and transparency impact
+      options:
+        - label: This feature changes privacy or security behavior.
+          required: false
+        - label: This feature needs clear user-facing wording about what it does and does not protect.
+          required: false
+        - label: This feature may affect website compatibility.
+          required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add mockups, screenshots, links, or implementation notes if useful.
+    validations:
+      required: false
