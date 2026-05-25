@@ -15,6 +15,10 @@
   <a href="https://github.com/VastSea0/hilal-browser/blob/main/LICENSE"><img src="https://img.shields.io/github/license/VastSea0/hilal-browser?style=flat-square&color=blue" alt="License" /></a>
 </p>
 
+<p align="center">
+  <img src="prefs/browser/base/content/hilal/black-white.png" alt="Hilal Browser Interface Preview" width="800" />
+</p>
+
 ---
 
 ## Core Features

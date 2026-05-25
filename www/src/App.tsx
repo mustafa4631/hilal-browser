@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Sun,
@@ -69,6 +69,63 @@ export default function App() {
 
   // Active navigation highlight (scroll tracker)
   const [activeSection, setActiveSection] = useState<string>("home");
+
+  // Image comparison slider state and interaction handlers
+  const [sliderPosition, setSliderPosition] = useState<number>(50);
+  const [isSliderDragging, setIsSliderDragging] = useState<boolean>(false);
+  const sliderRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSliderMove = (clientX: number) => {
+    if (!sliderRef.current) return;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const position = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setSliderPosition(position);
+  };
+
+  const handleSliderMouseDown = (e: React.MouseEvent) => {
+    setIsSliderDragging(true);
+    handleSliderMove(e.clientX);
+  };
+
+  const handleSliderTouchStart = (e: React.TouchEvent) => {
+    setIsSliderDragging(true);
+    if (e.touches.length > 0) {
+      handleSliderMove(e.touches[0].clientX);
+    }
+  };
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (isSliderDragging) {
+        handleSliderMove(e.clientX);
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (isSliderDragging && e.touches.length > 0) {
+        handleSliderMove(e.touches[0].clientX);
+      }
+    };
+
+    const onMouseUp = () => {
+      setIsSliderDragging(false);
+    };
+
+    if (isSliderDragging) {
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+      window.addEventListener("touchmove", onTouchMove);
+      window.addEventListener("touchend", onMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onMouseUp);
+    };
+  }, [isSliderDragging]);
 
   // Sync theme to root
   useEffect(() => {
@@ -674,14 +731,69 @@ export default function App() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="relative"
         >
-          {/* Clean Screenshot Display - Directly displaying the high-quality browser window screenshot */}
-          <div id="browser-preview-container" className="overflow-hidden rounded-2xl">
+          {/* Clean Screenshot Display - Interactive Before/After Light & Dark Theme Comparison Slider */}
+          <div
+            id="browser-preview-container"
+            ref={sliderRef}
+            className="relative select-none overflow-hidden rounded-2xl border border-[#e7e2da] dark:border-zinc-800 shadow-2xl cursor-ew-resize bg-[#FBF9F4] dark:bg-zinc-900"
+            onMouseDown={handleSliderMouseDown}
+            onTouchStart={handleSliderTouchStart}
+          >
+            {/* Background Image: Dark Theme (Right Side) */}
             <img
-              src="https://raw.githubusercontent.com/VastSea0/hilal-browser/main/prefs/browser/base/content/hilal/welcome-home-preview.png"
-              alt="Hilal Welcome Home Preview Page"
-              className="w-full h-auto select-none"
+              src="https://raw.githubusercontent.com/VastSea0/hilal-browser/main/prefs/browser/base/content/hilal/welcome-home-preview-black.png"
+              alt="Hilal Welcome Home Preview Page - Dark Theme"
+              className="w-full h-auto select-none pointer-events-none block"
               referrerPolicy="no-referrer"
             />
+
+            {/* Foreground Image: Light Theme (Left Side) */}
+            <div
+              className="absolute inset-0 pointer-events-none overflow-hidden z-10"
+              style={{
+                clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`,
+              }}
+            >
+              <img
+                src="https://raw.githubusercontent.com/VastSea0/hilal-browser/main/prefs/browser/base/content/hilal/welcome-home-preview.png"
+                alt="Hilal Welcome Home Preview Page - Light Theme"
+                className="w-full h-auto select-none pointer-events-none block"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+
+            {/* Slider Handle Line */}
+            <div
+              className="absolute top-0 bottom-0 w-[2px] bg-teal-500 z-20 pointer-events-none shadow-sm"
+              style={{ left: `${sliderPosition}%` }}
+            />
+
+            {/* Slider Circle Handle Button */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-teal-500 hover:bg-teal-400 z-30 shadow-2xl flex items-center justify-center border-2 border-white select-none transition-colors duration-150 cursor-ew-resize"
+              style={{ left: `${sliderPosition}%` }}
+            >
+              <svg
+                className="w-5 h-5 text-white pointer-events-none"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="8 17 3 12 8 7" />
+                <polyline points="16 7 21 12 16 17" />
+              </svg>
+            </div>
+
+            {/* Localized Floating Theme Badges */}
+            <div className="absolute top-4 left-4 z-20 px-3 py-1 text-[11px] font-medium tracking-wide rounded-full bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md text-[#1C1917] dark:text-zinc-100 border border-white/20 dark:border-zinc-800/40 select-none shadow-sm pointer-events-none uppercase font-mono">
+              {lang === "tr" ? "Aydınlık" : "Light"}
+            </div>
+            <div className="absolute top-4 right-4 z-20 px-3 py-1 text-[11px] font-medium tracking-wide rounded-full bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md text-[#1C1917] dark:text-zinc-100 border border-white/20 dark:border-zinc-800/40 select-none shadow-sm pointer-events-none uppercase font-mono">
+              {lang === "tr" ? "Karanlık" : "Dark"}
+            </div>
           </div>
 
           {/* Bottom Monospaced tag */}
