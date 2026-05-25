@@ -120,6 +120,16 @@ diff --git a/browser/themes/shared/browser-shared.css b/browser/themes/shared/br
 index f38e980ba766..51646d9bac07 100644
 --- a/browser/themes/shared/browser-shared.css
 +++ b/browser/themes/shared/browser-shared.css
+@@ -58,8 +58,8 @@ body {
+   }
+ 
+   user-select: none;
+   color-scheme: light dark;
+-  text-rendering: optimizeLegibility;
++  text-rendering: auto;
+   /* Minimum sizing comes from specific size requirements and adds on other
+    * values for different scenarios that don't lend themselves to design tokens. */
+   /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
 @@ -248,6 +248,92 @@ body {
    }
  }
@@ -493,3 +503,15 @@ index 0e2fa0c1c0f7..28bd95d5ddf0 100644
    BOOL currentTransparency = !mWindow.isOpaque;
    if (isTransparent == currentTransparency) {
      return;
+diff --git a/toolkit/content/xul.css b/toolkit/content/xul.css
+--- a/toolkit/content/xul.css
++++ b/toolkit/content/xul.css
+@@ -32,7 +32,7 @@
+ }
+ 
+ :root {
+-  text-rendering: optimizeLegibility;
++  text-rendering: auto;
+   -moz-control-character-visibility: visible;
+   -moz-box-collapse: legacy;
+   width: 100%;

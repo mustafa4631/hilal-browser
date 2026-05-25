@@ -114,35 +114,6 @@ index b890e0f7917d..b631daa972a2 100644
 +pref("browser.tabs.hoverPreview.enabled", true);
 +pref("browser.urlbar.clipboard.featureGate", true);
 +pref("browser.urlbar.suggest.calculator", true);
-diff --git a/browser/components/preferences/hilal.inc.xhtml b/browser/components/preferences/hilal.inc.xhtml
---- a/browser/components/preferences/hilal.inc.xhtml
-+++ b/browser/components/preferences/hilal.inc.xhtml
-@@ -29,5 +29,25 @@
-               label="Reset Workspaces"/>
-     </hbox>
-   </vbox>
- </groupbox>
-+
-+<groupbox id="hilalUiFixGroup" data-category="paneHilal" hidden="true">
-+  <label><html:h2 data-l10n-id="hilal-uifix-header"/></label>
-+  <vbox align="start">
-+    <checkbox id="hilalUiFixEnabled"
-+              label="Enable UI Enhancements (includes Firefox-UI-Fix by @black7375)"/>
-+    <vbox id="hilalUiFixSubOptions" class="indent">
-+      <checkbox id="hilalUiFixConnectToWindow"
-+                label="Connected Tabs (Connect tab borders to the window)"/>
-+      <checkbox id="hilalUiFixCompactPadding"
-+                label="Compact Tab Padding (Slimmer, Lepton-style tabs)"/>
-+      <checkbox id="hilalUiFixDynamicSeparator"
-+                label="Dynamic Tab Separators"/>
-+      <checkbox id="hilalUiFixBottomRounded"
-+                label="Rounded Bottom Tab Corners"/>
-+      <checkbox id="hilalUiFixCloseOnHover"
-+                label="Show Tab Close Button Only on Hover"/>
-+    </vbox>
-+  </vbox>
-+</groupbox>
- </html:template>
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
 --- a/browser/components/preferences/main.js
 +++ b/browser/components/preferences/main.js

@@ -22,13 +22,4 @@ diff --git a/browser/app/distribution/moz.build b/browser/app/distribution/moz.b
  ]
  
  FINAL_TARGET_FILES.distribution.extensions += [
-diff --git a/browser/app/distribution/policies.json b/browser/app/distribution/policies.json
-new file mode 100644
---- /dev/null
-+++ b/browser/app/distribution/policies.json
-@@ -0,0 +1,5 @@
-+{
-+  "policies": {
-+    "AppUpdateURL": "https://updates.hilal.gkdevstudio.org/update/6/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%SYSTEM_CAPABILITIES%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml"
-+  }
-+}
+

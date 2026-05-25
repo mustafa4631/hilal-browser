@@ -4,44 +4,6 @@ Adds a dedicated "Hilal Browser" category to about:preferences with
 workspace controls and a Reset Workspaces button. The pref binding is handled
 manually via JS.
 
-diff --git a/browser/components/preferences/hilal.inc.xhtml b/browser/components/preferences/hilal.inc.xhtml
-new file mode 100644
---- /dev/null
-+++ b/browser/components/preferences/hilal.inc.xhtml
-@@ -0,0 +1,33 @@
-+<!-- This Source Code Form is subject to the terms of the Mozilla Public
-+   - License, v. 2.0. If a copy of the MPL was not distributed with this
-+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-+
-+<!-- Hilal Browser panel -->
-+
-+<html:template id="template-paneHilal">
-+<hbox id="hilalCategory"
-+      class="subcategory"
-+      hidden="true"
-+      data-category="paneHilal">
-+  <html:h1 data-l10n-id="hilal-settings-header"/>
-+</hbox>
-+
-+<groupbox id="hilalWorkspacesGroup" data-category="paneHilal" hidden="true">
-+  <label><html:h2 data-l10n-id="hilal-workspaces-header"/></label>
-+  <vbox align="start">
-+    <checkbox id="hilalWorkspacesEnabled"
-+              label="Enable workspaces"/>
-+    <checkbox id="hilalWorkspacesPinnedPublic"
-+              label="Make pinned tabs visible in all workspaces"/>
-+    <checkbox id="hilalWorkspacesGroupsPublic"
-+              label="Make tab groups visible in all workspaces"/>
-+    <hbox>
-+      <description flex="1">Reset all workspace data (cannot be undone).</description>
-+      <button id="hilalWorkspacesReset"
-+              is="highlightable-button"
-+              class="accessory-button"
-+              label="Reset Workspaces"/>
-+    </hbox>
-+  </vbox>
-+</groupbox>
-+</html:template>
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
 --- a/browser/components/preferences/main.js
 +++ b/browser/components/preferences/main.js

@@ -42,6 +42,7 @@ if [ "$FORCE" = 1 ]; then
   warn "         and removing branding/hilal + prefs overlays."
   git -C "$HILAL_FIREFOX_SRC" reset --hard HEAD
   rm -rf "$HILAL_FIREFOX_SRC/browser/branding/hilal"
+  rm -f "$HILAL_FIREFOX_SRC/.hilal-applied"
   # Remove untracked files created by Hilal patches (new files not tracked by Firefox git).
   git -C "$HILAL_FIREFOX_SRC" clean -fd \
     browser/components/preferences/hilal.inc.xhtml \
@@ -52,6 +53,32 @@ if [ "$FORCE" = 1 ]; then
     browser/modules/HilalBangs.sys.mjs \
     > /dev/null 2>&1 || true
 fi
+
+calculate_series_hash() {
+  local series_file="$HILAL_REPO_ROOT/patches/series"
+  [ -f "$series_file" ] || return 1
+
+  stream_contents() {
+    cat "$series_file"
+    while IFS= read -r line || [ -n "$line" ]; do
+      line="${line#"${line%%[![:space:]]*}"}"
+      line="${line%"${line##*[![:space:]]}"}"
+      [ -z "$line" ] && continue
+      [ "${line:0:1}" = "#" ] && continue
+      if [ -f "$HILAL_REPO_ROOT/patches/$line" ]; then
+        cat "$HILAL_REPO_ROOT/patches/$line"
+      fi
+    done < "$series_file"
+  }
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    stream_contents | sha256sum | cut -d' ' -f1
+  elif command -v shasum >/dev/null 2>&1; then
+    stream_contents | shasum -a 256 | cut -d' ' -f1
+  else
+    stream_contents | python3 -c "import sys, hashlib; print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest())"
+  fi
+}
 
 if [ -d "$HILAL_FIREFOX_SRC/browser/branding/huma" ]; then
   warn "Removing stale pre-Hilal branding overlay: browser/branding/huma"
@@ -84,23 +111,38 @@ read_series
 if [ "${#SERIES[@]}" -eq 0 ]; then
   warn "patches/series is empty; no patches to apply."
 else
-  applied=0
-  skipped=0
-  for p in "${SERIES[@]}"; do
-    patch_path="$HILAL_REPO_ROOT/patches/$p"
-    [ -f "$patch_path" ] || die "Patch listed in series not found: $p"
-    if git -C "$HILAL_FIREFOX_SRC" apply --check --reverse "$patch_path" >/dev/null 2>&1; then
-      log "Skip (already applied): $p"
-      skipped=$((skipped + 1))
-      continue
+  CURRENT_HASH=$(calculate_series_hash)
+  STATE_FILE="$HILAL_FIREFOX_SRC/.hilal-applied"
+  SKIP_PATCHES=0
+
+  if [ "$FORCE" = 0 ] && [ -f "$STATE_FILE" ]; then
+    STORED_HASH=$(cat "$STATE_FILE" 2>/dev/null || true)
+    if [ "$CURRENT_HASH" = "$STORED_HASH" ]; then
+      log "Patches are already up-to-date (matching checksum: $CURRENT_HASH). Skipping patch application."
+      SKIP_PATCHES=1
     fi
-    log "Applying: $p"
-    if ! git -C "$HILAL_FIREFOX_SRC" apply --whitespace=nowarn "$patch_path"; then
-      die "Failed to apply $p. Try: scripts/apply.sh --force, or refresh patches against current upstream."
-    fi
-    applied=$((applied + 1))
-  done
-  log "Patches: $applied applied, $skipped already in tree."
+  fi
+
+  if [ "$SKIP_PATCHES" = 0 ]; then
+    applied=0
+    skipped=0
+    for p in "${SERIES[@]}"; do
+      patch_path="$HILAL_REPO_ROOT/patches/$p"
+      [ -f "$patch_path" ] || die "Patch listed in series not found: $p"
+      if git -C "$HILAL_FIREFOX_SRC" apply --check --reverse "$patch_path" >/dev/null 2>&1; then
+        log "Skip (already applied): $p"
+        skipped=$((skipped + 1))
+        continue
+      fi
+      log "Applying: $p"
+      if ! git -C "$HILAL_FIREFOX_SRC" apply --whitespace=nowarn "$patch_path"; then
+        die "Failed to apply $p. Try: scripts/apply.sh --force, or refresh patches against current upstream."
+      fi
+      applied=$((applied + 1))
+    done
+    log "Patches: $applied applied, $skipped already in tree."
+    echo "$CURRENT_HASH" > "$STATE_FILE"
+  fi
 fi
 
 # -- 3. Copy any prefs/ overlays ---------------------------------------------
