@@ -186,6 +186,10 @@
       return Services.prefs.getBoolPref("hilal.workspaces.groups.public", false);
     }
 
+    get _isCustomizing() {
+      return document.documentElement.hasAttribute("customizing");
+    }
+
     _normalizeName(name, fallback) {
       const normalized = String(name || fallback || "Workspace")
         .replace(/\s+/g, " ")
@@ -625,7 +629,7 @@
 
     _hookEvents() {
       this._tabOpenHandler = event => {
-        if (!this._enabled) {
+        if (!this._enabled || this._isCustomizing) {
           return;
         }
 
@@ -638,7 +642,7 @@
       gBrowser.tabContainer.addEventListener("TabOpen", this._tabOpenHandler);
 
       this._tabRestoreHandler = event => {
-        if (!this._enabled || typeof SessionStore === "undefined") {
+        if (!this._enabled || this._isCustomizing || typeof SessionStore === "undefined") {
           return;
         }
 
@@ -657,7 +661,7 @@
       );
 
       this._tabPinnedHandler = event => {
-        if (!this._enabled) {
+        if (!this._enabled || this._isCustomizing) {
           return;
         }
         const tab = event.target;
@@ -941,6 +945,9 @@
     }
 
     _needsContainerRetarget(tab, workspaceId) {
+      if (this._isCustomizing) {
+        return false;
+      }
       const workspace = this._getWorkspaceById(workspaceId);
       if (
         !this._enabled ||
@@ -1102,6 +1109,9 @@
     }
 
     _apply() {
+      if (this._isCustomizing) {
+        return;
+      }
       if (!this._enabled) {
         for (const tab of gBrowser.tabs) {
           if (this._isHiddenByWorkspace(tab)) {
