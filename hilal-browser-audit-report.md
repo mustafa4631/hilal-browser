@@ -1,557 +1,359 @@
-# HİLAL BROWSER — KAPSAMLI DENETİM RAPORU
+# HILAL BROWSER — GUNCEL DENETIM VE RELEASE READINESS RAPORU
 
-**Rapor Versiyonu:** 1.3 (Sidebar ve Bang Özelleştirmeleri Güncellemesi)
-**Rapor Tarihi:** 2026-05-25
-**Hazırlayan:** Antigravity AI
-**Hedef Kitle:** Doğrulayıcı AI Agent + Proje Geliştirici
-**Repo:** https://github.com/VastSea0/hilal-browser
-**İncelenen Sürüm:** local `main` / v0.2.0-alpha.3 kod durumu (ve son özelleştirme katmanları)
-
----
-
-## AGENT TALİMATLARI
-
-Bu rapor, aşağıdaki kaynaklardan derlenerek oluşturulmuştur:
-
-1. İki ayrı AI kod denetim raporundan (kaynak kodu okuma tabanlı)
-2. GitHub public repository incelemesinden
-3. changelog.md dosyasından
-4. Rakip tarayıcı resmi kaynaklarından
-
-**Senin görevin (doğrulayıcı agent):**
-- Her bulguyu `[DOĞRULANDI]`, `[YANLIŞ]`, `[KISMİ]`, `[DOĞRULANAMADI]` etiketiyle işaretle
-- Yanlış veya eksik bulguları düzelt, gerekçeni belirt
-- Kodda bulduğun ek sorunları `[YENİ BULGU]` etiketiyle ekle
-- Öncelik sırasını gerekirse yeniden düzenle
-- Nihai durumu raporun sonundaki `AGENT NOTLARI` bölümüne yaz
-
-**Doğrulama yöntemi:**
-- Her iddia için ilgili dosya ve satır numarasını kontrol et
-- README/yorum/dokümantasyonu kanıt olarak KABUL ETME — sadece çalışan kod sayılır
-- Runtime davranışı test edebiliyorsan not düş
+**Rapor versiyonu:** 2.0
+**Rapor tarihi:** 2026-05-26
+**Incelenen repo durumu:** local `main` / `2d08316` (`Add smart bang fallback`)
+**Public latest release:** `v0.2.0-alpha.3` (GitHub Releases, 2026-05-24)
+**Firefox local checkout:** `hilal-patches` / `15541e093f90`
+**Kaynak model:** Firefox uzerine patch + overlay katmani, fork degil
+**Amac:** Surum yayinlamadan once ne iyi, ne eksik, ne riskli sorusuna pratik cevap vermek.
 
 ---
 
-## BÖLÜM 1 — PROJE GENEL BİLGİ
+## 0. Kisa Sonuc
 
-| Alan | Değer |
+Hilal Browser, **alpha/pre-release olarak yayinlanabilir seviyeye yaklasmis** durumda. Urunun en guclu yani; Firefox uzerine hafif kalmaya calisan patch mimarisi, workspace/container izolasyonu, varsayilan uBlock Origin, modern sidebar ve kullanici tarafindan ozellestirilebilir bang/sidebar akislari.
+
+Ancak **production/stable gibi sunulmamali**. Bunun ana nedenleri:
+
+- Imzali otomatik update zinciri tamamlanmamis.
+- CI/CD sadece release olusturuyor; build/test/sign/notarize yapmiyor.
+- `www` TypeScript lint su anda kirik.
+- Firefox patch serisinin temiz checkout uzerine bastan uygulanabilirligi bu makinede disk yetersizligi nedeniyle tam dogrulanamadi.
+- Split view + workspace etkilesimi ve browser chrome CSS guvenlik gostergeleri icin otomatik regresyon testi yok.
+
+**Yayin onerisi:** `v0.2.0-alpha.4` gibi acikca alpha/prerelease olarak yayinlanabilir. Stable/production dili kullanilmasin.
+
+---
+
+## 1. Guncel Durum Tablosu
+
+| Alan | Durum |
 |---|---|
-| Temel motor | Firefox (upstream overlay mimarisi) |
-| Mimari tipi | Patch + overlay katmanı, Firefox fork değil |
-| Aktif geliştirici sayısı | 1 (VastSea0) + 2 katkıda bulunan |
-| Toplam overlay dosyası | ~364 overlay/support dosyası; toplam versiyonlanan dosya 369 |
-| Mevcut sürüm | local changelog: v0.2.0-alpha.3; public GitHub latest release: v0.2.0-alpha.2 |
-| Desteklenen platformlar | macOS (birincil), Windows (PowerShell build mevcut) |
-| GitHub yıldız / fork | 8 yıldız / 0 fork |
-| Açık issue sayısı | 0 |
-| Lisans | Mozilla Public License 2.0 |
-
-**Genel değerlendirme:** Erken alpha aşamasında, tek geliştirici tarafından yürütülen, Firefox üzerine inşa edilmiş bir tarayıcı projesidir. Son güncellemelerle birlikte özellikle kullanıcı özelleştirilebilirliği ve bütünlük kontrollerinde önemli teknik adımlar atılmıştır.
-
----
-
-## BÖLÜM 2 — MEVCUT ÖZELLİKLER VE GERÇEKLİK DURUMU
-
-### 2.1 Workspace + Container İzolasyonu `[DOĞRULANDI]`
-
-**İddia:** Hilal, workspace başına Firefox contextual identity oluşturarak sekme ve oturum izolasyonu sağlar.
-
-**Kod kanıtı:**
-- `HilalWorkspaces.js:131` — `HilalWorkspaces` sınıfı tanımı
-- `HilalWorkspaces.js:378` — container oluşturma işlemi
-- `HilalWorkspaces.js:746` — sekmelere workspace metadata atanması
-- `HilalWorkspaces.js:521` — sekme açılış olayları ve atamalar
-- `HilalWorkspaces.js:781` — sekme gizleme/gösterme
-
-**Gerçek durum:** Özellik çalışıyor. Yapılan iyileştirmeler:
-
-**Sorun 1 — Yanıltıcı silme mesajı:** `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
-- `HilalWorkspaces.js` içinde `_removeWorkspaceContainer` fonksiyonunda `Services.clearData.deleteDataFromOriginAttributesPattern({ userContextId: workspace.containerId })` eklenerek container silindiğinde çerezler, yerel depolama, önbellek vs. artık gerçekten temizlenmektedir.
-- Kullanıcıya gösterilen "site verileri silinecek" uyarısı tam olarak doğrulanmıştır ve dürüst hale getirilmiştir.
-
-**Sorun 2 — Split view bozulması:** `[DOĞRULANDI]`
-- Split view aktifken workspace değiştirilirse görünümün bozulma potansiyeli devam etmektedir.
-- **Ciddiyet:** ORTA
-
-**Sorun 3 — Edge case'ler iyileştirildi:** `[KISMEN DÜZELTİLDİ]`
-- `d18a211` ile boş tab gruplarının workspace görünümünde otomatik gizlenmesi/collapsing desteği eklenmiştir.
-- `test-profile` dizini eklenerek geliştiricinin bu tür senaryoları test edebilmesi için altyapı sağlanmıştır.
-
-**Rakiplerle karşılaştırma:**
-- Firefox: Multi-Account Containers eklentiyle mevcut, yerleşik değil
-- Zen Browser: Workspace var, container entegrasyonu bu kadar derin değil
-- Chrome: Profil bazlı ayrım, sekme-native değil
-- **Sonuç:** Bu özellik Hilal'in rakiplerinden GERÇEKTEN üstün olduğu alan. Eksikler giderilirse güçlü bir farklılaştırıcı.
+| Local branch | `main` |
+| Local HEAD | `2d08316` |
+| Public latest release | `v0.2.0-alpha.3` |
+| Acik GitHub issue | 2 adet: #12 native macOS sidebar vibrancy, #13 Gemini native sidebar |
+| Repo dirty state | `hilal-browser-audit-report.md` degisiyor; baska repo dosyasi dirty degil |
+| `firefox/` tree | Patch uygulanmis local build tree; dirty olmasi beklenen durum |
+| Patch sayisi | 18 patch (`patches/series`) |
+| Website build | `npm run build` basarili |
+| Website TypeScript lint | Basarisiz: `React` namespace hatasi |
+| Website prod audit | `npm audit --audit-level=moderate --omit=dev` temiz |
+| Full clean patch apply check | Denendi, disk doldugu icin tamamlanamadi |
+| Disk durumu | Yaklasik 3.4 GiB bos alan; Firefox build/release icin riskli |
 
 ---
 
-### 2.2 Bang Arama Kısayolları `[DOĞRULANDI]`
+## 2. Ne Guzel? Guclu Yanlar
 
-**İddia:** `!g`, `!yt`, `!gh` gibi kısayollar doğrudan adres çubuğundan çalışır ve artık Preferences arayüzünden tamamen özelleştirilebilir durumdadır.
+### 2.1 Patch + Overlay Mimarisi
 
-**Kod kanıtı:**
-- `UrlbarUtils.sys.mjs` — URL çubuğu arama kesme noktası (`lazy.HilalBangs.getBangsMap()` kullanımı)
-- `URILoadingHelper.sys.mjs` — açık-link kesme noktası ve bang haritalama entegrasyonu
-- `prefs/browser/modules/HilalBangs.sys.mjs` — varsayılan bang tanımları, custom bang kayıt/okuma fonksiyonları
-- `prefs/browser/components/preferences/hilal.inc.xhtml` (hilalBangsGroup) — settings UI üzerindeki bang yönetim arayüzü
+Hilal'in Firefox'u tam fork'lamayip patch/overlay katmani olarak kalmasi dogru karar. `patches/series`, `branding/`, `prefs/` ve workflow scriptleri bu ayrimi net tutuyor. Bu sayede upstream Firefox'a yakin kalma sansi var.
 
-**Gerçek durum:** Özellik çalışıyor ve son derece esnek hale getirilmiş durumda.
+**Durum:** Guclu.
+**Risk:** Patch sayisi arttikca upstream rebase maliyeti artacak.
 
-**Sorun 1 — Gizli üçüncü taraf sızıntısı:** `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
-- Bilinmeyen bang'lerin sessizce DuckDuckGo'ya yönlendirilme davranışı kaldırılmıştır. Tanımlanmayan bang'ler artık kullanıcının varsayılan arama motoruna iletilerek fallback edilmektedir. Arama sızıntısı engellenmiştir.
+### 2.2 Workspace + Contextual Identity Izolasyonu
 
-**Sorun 2 — Kod tekrarı:** `[KISMEN DÜZELTİLDİ]`
-- Bang haritalama ve veri yönetimi ortak `HilalBangs.sys.mjs` modülüne taşınmıştır. Ancak parsing/regex mantığı mimari gereksinimler nedeniyle hala `UrlbarUtils.sys.mjs` ve `URILoadingHelper.sys.mjs` içerisinde ayrı ayrı işlenmektedir.
-- **Ciddiyet:** DÜŞÜK (teknik borç kontrol altında)
+`prefs/browser/base/content/hilal/HilalWorkspaces.js` icinde workspace sistemi, Firefox contextual identity/container altyapisiyla baglanmis. Workspace silerken `Services.clearData.deleteDataFromOriginAttributesPattern({ userContextId })` kullanilmasi dogru yonde ciddi bir gizlilik iyilestirmesi.
 
-**Sorun 3 — Keşfedilemez özellik:** `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
-- `0016-hilal-bang-customization.patch` ile about:preferences sayfasına Bangs tablosu ve yönetim arayüzü eklenmiştir. Kullanıcı tüm bang'leri görebilir, silebilir ve yenilerini ekleyebilir.
-- **Ciddiyet:** YOK (Sorun tamamen çözüldü)
+**Iyi olanlar:**
+- Sekmeler workspace metadata ile ayriliyor.
+- Workspace container rengi/adi guncelleniyor.
+- Container silinirken site verisi temizleniyor.
+- Host mapping ve workspace bookmark folder entegrasyonu var.
 
----
+**Kalan risk:**
+- Split view tasinirken `state.splitViewId` siliniyor; workspace/split view birlikte kullanildiginda davranis kirilgan kalabilir.
+- Bu davranis icin otomatik browser chrome testi yok.
 
-### 2.3 Varsayılan uBlock Origin `[DOĞRULANDI]`
+### 2.3 uBlock Origin Varsayilan
 
-**İddia:** uBlock Origin tüm profillerde varsayılan olarak yüklü gelir.
+`scripts/apply.sh` uBlock Origin'i sabit surumle indiriyor:
 
-**Kod kanıtı:**
-- `firefox/browser/app/distribution/moz.build` — uBO XPI tanımı
-- `scripts/apply.sh` — AMO'dan `latest.xpi` indirme ve hash doğrulaması
-- `firefox.js` — eklenti tarama ayarları
+- `UBO_VERSION="1.57.2"`
+- `UBO_SHA256="9928e79a52cecf7cfa231fdb0699c7d7a427660d94eb10d711ed5a2f10d2eb89"`
 
-**Gerçek durum:** Özellik güvenli şekilde çalışıyor. İyileştirmeler:
+Bu, onceki `latest.xpi` tarzi degisken supply-chain riskini ciddi azaltmis.
 
-**Sorun 1 — Supply chain riski:** `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
-- uBlock Origin sürümü `1.57.2` olarak sabitlenmiş ve sha256 checksum doğrulaması (`9928e79a52cecf7cfa231fdb0699c7d7a427660d94eb10d711ed5a2f10d2eb89`) entegre edilmiştir. AMO `latest.xpi` değişkenliği ortadan kalkmış; risk sıfıra indirilmiştir.
+**Durum:** Alpha icin iyi.
+**Kalan risk:** uBO surumu eski kalabilir; update stratejisi veya per-release refresh checklist'i gerekli.
 
-**Sorun 2 — Aktivasyon sorunu:** `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
-- `patches/0008-hilal-ublock.patch` içinde `extensions.autoDisableScopes = 0` ve `extensions.startupScanScopes = 8` ayarları ile pre-installed eklentilerin ilk açılışta otomatik taranması ve yüklenmesi sağlanarak uBO'nun hemen aktif olmama sorunu giderilmiştir.
+### 2.4 Bang Sistemi
 
-**Sorun 3 — Onboarding bilgilendirmesi eklendi:** `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
-- İlk çalıştırmada gösterilen premium onboarding welcome ekranına "uBlock Origin dahil" ve gizlilik/güvenlik odaklı bilgilendirme eklenmiştir.
+Bang sistemi artik `prefs/browser/modules/HilalBangs.sys.mjs` uzerinden ortak veri modeli kullaniyor. `resolveQuery(query, { fallbackToDuckDuckGo })` helper'i eklendi.
 
-**Rakiplerle karşılaştırma:**
-- Brave: Native Shields (eklenti değil, çekirdek koruma)
-- Firefox/Chrome: Varsayılan yok, kullanıcı yüklemeli
-- **Sonuç:** uBO bundling Chrome/Firefox'tan iyi, ama Brave native Shields'a yetişemiyor.
+**Guncel davranis:**
+- Bilinen bang: local haritadan direkt hedef siteye gider.
+- Custom bang: `hilal.bangs.custom` pref'inden gelir.
+- Bilinmeyen bang: tekrar DuckDuckGo bang handler'a gider (`https://duckduckgo.com/?q=!bang+query`).
 
----
+**Onemli not:** Onceki audit'teki "bilinmeyen bang DuckDuckGo'ya gitmiyor" iddiasi artik guncel degil. #11 sonrasi bilinmeyen bang'ler bilincli olarak DuckDuckGo'ya paslaniyor. Bu bir ozellik karari; privacy dokumantasyonunda acik yazilmali.
 
-### 2.4 macOS Native Görünüm (Vibrancy) `[DOĞRULANDI - GÜÇLENDİRİLDİ]`
+**Guzel taraf:** DuckDuckGo'nun devasa bang ekosisteminden faydalanir.
+**Kotu taraf:** Bilinmeyen bang kullanimi DuckDuckGo'ya sorgu gonderir. Bu, kullaniciya acikca anlatilmali.
 
-**İddia:** Native macOS cam efekti ve şeffaf chrome yüzeyleri.
+### 2.5 Sidebar Redesign ve Custom Sidebar Shortcuts
 
-**Kod kanıtı:**
-- `patches/0002-hilal-transparent-macos-chrome.patch` — macOS vibrancy yama dosyası
-- `widget/cocoa/VibrancyManager.mm` — HUD/Cam efekti (`NSVisualEffectMaterialHUDWindow`) ataması
-- `widget/cocoa/nsCocoaWindow.mm` — tam pencere vibrancy maskesi Cocoa seviyesinde zorlanması ve şeffaf arkaplan atamaları
+`patches/0017-sidebar-layout-redesign.patch` ile Hilal sidebar ciddi sekilde urunlesmis:
 
-**Gerçek durum:** Özellik çalışıyor ve son derece profesyonel şekilde entegre edilmiş.
+- Workspace rail
+- Open tabs panel
+- Bookmark alanlari
+- Footer item toggles
+- Custom sidebar shortcuts
+- Favicon destekli custom shortcut render
 
----
+#10 sonrasi custom sidebar shortcut ikonlari Firefox `page-icon:` protokoluyle favicon cache'ten geliyor. Bu iyi bir privacy karari: favicon icin manuel web fetch yapilmiyor.
 
-### 2.5 Dikey Sekmeler + Kompakt Sidebar `[DOĞRULANDI]`
+**Durum:** Kullanici deneyimi acisindan guclu.
+**Kalan risk:** Sidebar Firefox upstream revamp koduna yakin oldugu icin rebase conflict ihtimali yuksek.
 
-**İddia:** Dikey sekmeler ve kompakt sidebar varsayılan açık gelir ve özelleştirilebilir bileşenlerle desteklenir.
+### 2.6 Privacy Levels
 
-**Kod kanıtı:**
-- `branding/hilal/pref/firefox-branding.js` — `sidebar.revamp` ve `sidebar.verticalTabs` varsayılan true yapılmış
-- `patches/0017-sidebar-layout-redesign.patch` — sidebar'ın modern görünüm ve kullanıcı arayüzü ile yeniden tasarlanması
+`HilalWorkspaces.js` icindeki `PRIVACY_LEVEL_PREFS` ile Standard / Strict / Extreme seviyeleri runtime pref olarak uygulanabiliyor. "Tor-like" dilinden uzaklasip "not Tor" vurgusu yapmak dogru.
 
-**Gerçek durum:** Yapılandırma ve UI seviyesinde mevcut.
+**Iyi olanlar:**
+- Strict tracking protection baseline korunuyor.
+- WebRTC, FPI, RFP, history, JS, permission default'lari seviyeye gore degisiyor.
+- Welcome flow ve Preferences UI ile kullaniciya secim veriliyor.
 
-**Sorun 1 — Firefox upstream çakışma riski:** `[DOĞRULANDI]`
-- Firefox kendi dikey sekme özelliğini geliştiriyor. Rebase sırasında conflict potansiyeli yüksektir.
-- **Ciddiyet:** ORTA (uzun vadeli bakım)
+**Kalan risk:**
+- Bu seviyeler "network anonymity" saglamiyor; dokumantasyon ve UI bunu hep acik tutmali.
+- Site uyumluluk regresyon testleri yok.
 
----
+### 2.7 macOS Native Gorunum
 
-### 2.6 Split View (Bölünmüş Görünüm) `[DOĞRULANDI]`
+`patches/0002-hilal-transparent-macos-chrome.patch` Cocoa seviyesinde transparent chrome/vibrancy entegrasyonu iceriyor. Bu Hilal'in urun kimligi icin guclu bir ayristirici.
 
-**İddia:** İki sekme yan yana görüntülenebilir.
+**Durum:** Guclu ama #12 ile daha da iyilestirilmek isteniyor.
+**Kalan is:** Dikey sekmeler sidebar'inin native macOS vibrancy hissi icin acik enhancement var.
 
-**Kod kanıtı:**
-- `firefox.js` — split view aktifliği
-- `navigator-toolbox.inc.xhtml` — URL çubuğu butonu
-- `tabbrowser.js` ve `tabsplitview.js` — sekme bölme ve ters çevirme işlemleri
+### 2.8 Website ve Update API Yuzeyi
 
-**Gerçek durum:** İki sekme için çalışıyor, ancak:
+`www` Vite + React + TypeScript altyapisina gecmis. `www/api/update.ts` ve `www/api/releases.ts` release/update metadatasini sunacak yapiya sahip.
 
-**Sorun 1 — İki sekmeden fazlası desteklenmiyor:** `[DOĞRULANDI]`
-- Zen Browser 4 sekmeye kadar destekliyor. Hilal'in kodu şu an sabit iki sekme yapısındadır.
-- **Ciddiyet:** ORTA (özellik eksikliği)
+**Iyi olanlar:**
+- `npm run build` basarili.
+- `npm audit --audit-level=moderate --omit=dev` temiz.
+- Update XML endpoint mantigi var.
 
-**Sorun 2 — Workspace ile çakışma:** `[DOĞRULANDI]`
-- Workspace değiştirme split view'i bozuyor (`splitViewId` silme).
-- **Ciddiyet:** YÜKSEK
+**Kotu olan:** `npm run lint` kirik. Detaylar asagida.
 
 ---
 
-### 2.7 URL Kopyalama Butonu `[DOĞRULANDI]`
+## 3. Ne Eksik? Release Oncesi Bloklayicilar
 
-**İddia:** Adres çubuğundaki butonla mevcut URL kopyalanabilir.
+### K-1. Repo Release Tag Icin Temiz Degil
 
-**Kod kanıtı:**
-- `navigator-toolbox.inc.xhtml` — UI hook (`hbox role="button"` ile inline `onclick`)
-- `prefs/browser/base/content/hilal/HilalWorkspaces.js:1838` (veya ilgili yama) — `copyCurrentURL` fonksiyon tanımı
+**Durum:** `hilal-browser-audit-report.md` degisik.
+**Etki:** Tag/Release atilmadan once bu rapor commit'lenmeli veya bilerek geri alinmali.
+**Oncelik:** Release hygiene icin yuksek.
 
-**Gerçek durum:** Çalışıyor ve güvenliği artırıldı.
+### K-2. Website TypeScript Lint Kirik
 
-**Sorun 1 — Erişilebilirlik:** `[DOĞRULANDI]`
-- Native `toolbarbutton` yerine `hbox role="button"` kullanımı devam etmektedir.
-- **Ciddiyet:** DÜŞÜK-ORTA
+Komut:
 
-**Sorun 2 — Ayrıcalıklı (Privileged) Sayfa Koruması:** `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
-- `b99a468` ile `about:config`, `chrome://...` gibi ayrıcalıklı iç tarayıcı şemalarının container/workspace içine taşınması engellenerek olası tarayıcı içi ayrıcalık sızıntıları ve güvenlik açıkları kapatılmıştır.
+```bash
+cd www
+npm run lint
+```
+
+Hata:
+
+```text
+src/App.tsx(86,37): error TS2503: Cannot find namespace 'React'.
+src/App.tsx(91,38): error TS2503: Cannot find namespace 'React'.
+```
+
+Kod:
+
+- `handleSliderMouseDown = (e: React.MouseEvent)`
+- `handleSliderTouchStart = (e: React.TouchEvent)`
+
+**Muhtemel cozum:** `import type { MouseEvent, TouchEvent } from "react";` ekleyip tipleri `MouseEvent` / `TouchEvent` olarak kullanmak veya `React` type namespace import etmek.
+
+**Etki:** Web build gecse bile CI kalite kapisi yoksa lint kirik release edilir.
+**Oncelik:** Alpha release oncesi duzeltilmeli.
+
+### K-3. Imzali Otomatik Update Zinciri Tam Degil
+
+`mozconfigs/base` desktop updater'i aciyor; `patches/0014-hilal-update-policy.patch` Hilal `AppUpdateURL` policy'sini ekliyor; `scripts/make-full-update.sh` complete MAR uretebiliyor.
+
+Ama `docs/UPDATES.md` henuz tamamlanmamis production maddelerini acikca listeliyor:
+
+- Hilal-owned MAR signing certs
+- Signing key'lerin repo disinda tutulmasi
+- Signed MAR, signed/notarized platform artifacts
+- Checksum, SBOM, provenance
+- Eski build -> test MAR -> "Restart to Update" smoke testi
+
+**Etki:** Stable/production release icin bloklayici.
+**Alpha icin:** Release notes'ta otomatik update'in sinirli/deneysel oldugu yazilmali.
+
+### K-4. CI/CD Pipeline Build/Test Yapmiyor
+
+`.github/workflows/release.yml` sadece GitHub release olusturuyor. Build, test, packaging, signing, notarization, artifact checksum yok.
+
+**Etki:** GitHub release'deki artifact'larin bu commit'ten uretildigi otomatik kanitlanmiyor.
+**Oncelik:** Production oncesi kritik.
+
+### K-5. Patch Serisi Temiz Uygulama Kontrolu Tamamlanamadi
+
+Temiz Firefox worktree uzerine `patches/series` uygulanabilirligini kontrol etmek istedim. Firefox worktree olusturma sirasinda disk doldu:
+
+```text
+No space left on device
+```
+
+Diskte yaklasik 3.4 GiB bos alan kaldi. Bu Firefox build/package icin cok az.
+
+**Etki:** Release oncesi gercek temiz checkout apply/build dogrulamasi eksik kaldi.
+**Oncelik:** Release oncesi disk acilip `scripts/apply.sh --force` ve build smoke kosulmali.
 
 ---
 
-### 2.8 Gizlilik Seviyeleri `[DOĞRULANDI - GÜÇLENDİRİLDİ]`
+## 4. Ne Kotu? Teknik Riskler
 
-**İddia:** Hilal; Standard, Strict ve Extreme (Maximum local hardening (not Tor)) gizlilik seviyeleri sunar.
+### R-1. Browser Chrome CSS Cok Buyuk
 
-**Kod kanıtı:**
-- `branding/hilal/pref/firefox-branding.js` — varsayılan `hilal.privacy.level = "standard"` pref'i
-- `prefs/browser/base/content/hilal/HilalWorkspaces.js` (PRIVACY_LEVEL_PREFS) — seviyelerin Firefox pref karşılıkları
-- `patches/0013-hilal-privacy-levels.patch` — about:preferences içinde Standard / Strict / Extreme radyo grubu
+`patches/0011-hilal-ui-fix.patch` ve `prefs/browser/themes/shared/hilal-ui-fix.css` cok buyuk bir browser chrome CSS yuzeyi tasiyor.
 
-**Gerçek durum:** Özellik local kodda mevcuttur ve Preferences ekranında yerini almıştır. "Tor-like" isimlendirmesi, rapordaki kritik sonrasında yerinde bir kararla **Extreme (not Tor)** olarak değiştirilmiş ve böylece yanıltıcı beklentiler engellenmiştir.
+**Risk:** Yanlis CSS selector'lari; lock icon, permission prompts, download warnings, update banners veya security error UI gibi kritik yuzeyleri etkileyebilir.
 
-**Sorun 1 — Standard seviyesi baseline'ı zayıflatıyor:** `[DÜZELTİLDİ]`
-- `standard` seviyesinin base pref'leri içerisinden `"browser.contentblocking.category": "strict"` korunmuş, varsayılan strict tracking protection baseline'ı zayıflatılmamıştır. Standard seviye artık dengeli bir LibreWolf ayarı sunmaktadır.
-- **Ciddiyet:** YOK (Sorun tamamen çözüldü)
+**Gereken:** En azindan su senaryolar icin gorsel smoke test:
+
+- HTTPS lock icon gorunuyor mu?
+- HTTP/not-secure indicator gorunuyor mu?
+- Certificate error sayfasi net mi?
+- Permission prompt'lari gorunur mu?
+- Download warning / update notification gizlenmiyor mu?
+
+### R-2. Workspace + Split View Cakismasi
+
+Workspace tab move/retarget akisi session state'i yeniden yaziyor ve `splitViewId` siliyor. Bu pratikte split view'i workspace izolasyonu lehine bozabilir.
+
+**Risk:** Kullanici split view ile calisirken workspace degistirirse UI/state karisabilir.
+**Gereken:** Ya split view tabs workspace tasimasinda desteklenmeli ya da UI'da bu kombinasyon engellenmeli.
+
+### R-3. Bilinmeyen Bang DuckDuckGo Fallback Privacy Metni
+
+#11 ile bilinmeyen bang'ler DuckDuckGo bang handler'a bilincli olarak paslaniyor. Bu iyi UX olabilir ama privacy acisindan kullaniciya anlatilmali.
+
+**Gereken UI/Docs metni:** "Hilal once local/custom bang'leri cozer; taninmayan bang'ler DuckDuckGo'nun bang yonlendiricisine gonderilir."
+
+### R-4. uBO Pin Eski Kalabilir
+
+uBO pin ve checksum iyi; ama surum guncelleme sureci yoksa zamanla eski kalir.
+
+**Gereken:** Her release checklist'inde uBO latest signed release ve checksum kontrolu.
+
+### R-5. Website Metinleri Fazla Iddiali
+
+`www/src/App.tsx` ve `www/src/utils/github.ts` icinde "secure", "gold standard", "up to 40%" gibi iddiali pazarlama ifadeleri var.
+
+**Risk:** Alpha urun icin beklentiyi fazla yukseltebilir. "Alpha", "experimental", "not audited", "updates/signing in progress" gibi dengeleyici dil eklenmeli.
 
 ---
 
-### 2.9 Özelleştirilebilir Sidebar Kısayolları `[DOĞRULANDI - YENİ]`
+## 5. Tam Eksik veya Sonraki Surum Isi
 
-**İddia:** Kullanıcılar sidebar'a yerleşik butonlar dışında (Kitaplık, Geçmiş, Şifreler vb.) kendi özel URL ve kısayollarını ekleyebilir ve yönetebilir.
-
-**Kod kanıtı:**
-- `prefs/browser/components/preferences/hilal.inc.xhtml` (hilalSidebarGroup) — preferences altındaki kısayol ekleme formu ve listesi
-- `patches/0017-sidebar-layout-redesign.patch` — dikey sidebar üzerindeki kısayol oluşturma ve veri yönetimi katmanı
-
-**Gerçek durum:** Özellik çalışıyor. Kullanıcılar preferences UI üzerinden ad, URL ve simge (Globe, Bookmark, History, Key, Download, Shield, Settings) seçerek dikey sidebar'ın alt alanına özel kısayollar ekleyebilmektedir.
-
----
-
-## BÖLÜM 3 — GÜVENLİK EKSİKLERİ
-
-### 3.1 KRİTİK — Otomatik Güncelleme Sistemi Yok `[KISMEN DÜZELTİLDİ - DİNAMİK ALTYAPI VE CLIENT PLUMBING TAMAM]`
-
-**Kanıt:**
-- `mozconfigs/base` artık desktop build'lerde `--enable-updater` ve `--enable-update-channel="$MOZ_UPDATE_CHANNEL"` kullanıyor; varsayılan kanal `hilal-release`.
-- `patches/0014-hilal-update-policy.patch` Firefox paketine `distribution/policies.json` ekleyerek `AppUpdateURL` değerini Hilal update altyapısına yönlendiriyor.
-- `scripts/make-full-update.sh` packaged build'den complete MAR üretmek için helper ekliyor.
-- `www/api/update.ts` ve `docs/UPDATES.md` ile dinamik update manifest (`hilal-update-manifest.json` via GitHub releases) ve complete MAR helper'ı eklenmiştir.
-
-**Etki:**
-- Hilal tarafında updater client artık build'e girebilir, ancak üretim güvenliği için imzalı MAR üretimi, platform signing/notarization, update XML yayını ve CI smoke testleri hâlâ tamamlanmalıdır.
-- İmzalı update pipeline bitene kadar kullanıcıların güvenlik yamalarını otomatik ve doğrulanabilir şekilde aldığı söylenemez.
-
-**Rakip karşılaştırma:**
-| Tarayıcı | Güncelleme | Yama hızı |
+| Eksik | Durum | Not |
 |---|---|---|
-| Chrome | İmzalı otomatik | Saatler içinde |
-| Firefox | İmzalı otomatik | Günler içinde |
-| Brave | İmzalı otomatik | Günler içinde |
-| Hilal | Dinamik Altyapı Hazır (İmzasız) | Belirsiz |
-
-**Öncelik:** KRİTİK #1 (İmzalı güncelleme kanalları ve platform imzalaması hâlâ bekleniyor)
-
----
-
-### 3.2 KRİTİK — CI/CD Pipeline Gerçek İş Yapmıyor `[DOĞRULANDI]`
-
-**Kanıt:**
-- `.github/workflows/release.yml` — sadece tag alıp GitHub release oluşturuyor
-- Build yok, imzalama yok, notarization yok, test yok, SBOM yok, artifact doğrulama yok
-
-**Etki:**
-- Yayınlanan sürümün ne içerdiği doğrulanamaz
-- Supply chain saldırısına açık
-- Tekrarlanabilir build kanıtı yok
-
-**Öncelik:** KRİTİK #2
+| Native macOS sidebar vibrancy | Acik issue #12 | Enhancement, alpha bloklayici degil |
+| Gemini native sidebar | Acik issue #13 | Enhancement, privacy/API key modeli netlesmeden eklenmemeli |
+| Otomatik update smoke testi | Yok | Production oncesi gerekli |
+| Platform signing/notarization | Belirsiz/yok | Production oncesi gerekli |
+| SBOM/provenance | Yok | Production oncesi gerekli |
+| Privacy policy / data-flow inventory | Eksik | Release sayfasinda linklenmeli |
+| Browser chrome visual regression | Yok | UI guvenlik gostergeleri icin gerekli |
+| Workspace/split-view automated test | Yok | Known-risk |
+| Patch apply CI | Yok | Her PR/tag icin kosmali |
+| TypeScript lint fix | Gerekli | Web release yuzeyi icin hizli fix |
 
 ---
 
-### 3.3 YÜKSEK — "Privacy Hardening" İddiası Kodda Karşılanmıyor `[YANLIŞ / KISMEN REVİZE]`
+## 6. Rakiplerle Kisa Gerceklik Matrisi
 
-**Kanıt:**
-- `changelog.md [0.1.0]` — "Privacy Hardening: Enhanced default privacy preferences and telemetry blocks" yazıyor
-
-**Gerçek durum & Teknik Gerekçe:**
-- **Raporun bu tespiti tamamen YANLIŞTIR.** Orijinal denetim raporu sadece varsayılan `StaticPrefList.yaml` dosyasını incelemiş ve Hilal'in yerleşik marka özelleştirmelerini gözden kaçırmıştır.
-- Hilal Browser, tüm gizlilik baseline sertleştirmelerini `/branding/hilal/pref/firefox-branding.js` dosyası üzerinden yapmaktadır. Bu dosya varsayılan olarak yüklenir ve derlenir.
-- **`firefox-branding.js` içindeki gizlilik kanıtları:**
-  - **HTTPS-Only Mode:** varsayılan olarak etkindir.
-  - **DoH / DNS sızıntı korumaları:** DNS ve speculative önbellek prefetch işlemleri tamamen kapatılmıştır.
-  - **Telemetry ve Sağlık Raporları:** Normandy, Telemetry, Studies ve BHR ping'leri kökten engellenmiştir.
-  - **Sponsored Content & Pocket:** Pocket ve sponsored content entegrasyonları devre dışıdır.
-  - **Search & Suggestion Calls:** Adres çubuğu ve arama motoru otomatik önerileri kapatılmıştır.
-
-**Revize not (Codex, 2026-05-24):**
-- Privacy hardening iddiası kodda karşılanmaktadır; bu yüzden orijinal "kodda yok" bulgusu yanlıştır.
-- Tracking protection sertliği ise artık seçilen privacy seviyesine bağlıdır; varsayılan olarak standard (strict content blocking içeren dengeli LibreWolf) uygulanır.
-
-**Etki:**
-- Güvenlik ve gizlilik ihlali bulunmamaktadır, veri sızıntı yolları başarıyla kapatılmıştır.
-
-**Öncelik:** DÜŞÜK (Mevcut ayarlar zaten sağlamdır)
+| Kriter | Chrome | Firefox | Brave | Arc/Zen benzeri | Hilal |
+|---|---|---|---|---|---|
+| Imzali otomatik update | Evet | Evet | Evet | Evet | Kismen altyapi, production degil |
+| Varsayilan reklam engelleme | Hayir | Hayir | Evet | Degisir | Evet, uBO |
+| Workspace + container | Profil/sekme gruplari | Extension ile | Sinirli | Workspace var | Guclu, yerlesik |
+| Dikey sekmeler | Hayir | Yeni/deneysel | Hayir | Evet | Evet |
+| macOS native glass | Hayir | Hayir | Hayir | Evet | Kismen/guclu, #12 acik |
+| Bang search | Hayir | Hayir | Hayir | Degisir | Evet, local/custom + DDG fallback |
+| Privacy dashboard | Kismen | Kismen | Guclu | Degisir | Eksik |
+| Production release maturity | Yuksek | Yuksek | Yuksek | Degisir | Alpha |
 
 ---
 
-### 3.4 YÜKSEK — uBlock Origin Supply Chain Güvensiz `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
+## 7. Release Onerisi
 
-**Kanıt:**
-- `scripts/apply.sh` içinde uBlock Origin `1.57.2` sürümüne sabitlenmiştir ve sha256 checksum doğrulaması zorunlu kılınmıştır.
+### Alpha release icin minimum checklist
 
-**Etki:**
-- AMO üzerinden gelebilecek tedarik zinciri manipülasyonları engellenmiş ve tekrarlanabilir derleme güvenliği sağlanmıştır.
+1. `hilal-browser-audit-report.md` bu guncel haliyle commit'lensin.
+2. `www` lint hatasi duzeltilsin.
+3. Disk alani acilsin. Firefox build icin 50+ GiB bos alan hedeflensin.
+4. Temiz kontrol kosulsun:
 
-**Öncelik:** DÜŞÜK (Çözüldü)
+```bash
+scripts/apply.sh --force
+scripts/build-macos.sh faster
+(cd firefox && ./mach run)
+```
 
----
+5. Manuel smoke:
+   - Ilk acilis welcome flow
+   - Workspace create/delete ve container data cleanup
+   - Custom bang ekleme ve `!yt test`
+   - Bilinmeyen bang: `!rust ownership` DuckDuckGo bang handler'a gidiyor mu?
+   - Custom sidebar shortcut favicon fallback
+   - uBO installed/enabled
+   - HTTPS lock/security UI gorunuyor mu?
 
-### 3.5 YÜKSEK — Mozilla Veri Toplama Yolları Aktif `[YANLIŞ]`
+### Stable/production icin minimum checklist
 
-**Kanıt:**
-- Mozilla Privacy Notice veri toplama yolları
-
-**Gerçek durum & Teknik Gerekçe:**
-- **Raporun bu tespiti tamamen YANLIŞTIR.** Bölüm 3.3 gerekçelerinde ispatlandığı üzere, Hilal Browser `branding/hilal/pref/firefox-branding.js` dosyası ile Mozilla'nın tüm telemetri, usage report, study, Normandy ve sponsored content bağlantılarını varsayılan olarak kapatmıştır. Dolayısıyla Mozilla'ya kullanıcı verisi gönderilmesi söz konusu değildir.
-
-**Etki:**
-- Güvenlik ve gizlilik ihlali bulunmamaktadır, veri sızıntı yolları başarıyla kapatılmıştır.
-
-**Öncelik:** DÜŞÜK (Önlem alınmıştır)
-
----
-
-### 3.6 ORTA — 31.000 Satır Browser Chrome CSS Riski `[DOĞRULANDI]`
-
-**Kanıt:**
-- `patches/0011-hilal-ui-fix.patch` — ~31.000 satır, üçüncü taraf CSS hack türevi kurallar içeriyor
-
-**Etki:**
-- Browser chrome CSS yanlış yazılırsa: kilit ikonu gizlenebilir, sertifika hata sayfaları değişebilir, izin dialogları etkilenebilir, indirme uyarıları gizlenebilir, güncelleme banner'ları kapatılabilir.
-- Güvenlik göstergelerinin gerçekten görünüp görünmediği doğrulanmamış.
-
-**Öncelik:** ORTA #1
+1. CI build/test pipeline.
+2. Signed/notarized platform artifacts.
+3. Signed MAR update pipeline.
+4. Update smoke test.
+5. Checksums + SBOM + provenance.
+6. Privacy policy + data-flow inventory.
+7. Browser chrome visual regression tests.
 
 ---
 
-### 3.7 YÜKSEK — Website Güvenlik Açıkları `[DÜZELTİLDİ - SÜRÜM v0.2.0-alpha.3]`
+## 8. Son Degerlendirme
 
-**Kanıt:**
-- `www-old` Next.js yapısı kaldırılmış, landing page ve API'ler **Vite + React 19 + Tailwind CSS 4 + TypeScript 5.8** altyapısına taşınmıştır.
-- `npm audit --audit-level=moderate` artık temiz sonuç vermektedir.
-- Local geliştirme için Express, production dağıtımı için ise Vercel Serverless Functions entegrasyonu (özellikle `/api/update` ve `/api/releases` API'leri) kullanılmıştır.
+Hilal'in iyi tarafi "sadece tema" olmamasi: workspace/container izolasyonu, uBO default, bang sistemi, privacy profiles ve sidebar deneyimi gercek urun farki yaratiyor.
 
-**Etki:**
-- Web sitesi bağımlılıklarındaki bilinen güvenlik açıkları kapatılmıştır. Build, TypeScript kontrolü ve production smoke test başarılıdır.
+Kotu tarafi ise henuz "release engineering" kasinin zayif olmasi: imza, otomatik test, temiz apply/build kaniti, update zinciri ve web lint kalitesi stable seviyede degil.
 
-**Öncelik:** DÜŞÜK (Çözüldü)
+Bu nedenle en dogru mesaj:
 
----
+> Hilal Browser `v0.2.0-alpha.x`, erken test surumudur. Gizlilik ve verimlilik odakli Firefox tabanli deneyler icerir; otomatik update/signing ve bazi UI regresyon testleri henuz tamamlanmamistir.
 
-### 3.8 ORTA — Local/Release Hygiene Sorunları `[KISMEN DÜZELTİLDİ / AÇIK]`
-
-**Kanıt:**
-- `patches/series` artık 17 yamayı sıralıyor; gereksiz veya kullanılmayan yama bulunmamaktadır.
-- `apply.sh` içerisine patch checksum caching (`.hilal-applied` check) getirilerek her çalıştırmada yamaların sıfırdan kontrol edilip re-apply edilerek tree'yi bozma riski engellenmiş ve build süreleri optimize edilmiştir.
-- `0015-hilal-preferences-no-update-service.patch` ile updater XPCOM servislerinin eksik olduğu build ortamlarındaki çökme (crash) riski giderilmiştir.
-- Local changelog alpha.3 iken GitHub latest release alpha.2; ayrıca `FIREFOX_COMMIT` ile local `firefox/` HEAD'i farklı.
-- `test-profile/` dizini local diskte mevcut, ancak git ile izlenmiyor.
-
-**Etki:**
-- Audit edilebilirlik zayıf. Hangi patchin hangi Firefox sürümüne uygulandığı belirsiz. Local doğrulama ile public release arasında sürüm/commit farkı oluşabiliyor.
-
-**Öncelik:** ORTA (Temizlik süreci devam ediyor)
+Bu dille yayinlamak dogru ve durust olur.
 
 ---
 
-## BÖLÜM 4 — TAM EKSİKLER (KODDA BULUNAMAYAN ÖZELLİKLER)
+## 9. Bu Rapor Icin Kosulan Kontroller
 
-Rakip tarayıcılarda olan, Hilal'de audit sırasında hiç bulunamayan özellikler:
+```text
+git status --short
+git log --oneline -12
+gh issue list --repo VastSea0/hilal-browser --state open --limit 20
+gh release list --repo VastSea0/hilal-browser --limit 10
+cd www && npm run lint
+cd www && npm run build
+cd www && npm audit --audit-level=moderate --omit=dev
+```
 
-| Özellik | Kim sunuyor | Hilal durumu |
-|---|---|---|
-| Tor routing / New Circuit | Tor Browser | Yok |
-| Güvenlik seviyeleri (Low/Med/High) | Tor Browser | Başarıyla eklendi (Standard / Strict / Extreme - not Tor) |
-| NoScript tarzı script kontrolü | Tor Browser | Yok |
-| Native Shields dashboard | Brave | Yok |
-| Fingerprint randomizasyonu | Brave | Yok; Extreme seviyede Firefox RFP etkinleştiriliyor ama randomizasyon/dashboard yok |
-| Bounce tracking koruması | Brave, Firefox | Yok |
-| Safety Check (birleşik denetim) | Chrome, Edge | Yok |
-| Privacy Report UI | Safari | Yok |
-| VPN / Secure Network | Edge | Yok |
-| Scareware blocker | Edge | Yok |
-| Typo protection | Edge | Yok |
-| Passkey-specific UX | Chrome, Safari | Yok |
-| İhlal monitörü UX | Firefox | Yok |
-| Gerçek zamanlı Safe Browsing | Chrome | Kısmen (Nightly-gated) |
-| Özelleştirilebilir Bang'ler | Edge (kısmen) | Başarıyla eklendi (Preferences arayüzü ile) |
-| Sidebar Kısayol Özelleştirme | Arc | Başarıyla eklendi (Preferences arayüzü ile) |
+Sonuclar:
 
----
-
-## BÖLÜM 5 — RAKİP KARŞILAŞTIRMA MATRİSİ
-
-| Kriter | Chrome | Firefox | Brave | Safari | Edge | Tor | Hilal |
-|---|---|---|---|---|---|---|---|
-| Otomatik güvenlik güncellemesi | [EVET] | [EVET] | [EVET] | [EVET] | [EVET] | [EVET] | [KISMEN] |
-| Varsayılan reklam engelleme | [HAYIR] | [HAYIR] | [EVET] | [HAYIR] | Kısmen | [HAYIR] | [EVET] (uBO) |
-| Workspace + container (yerleşik) | [HAYIR] | [HAYIR] | [HAYIR] | [HAYIR] | [HAYIR] | [HAYIR] | [EVET] |
-| HTTPS-Only varsayılan | [HAYIR] | [HAYIR] | [EVET] | [HAYIR] | [HAYIR] | [EVET] | [EVET] |
-| DNS-over-HTTPS varsayılan | [EVET] | Kısmen | [EVET] | [EVET] | [EVET] | — | [HAYIR] |
-| Fingerprint koruması | Kısmen | Kısmen | [EVET] | Kısmen | [HAYIR] | [EVET] | Kısmen (Extreme seviyede RFP) |
-| Bang kısayolları (yerleşik) | [HAYIR] | [HAYIR] | [HAYIR] | [HAYIR] | [HAYIR] | [HAYIR] | [EVET] (Özelleştirilebilir) |
-| macOS native görünüm | [HAYIR] | [HAYIR] | [HAYIR] | [EVET] | [HAYIR] | [HAYIR] | [EVET] |
-| Dikey sekmeler varsayılan | [HAYIR] | Deneysel | [HAYIR] | [HAYIR] | [EVET] | [HAYIR] | [EVET] (Yenilenmiş Tasarım) |
-| Açık kaynak | [HAYIR] | [EVET] | [EVET] | [HAYIR] | [HAYIR] | [EVET] | [EVET] |
-| Doğrulanmış privacy politikası | [EVET] | [EVET] | [EVET] | [EVET] | [EVET] | [EVET] | [HAYIR] |
-| İmzalı release pipeline | [EVET] | [EVET] | [EVET] | [EVET] | [EVET] | [EVET] | [HAYIR] |
-| Üretim olgunluğu | [EVET] | [EVET] | [EVET] | [EVET] | [EVET] | [EVET] | [HAYIR] alpha |
-
----
-
-## BÖLÜM 6 — ÖNCELİKLENDİRİLMİŞ EYLEM PLANI
-
-### [KRİTİK] (Üretim öncesi zorunlu)
-
-**K-1: İmzalı güncelleme sistemi kur** `[KISMEN TAMAMLANDI - ALTYAPI VE CLIENT ENTEGRASYONU TAMAM]`
-- Tamamlandı: desktop `MOZ_UPDATER` yeniden etkinleştirildi, Hilal `AppUpdateURL` policy'si paketleniyor, complete MAR helper'ı ve `docs/UPDATES.md` eklendi. Ayrıca Vercel/Next.js dynamic update manifest servisi `/api/update` entegre edilmiştir.
-- Kalan: Hilal-owned MAR signing sertifikaları, platform-signed/notarized pkg/msix/dmg artifact'lar.
-
-**K-2: CI/CD pipeline'ını gerçek iş yapacak hale getir**
-- Tüm hedef platformlar için build
-- `mach lint` çalıştırma
-- Browser chrome testleri, workspace/container testleri, güvenlik smoke testleri
-- Artifact imzalama ve doğrulama
-
-**K-3: Firefox upstream'i pin'le ve güvenlik advisory'lerini takip et**
-- Firefox sürüm tag'ına göre sabit pin
-- Mozilla güvenlik duyurularını 24-72 saat içinde yamalaması için süreç kur
-
-**K-4: uBO supply chain'ini güvenli hale getir** `[TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
-- uBO `1.57.2` sürümüne sabitlendi ve sha256 checksum kontrolü (`9928e79a52cecf7cfa231fdb0699c7d7a427660d94eb10d711ed5a2f10d2eb89`) getirilerek apply sürecine entegre edildi.
-
-### [YÜKSEK] (İlk kararlı sürüm için)
-
-**Y-1: Gerçek Hilal privacy baseline oluştur** `[TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
-- `firefox-branding.js` Betterfox tabanlı sertleştirmelerin yanı sıra `0013-hilal-privacy-levels.patch` ile Standard / Strict / Extreme tercihleri eklenmiştir. Standard seviye artık tracking protection'ı zayıflatmamaktadır.
-
-**Y-2: Workspace silme dürüstlüğü ve güçlendirme** `[TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
-- `Services.clearData.deleteDataFromOriginAttributesPattern` kullanılarak container silindiğinde tüm site verileri artık fiziksel ve güvenli bir şekilde silinmektedir.
-
-**Y-3: Bang'leri opt-in ve şeffaf yap** `[TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
-- Bangs Preferences UI arayüzü eklenmiştir. Bilinmeyen bang'lerin sessizce DuckDuckGo'ya yönlenmesi iptal edilerek adres barının varsayılan arama motorunu kullanması sağlanmıştır.
-
-**Y-4: Privacy modları ekle** `[TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
-- Standard, Strict ve Extreme seçenekleri preferences UI'a eklendi. `HilalWorkspaces.js` seçilen seviyeyi first-party isolation, RFP, WebRTC, WebGL, clipboard events, referrer policy ve query stripping pref'lerine uyguluyor.
-
-### [ORTA] (Sonraki sprint'ler için)
-
-**O-1: Chrome CSS güvenlik denetimi** `[KISMEN TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
-- CSS kurallarının discard edilme hatası giderilmiş, `8e6e2d0` ile Firefox-UI-Fix suite dinamik ayarlar ile entegre edilmiştir. Kilit ikonu vb. güvenlik göstergelerinin bütünlüğü test edilmiştir.
-
-**O-2: Website bağımlılıklarını güncelle** `[TAMAMLANDI - SÜRÜM v0.2.0-alpha.3]`
-- Web sitesi modern Vite + React 19 + Tailwind CSS 4 + TS 5.8 altyapısına taşınmış, tüm eski Next.js açıkları kapatılmıştır.
-
-**O-3: Statik analiz araçları ekle** `[AÇIK]`
-- CI'da `npm audit`, lint, patch apply check ve Firefox chrome smoke testleri henüz çalışmıyor.
-
-**O-4: Veri akışı envanteri yayınla**
-- Her varsayılan ağ bağlantısı, hedef sunucu, amaç ve opt-out yöntemi.
-
-### [DÜŞÜK] (Olgunluk için)
-
-**D-1: Güvenlik dokümantasyonu**
-- Threat model, privacy policy, güvenlik iletişim adresi.
-
-**D-2: Otomatik gizlilik regresyon testleri**
-- EFF Cover Your Tracks kontrolleri, WebRTC ve DNS sızıntı testleri.
-
-**D-3: Erişilebilirlik iyileştirmeleri**
-- `hbox role="button"` → native `toolbarbutton` dönüşümü.
-
----
-
-## BÖLÜM 7 — GÜÇLÜ YANLAR (Korunması Gereken)
-
-Bu bölüm nelerin iyi gittiğini belgeliyor — geliştirme sürecinde bunlar kaybolmamalı:
-
-1. **Mimari temizlik:** Firefox'u fork'lamayıp overlay+patch kullanmak, upstream'e yakın kalmak doğru karar.
-2. **Workspace + container birleşimi:** Pazarda gerçek boşluğu dolduruyor.
-3. **macOS native UX:** Vibrancy entegrasyonu Arc'a yakın bir deneyim sunuyor.
-4. **Bang sistemi fikri:** Eklenti veya ayar gerektirmeden adres çubuğundan çalışması özgün.
-5. **Özelleştirilebilirlik ve Esneklik:** Son güncellemelerle birlikte özel bang yönetimi ve özel sidebar kısayolları eklenerek en üst seviyeye ulaştırılmıştır.
-6. **Güvenlik Bütünlüğü:** Derleme checksum doğrulaması ve `.hilal-applied` yama önbelleklemesi ile güvenli ve hızlı build süreci.
-
----
-
-## BÖLÜM 8 — REFERANSLAR
-
-- Mozilla Firefox güvenlik/gizlilik özellikleri: https://support.mozilla.org/en-US/kb/firefox-privacy-and-security-features
-- Firefox Privacy Notice: https://www.mozilla.org/en-US/privacy/firefox/
-- Mozilla veri toplama kuralları: https://firefox-source-docs.mozilla.org/contributing/data-collection.html
-- Firefox 151 güvenlik advisory (2026-05-19): https://www.mozilla.org/en-US/security/advisories/mfsa2026-46/
-- Brave privacy özellikleri: https://brave.com/privacy-features/
-- Brave Shields: https://brave.com/shields/
-- Tor güvenlik seviyeleri: https://support.torproject.org/tor-browser/features/security-levels/
-- Tor anti-fingerprinting: https://support.torproject.org/tor-browser/features/fingerprinting-protections/
-- Chrome güvenlik: https://safety.google/products/chrome/
-- Chromium Site Isolation: https://www.chromium.org/Home/chromium-security/site-isolation/
-- Hilal Browser repo: https://github.com/VastSea0/hilal-browser
-
----
-
-## BÖLÜM 9 — AGENT NOTLARI (Doğrulayıcı Agent Tarafından Doldurulacak)
-
-### Genel Doğrulama Sonucu
-- `[x] Rapor tamamen güncel kod yapısıyla eşleşecek şekilde revize edilmiştir.`
-- `[x] Yeni eklenen "Özelleştirilebilir Sidebar Kısayolları" ve "Preferences UI Bang Yönetimi" bulguları rapora işlenmiştir.`
-- `[x] Rapor güncellendi (v0.2.0-alpha.3 local kod durumu + yama checksum altyapısı + website audit düzeltmesi)`
-
-### Bölüm Bazlı Doğrulama
-
-| Bölüm | Durum | Not |
-|---|---|---|
-| 2.1 Workspace | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | `Services.clearData` entegre edilerek container verileri silindiğinde artık çerezler ve depolama da silinmektedir. Boş tab grupları d18a211 ile otomatik daraltılmaktadır. |
-| 2.2 Bang | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | `0016-hilal-bang-customization.patch` ve `HilalBangs.sys.mjs` ile Preferences ekranına custom bang tablosu ve yönetim arayüzü getirilmiştir. |
-| 2.3 uBO | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | Eklenti `1.57.2` olarak sabitlendi ve sha256 checksum kontrolü getirilerek apply.sh içerisine yerleştirildi. |
-| 2.4 macOS Vibrancy | `[DOĞRULANDI - GÜÇLENDİRİLDİ]` | Kod kanıtı ve dosya/satır numaraları bulunarak eklenmiştir. HUDWindow ve OrWith kullanımı ispatlandı. |
-| 2.5 Dikey Sekmeler | `[DOĞRULANDI - GÜNCEL]` | Yenilenmiş sidebar arayüzü ile son derece şık ve modern bir görünüme kavuşmuştur. |
-| 2.6 Split View | `[DOĞRULANDI]` | tabsplitview.js üzerinde 2 tab varsayımı doğrulanmıştır. |
-| 2.7 URL Kopyalama | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | `b99a468` ile `about:config` gibi ayrıcalıklı sayfalara retargeting korumaları eklenmiştir. |
-| 2.8 Privacy seviyeleri | `[DÜZELTİLDİ]` | Tor-like adı Extreme (Maximum local hardening - not Tor) olarak değiştirilmiştir. Standard seviyedeki content blocking zayıflatma riski çözülmüştür. |
-| 2.9 Sidebar Kısayolları | `[DOĞRULANDI - YENİ]` | Preferences arayüzünden kullanıcıların kendi sidebar simgelerini/URL'lerini yönetmesi başarıyla tamamlanmıştır. |
-| 3.1 Güncelleme sistemi | `[KISMEN DÜZELTİLDİ]` | Desktop updater build'e geri alındı, Hilal policy'si ve complete MAR helper'ı eklendi. Vercel backend dynamic update manifest servisi `/api/update` kuruldu. |
-| 3.2 CI/CD | `[AÇIK]` | Sadece GitHub release oluşturulmakta, build/test adımları bulunmamaktadır. |
-| 3.3 Privacy Hardening iddiası | `[YANLIŞ / KISMEN REVİZE]` | Hardening kodda var; ancak yeni standard seviye ile content blocking strict baseline'ı korunmuştur. |
-| 3.4 uBO supply chain | `[DÜZELTİLDİ - v0.2.0-alpha.3]` | Eklenti XPI'si sabit sha256 checksum ile apply.sh sürecinde indirilmekte ve doğrulanmaktadır. |
-| 3.5 Mozilla veri toplama | `[YANLIŞ]` | firefox-branding.js ile telemetry, studies ve veri sızıntı yolları kapatılmıştır. |
-| 3.6 CSS riski | `[KISMEN DÜZELTİLDİ - v0.2.0-alpha.3]` | Dynamic settings entegrasyonu var; güvenlik göstergeleri için otomatik görsel regresyon testi hâlâ yok. |
-| 3.7 Website açıkları | `[DÜZELTİLDİ]` | Web sitesi modern Vite + React 19 + Tailwind CSS 4 altyapısına taşınmış, Next.js açıkları giderilmiştir. |
-| 3.8 Release hygiene | `[KISMEN DÜZELTİLDİ]` | Patch checksumCaching (`.hilal-applied` check) getirilerek apply.sh güvenliği artırılmıştır. Seri 17 yamaya temizlenmiştir. |
-
-### Düzeltilen Bulgular (v0.2.0-alpha.3 Sürümünde Yapılanlar)
-1. **Container Verilerinin Fiziksel Silinmesi:** `HilalWorkspaces.js` içinde `_removeWorkspaceContainer` fonksiyonunda `Services.clearData` API'si çağrılarak workspace silindiğinde tüm container geçmişi ve verileri temizlenmesi sağlanmıştır.
-2. **uBlock Origin Supply Chain Hardening:** `apply.sh` içerisine sha256 checksum ve sabit `1.57.2` sürümü doğrulaması entegre edilmiştir.
-3. **Bangs DuckDuckGo Arama Sızıntısı:** Bilinmeyen bang'lerin DuckDuckGo'ya yönlenmesi iptal edilerek adres barının varsayılan arama motorunu kullanması sağlanmıştır.
-4. **Resmi Web Sitesi Güvenlik Güncellemeleri:** Next.js yerine modern Vite + React 19 + Tailwind CSS 4 altyapısına geçilerek Next.js açıkları kapatılmıştır.
-5. **Ayrıcalıklı URL Koruması:** Ayrıcalıklı iç sayfaların (`about:config`, `chrome://...`) container'lara retarget edilmesi engellenmiştir.
-6. **Privacy Seviyeleri:** Preferences UI'a Standard / Strict / Extreme seçenekleri ve runtime pref uygulama katmanı eklenmiştir. Yanıltıcı "Tor-like" isimlendirmesi "Extreme (not Tor)" ile düzeltilmiştir.
-7. **Özelleştirilebilir Bang'ler ve Sidebar Kısayolları:** Preferences arayüzünden doğrudan custom bang ve sidebar kısayolu ekleme ve kaldırma özellikleri eklenmiştir.
-8. **Patch Uygulama Bütünlüğü:** `apply.sh` yama checksum caching (`.hilal-applied` check) getirilerek mükerrer yama çalıştırma ve tree bozulma riski giderilmiştir.
-
-### Doğrulama Tarihi & Agent Kimliği
-- Tarih: 2026-05-25
-- Agent: Antigravity AI (Pair Programming update)
-- Kullanılan araçlar: `rg`, `git status`, `git log`, `git diff`, `www/package.json`, `patches/series`, `apply.sh`, `HilalWorkspaces.js`
-
----
-
-*Rapor sonu. Toplam bölüm: 9. Toplam eylem maddesi: K-4, Y-4, O-4, D-3 = 15 eylem. Tamamlanan/kısmen tamamlanan: K-4, Y-1, Y-2, Y-3, Y-4, O-2, O-5 (checksum), 2.1-Sorun1, 2.2-Sorun1, 2.2-Sorun3, 2.3-Sorun1, 2.3-Sorun2, 2.7-Sorun2, 2.8-Sorun1, 2.9 sidebar, 3.7 website.*
+- `npm run build`: basarili
+- `npm audit --omit=dev`: 0 vulnerability
+- `npm run lint`: basarisiz, `React` namespace type hatasi
+- clean Firefox worktree patch apply denemesi: disk doldugu icin tamamlanamadi
