@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export TMPDIR="${XDG_CACHE_HOME:-$HOME/.cache}/tmp"
+mkdir -p "$TMPDIR"
+
+exec /app/lib/firefox/firefox --name org.gkdevstudio.Hilal "$@"
