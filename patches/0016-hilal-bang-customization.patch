@@ -14,10 +14,11 @@ Hilal Browser: add custom bang preferences UI
      "LinksCache.sys.mjs",
 --- a/browser/app/profile/firefox.js
 +++ b/browser/app/profile/firefox.js
-@@ -3615,6 +3615,7 @@
+@@ -3615,6 +3615,8 @@
  
  // When enabled, Firefox ignores the distribution.ini file if global.id is MozillaOnline.
  pref("distribution.mozillaonline.ignore", true);
++pref("hilal.privacy.initialized", false);
 +pref("hilal.bangs.custom", "[]");
  // Hilal Browser - UI Fix Integration
  pref("hilal.uifix.enabled", true);
