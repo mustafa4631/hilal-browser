@@ -320,7 +320,7 @@ index d3a3874d9223..1db2579321e5 100644
          low_quality_pinch_zoom,
          max_shared_surface_size,
          enable_dithering,
-+        opaque_backdrop_fallback,
++        opaque_backdrop_fallback: opaque_backdrop_fallback && is_main_window,
          ..Default::default()
      };
  
