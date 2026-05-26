@@ -93,6 +93,7 @@ manifest asset named `hilal-update-manifest.json`:
 ```bash
 scripts/generate-update-manifest.mjs \
   --version v0.2.0-alpha.4 \
+  --app-version "$(cat firefox/browser/config/version.txt)" \
   --build-id 20260525000000 \
   --mar macos-arm64=dist/hilal-macos-arm64.complete.mar \
   --mar-url macos-arm64=https://github.com/VastSea0/hilal-browser/releases/download/v0.2.0-alpha.4/hilal-macos-arm64.complete.mar \
@@ -109,6 +110,15 @@ The update endpoint fetches the latest GitHub Release, reads the manifest asset,
 selects the correct MAR for the request's `BUILD_TARGET`, verifies channel and
 metadata fields, and then returns Firefox-compatible update XML.
 
+Alpha, beta, and release-candidate tags are published as GitHub prereleases.
+Set `HILAL_UPDATE_INCLUDE_PRERELEASES=1` only for channels that should receive
+those builds.
+
+`--version` is the Hilal release shown to users. `--app-version` must be the
+Firefox/Gecko version shipped in the build, for example `153.0a1`. Firefox sends
+that app version in update requests, so using the Hilal release value here can
+make a build offer an update to itself.
+
 Required manifest fields for every platform:
 
 - `platform`: `macos-arm64`, `macos-x86_64`, `linux-x86_64`,
@@ -117,6 +127,7 @@ Required manifest fields for every platform:
 - `hashFunction`: `sha512`
 - `hashValue`: sha512 of the final signed MAR
 - `size`: byte size of the final signed MAR
+- `appVersion`: Firefox/Gecko app version, not the Hilal release version
 
 ### Fallback: Environment Variables
 
@@ -141,6 +152,7 @@ Optional:
 
 ```bash
 HILAL_UPDATE_BUILD_ID=20260524000000
+HILAL_UPDATE_FIREFOX_VERSION=153.0a1
 HILAL_UPDATE_DETAILS_URL=https://hilal.gkdevstudio.org/#surumler
 HILAL_UPDATE_MACOS_MAR_HASH_FUNCTION=sha512
 HILAL_UPDATE_REPO=VastSea0/hilal-browser

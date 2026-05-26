@@ -8,7 +8,7 @@ import {
   type UpdateManifestEntry,
 } from "../server/github.js";
 
-interface UpdateRequest {
+export interface UpdateRequest {
   product: string;
   version: string;
   buildID: string;
@@ -108,26 +108,31 @@ async function resolveUpdateEntry(
     return null;
   }
 
+  const displayVersion = firstNonEmpty(
+    matching.displayVersion,
+    manifest.displayVersion,
+    manifest.version,
+    stripTagPrefix(release.tag_name)
+  );
+  const appVersion = firstFirefoxVersion(
+    matching.firefoxVersion,
+    manifest.firefoxVersion,
+    matching.appVersion,
+    manifest.appVersion,
+    matching.platformVersion,
+    manifest.platformVersion
+  );
+  const platformVersion =
+    firstFirefoxVersion(matching.platformVersion, manifest.platformVersion) ||
+    appVersion;
+
   return {
     ...matching,
     type: matching.type || "minor",
-    displayVersion:
-      matching.displayVersion ||
-      manifest.displayVersion ||
-      manifest.version ||
-      stripTagPrefix(release.tag_name),
-    appVersion:
-      matching.appVersion ||
-      manifest.appVersion ||
-      manifest.version ||
-      stripTagPrefix(release.tag_name),
-    platformVersion:
-      matching.platformVersion ||
-      manifest.platformVersion ||
-      matching.appVersion ||
-      manifest.appVersion ||
-      manifest.version ||
-      stripTagPrefix(release.tag_name),
+    displayVersion,
+    firefoxVersion: appVersion,
+    appVersion,
+    platformVersion,
     buildID: matching.buildID || manifest.buildID || releaseBuildID(release),
     detailsURL:
       matching.detailsURL ||
@@ -162,6 +167,11 @@ function resolveEnvEntry(
     if (!url || !hashValue || !size) {
       continue;
     }
+    const appVersion = firstFirefoxVersion(
+      process.env.HILAL_UPDATE_FIREFOX_VERSION,
+      process.env.HILAL_UPDATE_APP_VERSION,
+      process.env.HILAL_UPDATE_PLATFORM_VERSION
+    );
     return {
       platform,
       url,
@@ -173,12 +183,11 @@ function resolveEnvEntry(
       displayVersion:
         process.env.HILAL_UPDATE_DISPLAY_VERSION ||
         stripTagPrefix(release.tag_name),
-      appVersion:
-        process.env.HILAL_UPDATE_APP_VERSION || stripTagPrefix(release.tag_name),
+      firefoxVersion: appVersion,
+      appVersion,
       platformVersion:
-        process.env.HILAL_UPDATE_PLATFORM_VERSION ||
-        process.env.HILAL_UPDATE_APP_VERSION ||
-        stripTagPrefix(release.tag_name),
+        firstFirefoxVersion(process.env.HILAL_UPDATE_PLATFORM_VERSION) ||
+        appVersion,
       buildID: process.env.HILAL_UPDATE_BUILD_ID || releaseBuildID(release),
       detailsURL: process.env.HILAL_UPDATE_DETAILS_URL || release.html_url,
       actions: "showURL",
@@ -218,7 +227,7 @@ function entryMatchesRequest(
   return targets.some(target => lowerTarget.includes(target.toLowerCase()));
 }
 
-function detectPlatform(buildTarget: string): string {
+export function detectPlatform(buildTarget: string): string {
   const target = buildTarget.toLowerCase();
   const arch = target.includes("aarch64") || target.includes("arm64")
     ? "arm64"
@@ -250,7 +259,7 @@ function normalizePlatformName(platform: string): string {
   return lower;
 }
 
-function isValidEntry(entry: UpdateManifestEntry): boolean {
+export function isValidEntry(entry: UpdateManifestEntry): boolean {
   if (!entry.url || !entry.url.startsWith("https://")) {
     return false;
   }
@@ -260,17 +269,42 @@ function isValidEntry(entry: UpdateManifestEntry): boolean {
   if ((entry.hashFunction || "sha512").toLowerCase() !== "sha512") {
     return false;
   }
+  if (!entry.appVersion || !isFirefoxAppVersion(entry.appVersion)) {
+    return false;
+  }
+  if (
+    entry.platformVersion &&
+    !isFirefoxAppVersion(entry.platformVersion)
+  ) {
+    return false;
+  }
   return Number.isFinite(entry.size) && entry.size > 0;
 }
 
-function shouldOfferUpdate(
+export function shouldOfferUpdate(
   request: UpdateRequest,
   release: ReleaseSummary,
   entry: UpdateManifestEntry
 ): boolean {
-  const displayVersion = entry.displayVersion || stripTagPrefix(release.tag_name);
+  const candidateVersion = stripTagPrefix(
+    entry.appVersion || entry.firefoxVersion || entry.platformVersion || ""
+  );
   const requestedVersion = stripTagPrefix(request.version);
-  if (displayVersion !== requestedVersion) {
+  if (
+    !isFirefoxAppVersion(candidateVersion) ||
+    !isFirefoxAppVersion(requestedVersion)
+  ) {
+    return false;
+  }
+
+  const versionComparison = compareFirefoxVersions(
+    candidateVersion,
+    requestedVersion
+  );
+  if (versionComparison < 0) {
+    return false;
+  }
+  if (versionComparison > 0) {
     return true;
   }
 
@@ -281,12 +315,12 @@ function shouldOfferUpdate(
   return candidateBuild > request.buildID;
 }
 
-function buildUpdateXml(
+export function buildUpdateXml(
   release: ReleaseSummary,
   entry: UpdateManifestEntry
 ): string {
   const displayVersion = entry.displayVersion || stripTagPrefix(release.tag_name);
-  const appVersion = entry.appVersion || displayVersion;
+  const appVersion = entry.appVersion || entry.firefoxVersion || "";
   const platformVersion = entry.platformVersion || appVersion;
   const buildID = entry.buildID || releaseBuildID(release);
   const detailsURL = entry.detailsURL || release.html_url;
@@ -310,6 +344,73 @@ function releaseBuildID(release: ReleaseSummary): string {
 
 function stripTagPrefix(version: string): string {
   return version.replace(/^v/i, "");
+}
+
+function firstNonEmpty(...values: Array<string | undefined>): string {
+  return values.find(value => value && value.trim())?.trim() || "";
+}
+
+function firstFirefoxVersion(...values: Array<string | undefined>): string {
+  for (const value of values) {
+    const candidate = stripTagPrefix(String(value || "").trim());
+    if (isFirefoxAppVersion(candidate)) {
+      return candidate;
+    }
+  }
+  return "";
+}
+
+export function isFirefoxAppVersion(version: string): boolean {
+  return parseFirefoxVersion(stripTagPrefix(version)) !== null;
+}
+
+export function compareFirefoxVersions(left: string, right: string): number {
+  const parsedLeft = parseFirefoxVersion(stripTagPrefix(left));
+  const parsedRight = parseFirefoxVersion(stripTagPrefix(right));
+  if (!parsedLeft || !parsedRight) {
+    return 0;
+  }
+
+  const segmentCount = Math.max(
+    parsedLeft.segments.length,
+    parsedRight.segments.length
+  );
+  for (let index = 0; index < segmentCount; index += 1) {
+    const leftSegment = parsedLeft.segments[index] || 0;
+    const rightSegment = parsedRight.segments[index] || 0;
+    if (leftSegment !== rightSegment) {
+      return leftSegment > rightSegment ? 1 : -1;
+    }
+  }
+
+  if (parsedLeft.stageRank !== parsedRight.stageRank) {
+    return parsedLeft.stageRank > parsedRight.stageRank ? 1 : -1;
+  }
+  if (parsedLeft.stageNumber !== parsedRight.stageNumber) {
+    return parsedLeft.stageNumber > parsedRight.stageNumber ? 1 : -1;
+  }
+  return 0;
+}
+
+function parseFirefoxVersion(version: string):
+  | {
+      segments: number[];
+      stageRank: number;
+      stageNumber: number;
+    }
+  | null {
+  const match = version.match(/^(\d+(?:\.\d+)*)(?:(a|b)(\d+)|esr)?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const stage = (match[2] || "").toLowerCase();
+  const stageRank = stage === "a" ? 0 : stage === "b" ? 1 : 2;
+  return {
+    segments: match[1].split(".").map(segment => Number(segment)),
+    stageRank,
+    stageNumber: Number(match[3] || 0),
+  };
 }
 
 function xmlEscape(value: string): string {

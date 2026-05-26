@@ -40,5 +40,4 @@ jobs:
           name: "Hilal Browser ${{ steps.vars.outputs.tag }}"
           generate_release_notes: true
           draft: false
-          prerelease: false
-
+          prerelease: ${{ contains(steps.vars.outputs.tag, 'alpha') || contains(steps.vars.outputs.tag, 'beta') || contains(steps.vars.outputs.tag, 'rc') }}
