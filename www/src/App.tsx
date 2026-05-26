@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Sun,
@@ -83,12 +83,12 @@ export default function App() {
     setSliderPosition(position);
   };
 
-  const handleSliderMouseDown = (e: React.MouseEvent) => {
+  const handleSliderMouseDown = (e: ReactMouseEvent) => {
     setIsSliderDragging(true);
     handleSliderMove(e.clientX);
   };
 
-  const handleSliderTouchStart = (e: React.TouchEvent) => {
+  const handleSliderTouchStart = (e: ReactTouchEvent) => {
     setIsSliderDragging(true);
     if (e.touches.length > 0) {
       handleSliderMove(e.touches[0].clientX);
