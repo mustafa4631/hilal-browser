@@ -9,8 +9,8 @@
 # Override with HILAL_FIREFOX_SRC=/some/path before running.
 #
 # Usage:
-#   scripts/setup-firefox.sh              # clone if missing, fetch if present
-#   scripts/setup-firefox.sh --pull       # also fast-forward main
+#   scripts/setup-firefox.sh              # clone/fetch and checkout FIREFOX_COMMIT
+#   scripts/setup-firefox.sh --pull       # fast-forward the current branch instead
 
 set -euo pipefail
 
@@ -18,6 +18,11 @@ set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 
 UPSTREAM_URL="${HILAL_FIREFOX_UPSTREAM:-https://github.com/mozilla-firefox/firefox.git}"
+TARGET_COMMIT_FILE="$HILAL_REPO_ROOT/FIREFOX_COMMIT"
+TARGET_COMMIT=""
+if [ -f "$TARGET_COMMIT_FILE" ]; then
+  TARGET_COMMIT="$(tr -d '[:space:]' < "$TARGET_COMMIT_FILE")"
+fi
 DO_PULL=0
 for arg in "$@"; do
   case "$arg" in
@@ -45,6 +50,23 @@ if [ "$DO_PULL" = 1 ]; then
   branch="$(git -C "$HILAL_FIREFOX_SRC" rev-parse --abbrev-ref HEAD)"
   log "Fast-forwarding $branch from origin/$branch"
   git -C "$HILAL_FIREFOX_SRC" merge --ff-only "origin/$branch"
+elif [ -n "$TARGET_COMMIT" ]; then
+  if ! git -C "$HILAL_FIREFOX_SRC" cat-file -e "$TARGET_COMMIT^{commit}" 2>/dev/null; then
+    log "Fetching pinned Firefox commit: $TARGET_COMMIT"
+    git -C "$HILAL_FIREFOX_SRC" fetch origin "$TARGET_COMMIT" || true
+  fi
+  if ! git -C "$HILAL_FIREFOX_SRC" cat-file -e "$TARGET_COMMIT^{commit}" 2>/dev/null; then
+    die "Pinned Firefox commit not found: $TARGET_COMMIT"
+  fi
+
+  current_commit="$(git -C "$HILAL_FIREFOX_SRC" rev-parse HEAD)"
+  if [ "$current_commit" != "$TARGET_COMMIT" ]; then
+    if ! git -C "$HILAL_FIREFOX_SRC" diff --quiet || ! git -C "$HILAL_FIREFOX_SRC" diff --cached --quiet; then
+      die "Firefox checkout has local changes; refusing to switch from $current_commit to pinned $TARGET_COMMIT"
+    fi
+    log "Checking out pinned Firefox commit: $TARGET_COMMIT"
+    git -C "$HILAL_FIREFOX_SRC" checkout -B hilal-upstream "$TARGET_COMMIT"
+  fi
 fi
 
 log "Firefox source ready at $HILAL_FIREFOX_SRC"

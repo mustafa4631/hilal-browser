@@ -37,6 +37,20 @@ done
 
 require_firefox_src
 
+PINNED_FIREFOX_COMMIT=""
+if [ -f "$HILAL_REPO_ROOT/FIREFOX_COMMIT" ]; then
+  PINNED_FIREFOX_COMMIT="$(tr -d '[:space:]' < "$HILAL_REPO_ROOT/FIREFOX_COMMIT")"
+fi
+if [ -n "$PINNED_FIREFOX_COMMIT" ]; then
+  if ! git -C "$HILAL_FIREFOX_SRC" cat-file -e "$PINNED_FIREFOX_COMMIT^{commit}" 2>/dev/null; then
+    die "Pinned Firefox commit is not present in $HILAL_FIREFOX_SRC: $PINNED_FIREFOX_COMMIT. Run scripts/setup-firefox.sh first."
+  fi
+  CURRENT_FIREFOX_COMMIT="$(git -C "$HILAL_FIREFOX_SRC" rev-parse HEAD)"
+  if [ "$CURRENT_FIREFOX_COMMIT" != "$PINNED_FIREFOX_COMMIT" ]; then
+    die "Firefox checkout is at $CURRENT_FIREFOX_COMMIT, but Hilal patches are pinned to $PINNED_FIREFOX_COMMIT. Run scripts/setup-firefox.sh before applying patches."
+  fi
+fi
+
 if [ "$FORCE" = 1 ]; then
   warn "--force: resetting tracked files in $HILAL_FIREFOX_SRC to HEAD"
   warn "         and removing branding/hilal + prefs overlays."
@@ -80,6 +94,23 @@ calculate_series_hash() {
   fi
 }
 
+read_series
+CURRENT_HASH=""
+STATE_FILE="$HILAL_FIREFOX_SRC/.hilal-applied"
+SKIP_PATCHES=0
+if [ "${#SERIES[@]}" -gt 0 ]; then
+  CURRENT_HASH=$(calculate_series_hash)
+  if [ "$FORCE" = 0 ] && [ -f "$STATE_FILE" ]; then
+    STORED_HASH=$(cat "$STATE_FILE" 2>/dev/null || true)
+    if [ "$CURRENT_HASH" = "$STORED_HASH" ]; then
+      log "Patches are already up-to-date (matching checksum: $CURRENT_HASH). Skipping patch application."
+      SKIP_PATCHES=1
+    else
+      die "Patch series changed since this Firefox tree was stamped (stored $STORED_HASH, current $CURRENT_HASH). Run scripts/apply.sh --force from the pinned Firefox checkout to rebuild a clean Hilal tree."
+    fi
+  fi
+fi
+
 if [ -d "$HILAL_FIREFOX_SRC/browser/branding/huma" ]; then
   warn "Removing stale pre-Hilal branding overlay: browser/branding/huma"
   rm -rf "$HILAL_FIREFOX_SRC/browser/branding/huma"
@@ -107,22 +138,9 @@ fi
 
 # -- 2. Apply patches in series order ----------------------------------------
 
-read_series
 if [ "${#SERIES[@]}" -eq 0 ]; then
   warn "patches/series is empty; no patches to apply."
 else
-  CURRENT_HASH=$(calculate_series_hash)
-  STATE_FILE="$HILAL_FIREFOX_SRC/.hilal-applied"
-  SKIP_PATCHES=0
-
-  if [ "$FORCE" = 0 ] && [ -f "$STATE_FILE" ]; then
-    STORED_HASH=$(cat "$STATE_FILE" 2>/dev/null || true)
-    if [ "$CURRENT_HASH" = "$STORED_HASH" ]; then
-      log "Patches are already up-to-date (matching checksum: $CURRENT_HASH). Skipping patch application."
-      SKIP_PATCHES=1
-    fi
-  fi
-
   if [ "$SKIP_PATCHES" = 0 ]; then
     applied=0
     skipped=0
@@ -218,4 +236,3 @@ else
 fi
 
 log "All Hilal changes applied. Build with: scripts/build-macos.sh"
-

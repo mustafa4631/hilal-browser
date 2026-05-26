@@ -63,7 +63,7 @@ Everything Hilal-specific lives in this repository:
 git clone https://github.com/VastSea0/hilal-browser.git
 cd hilal-browser
 
-# 3. Clone Firefox into ./firefox (gitignored)
+# 3. Clone Firefox into ./firefox (gitignored) and checkout FIREFOX_COMMIT
 scripts/setup-firefox.sh
 
 # 4. Apply all Hilal patches and overlays
@@ -84,7 +84,7 @@ The Firefox source tree under `./firefox/` is **gitignored** inside this reposit
 
 | Goal | Command |
 | --- | --- |
-| Get a Firefox checkout next to this repo | `scripts/setup-firefox.sh` |
+| Get the pinned Firefox checkout next to this repo | `scripts/setup-firefox.sh` |
 | Apply every Hilal patch + overlay onto Firefox | `scripts/apply.sh` |
 | Regenerate patches from changes you made in `./firefox` | `scripts/refresh.sh` |
 | Pull upstream Firefox and rebase Hilal on top | `scripts/sync-upstream.sh` |

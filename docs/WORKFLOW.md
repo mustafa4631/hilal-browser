@@ -27,14 +27,15 @@ hilal-browser/  ─────────────►  firefox/         (bu
 ```bash
 git clone https://github.com/VastSea0/hilal-browser.git
 cd hilal-browser
-scripts/setup-firefox.sh    # clones Firefox into ./firefox
+scripts/setup-firefox.sh    # clones Firefox into ./firefox and checks out FIREFOX_COMMIT
 scripts/apply.sh            # stamps Hilal changes onto ./firefox
 scripts/build-macos.sh      # delegates to ./mach build
 ```
 
-You only need `setup-firefox.sh` once. After that, the `firefox/`
-directory is yours — it's a normal Mozilla checkout with its own
-`./mach` and its own git history.
+`setup-firefox.sh` pins the checkout to the commit recorded in
+`FIREFOX_COMMIT`. Run it again whenever that file changes. `apply.sh`
+also checks the pin before applying patches, so different build machines
+do not silently build from different Firefox bases.
 
 ## Editing source code
 
@@ -92,8 +93,16 @@ would be copied to `firefox/browser/app/profile/firefox.js` on apply.
 
 ## When a patch fails to apply
 
-This usually means upstream Firefox changed the code the patch was
-touching. Options, in order of preference:
+This usually means the Firefox checkout is not on the commit in
+`FIREFOX_COMMIT`, or upstream Firefox changed the code the patch was
+touching. First run:
+
+```bash
+scripts/setup-firefox.sh
+scripts/apply.sh
+```
+
+If the patch still fails on the pinned base, options are:
 
 1. **Refresh against current upstream**
    ```bash
@@ -122,7 +131,8 @@ touching. Options, in order of preference:
 # Show what apply.sh will sync (branding only)
 diff -r branding/hilal firefox/browser/branding/hilal
 
-# Reset Firefox tree to a clean upstream + Hilal state
+# Reset Firefox tree to the pinned upstream + Hilal state
+scripts/setup-firefox.sh
 scripts/apply.sh --force
 
 # Roll forward to latest upstream
