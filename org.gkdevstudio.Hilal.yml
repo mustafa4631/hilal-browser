@@ -1,0 +1,95 @@
+app-id: org.gkdevstudio.Hilal
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+base: org.mozilla.firefox.BaseApp
+base-version: '25.08'
+command: hilal
+
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.llvm21
+  - org.freedesktop.Sdk.Extension.node24
+  - org.freedesktop.Sdk.Extension.rust-stable
+
+finish-args:
+  - --allow=devel
+  - --share=ipc
+  - --share=network
+  - --socket=pulseaudio
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pcsc
+  - --socket=cups
+  - --device=all
+  - --filesystem=xdg-download:rw
+  - --filesystem=xdg-run/speech-dispatcher:ro
+  - --filesystem=/run/.heim_org.h5l.kcm-socket
+  - --talk-name=org.a11y.Bus
+  - --talk-name=org.freedesktop.FileManager1
+  - --talk-name=org.gtk.vfs.*
+  - --system-talk-name=org.freedesktop.NetworkManager
+  - --own-name=org.gkdevstudio.Hilal.*
+  - --own-name=org.mpris.MediaPlayer2.hilal.*
+  - --persist=.mozilla
+  - --env=DICPATH=/usr/share/hunspell
+
+cleanup:
+  - /include
+  - /lib/debug
+  - /lib/pkgconfig
+  - /share/aclocal
+  - /share/man
+
+modules:
+  - name: hilal-browser
+    buildsystem: simple
+    build-options:
+      env:
+        AR: llvm-ar
+        CC: clang
+        CXX: clang++
+        MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE: system
+        MOZBUILD_STATE_PATH: /run/build/hilal-browser/.mozbuild
+        NM: llvm-nm
+        PATH: /usr/lib/sdk/llvm21/bin:/usr/lib/sdk/node24/bin:/usr/lib/sdk/rust-stable/bin:/app/bin:/usr/bin
+        RANLIB: llvm-ranlib
+    build-commands:
+      - cd hilal-browser && HILAL_FIREFOX_SRC="$PWD/firefox" HILAL_UBLOCK_XPI="$PWD/uBlock0_1.57.2.firefox.signed.xpi" ./scripts/apply.sh --no-symlinks
+      - cd hilal-browser && cp mozconfigs/flatpak firefox/mozconfig
+      - cd hilal-browser/firefox && ./mach build
+      - cd hilal-browser/firefox && ./mach package
+      - cd hilal-browser/firefox && package="$(find . -path './obj-*/dist/target.tar.xz' -print -quit)" && test -n "$package" && install -d "$FLATPAK_DEST/lib" && tar -xf "$package" -C "$FLATPAK_DEST/lib"
+      - install -Dm755 hilal-browser/flatpak/hilal "$FLATPAK_DEST/bin/hilal"
+      - install -Dm644 hilal-browser/flatpak/org.gkdevstudio.Hilal.desktop "$FLATPAK_DEST/share/applications/org.gkdevstudio.Hilal.desktop"
+      - install -Dm644 hilal-browser/flatpak/org.gkdevstudio.Hilal.metainfo.xml "$FLATPAK_DEST/share/metainfo/org.gkdevstudio.Hilal.metainfo.xml"
+      - install -Dm644 hilal-browser/flatpak/policies.json "$FLATPAK_DEST/lib/firefox/distribution/policies.json"
+      - install -Dm644 hilal-browser/LICENSE "$FLATPAK_DEST/share/licenses/org.gkdevstudio.Hilal/hilal-browser/LICENSE"
+      - install -Dm644 hilal-browser/branding/hilal/default16.png "$FLATPAK_DEST/share/icons/hicolor/16x16/apps/org.gkdevstudio.Hilal.png"
+      - install -Dm644 hilal-browser/branding/hilal/default32.png "$FLATPAK_DEST/share/icons/hicolor/32x32/apps/org.gkdevstudio.Hilal.png"
+      - install -Dm644 hilal-browser/branding/hilal/default48.png "$FLATPAK_DEST/share/icons/hicolor/48x48/apps/org.gkdevstudio.Hilal.png"
+      - install -Dm644 hilal-browser/branding/hilal/default64.png "$FLATPAK_DEST/share/icons/hicolor/64x64/apps/org.gkdevstudio.Hilal.png"
+      - install -Dm644 hilal-browser/branding/hilal/default128.png "$FLATPAK_DEST/share/icons/hicolor/128x128/apps/org.gkdevstudio.Hilal.png"
+      - install -Dm644 hilal-browser/branding/hilal/default256.png "$FLATPAK_DEST/share/icons/hicolor/256x256/apps/org.gkdevstudio.Hilal.png"
+      - test ! -f ublock-origin-source/LICENSE.txt || install -Dm644 ublock-origin-source/LICENSE.txt "$FLATPAK_DEST/share/licenses/org.gkdevstudio.Hilal/uBlock-Origin/LICENSE.txt"
+    sources:
+      # HILAL_SOURCE_BEGIN
+      - type: git
+        url: https://github.com/VastSea0/hilal-browser.git
+        tag: v0.2.0-alpha.4
+        commit: 7c45ab1738e8375f22679bfca2324a1084956317
+        dest: hilal-browser
+      # HILAL_SOURCE_END
+      - type: git
+        url: https://github.com/mozilla-firefox/firefox.git
+        commit: 923c4d7d35ebb5693f5bda5dec9083f7c4f993b3
+        dest: hilal-browser/firefox
+      - type: file
+        url: https://github.com/gorhill/uBlock/releases/download/1.57.2/uBlock0_1.57.2.firefox.signed.xpi
+        sha256: 9928e79a52cecf7cfa231fdb0699c7d7a427660d94eb10d711ed5a2f10d2eb89
+        dest: hilal-browser
+        dest-filename: uBlock0_1.57.2.firefox.signed.xpi
+      - type: git
+        url: https://github.com/gorhill/uBlock.git
+        tag: 1.57.2
+        commit: bbef7ec1cb6ae52793e49d74da9728c0bd599394
+        dest: ublock-origin-source

@@ -14,7 +14,13 @@ firefox/
 obj-*/
 dist/
 package-stage/
+repo/
+flatpak-build/
+.flatpak-builder/
 *.dmg
+*.flatpak
+*.flatpakref
+*.flatpakrepo
 *.pkg
 *.tar.bz2
 *.tar.xz

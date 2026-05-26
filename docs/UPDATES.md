@@ -14,6 +14,9 @@ client-side plumbing is intentionally small:
 Android keeps the updater disabled because it is distributed through platform
 package mechanisms rather than Firefox's desktop MAR updater.
 
+Flatpak builds also disable Firefox's built-in updater. Updates for
+`org.gkdevstudio.Hilal` are delivered by Flatpak/Flathub instead of MARs.
+
 ## Build-Time Channel
 
 Desktop builds default to:
