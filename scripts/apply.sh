@@ -15,6 +15,7 @@
 #   scripts/apply.sh --force      # reset Firefox tree to a clean state first
 #   scripts/apply.sh --no-symlinks # copy instead of symlink (Windows CI)
 #   HILAL_FIREFOX_SRC=/path/to/ff scripts/apply.sh
+#   HILAL_UBLOCK_XPI=/path/to/uBlock.xpi scripts/apply.sh # offline extension source
 
 set -euo pipefail
 
@@ -206,7 +207,13 @@ get_sha256() {
   elif command -v shasum >/dev/null 2>&1; then
     shasum -a 256 "$file" | cut -d' ' -f1
   else
-    python3 -c "import hashlib; print(hashlib.sha256(open('$file','rb').read()).hexdigest())"
+    python3 - "$file" <<'PY'
+import hashlib
+import sys
+
+with open(sys.argv[1], "rb") as f:
+    print(hashlib.sha256(f.read()).hexdigest())
+PY
   fi
 }
 
@@ -222,9 +229,19 @@ verify_ubo_checksum() {
 }
 
 if ! verify_ubo_checksum; then
-  log "Downloading uBlock Origin v${UBO_VERSION} extension..."
-  if ! curl -L -f -s -o "$UBO_PATH" "$UBO_URL"; then
-    die "Failed to download uBlock Origin from ${UBO_URL}."
+  if [ -n "${HILAL_UBLOCK_XPI:-}" ]; then
+    [ -f "$HILAL_UBLOCK_XPI" ] || die "HILAL_UBLOCK_XPI does not exist: $HILAL_UBLOCK_XPI"
+    local_ubo_hash="$(get_sha256 "$HILAL_UBLOCK_XPI")"
+    if [ "$local_ubo_hash" != "$UBO_SHA256" ]; then
+      die "HILAL_UBLOCK_XPI checksum mismatch: expected $UBO_SHA256, got $local_ubo_hash"
+    fi
+    log "Using uBlock Origin v${UBO_VERSION} from HILAL_UBLOCK_XPI."
+    cp -f "$HILAL_UBLOCK_XPI" "$UBO_PATH"
+  else
+    log "Downloading uBlock Origin v${UBO_VERSION} extension..."
+    if ! curl -L -f -s -o "$UBO_PATH" "$UBO_URL"; then
+      die "Failed to download uBlock Origin from ${UBO_URL}."
+    fi
   fi
   if ! verify_ubo_checksum; then
     rm -f "$UBO_PATH"

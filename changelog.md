@@ -14,6 +14,7 @@ All notable changes to the Hilal Browser project will be documented in this file
 - **Full Localization of Preferences and Welcome Screen**: All hardcoded label strings in the preferences panel and welcome screen have been replaced with Fluent `data-l10n-id` bindings and new FTL definitions.
 
 ### Changed
+- **Firefox Upstream Sync**: Updated the Firefox base to version `153.0a1` (upstream commit `f596fa5fe90d`).
 - **Patch Apply Checksum Validation**: `scripts/apply.sh` now computes a content hash of the entire patch series and skips re-applying patches if nothing has changed, speeding up incremental builds.
 - **Hilal Preferences UI Reorganization**: Sidebar, workspace, privacy, and UI fix preference modules have been refactored into separate, focused blocks within `hilal.inc.xhtml`.
 

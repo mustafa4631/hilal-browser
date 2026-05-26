@@ -89,6 +89,7 @@ The Firefox source tree under `./firefox/` is **gitignored** inside this reposit
 | Regenerate patches from changes you made in `./firefox` | `scripts/refresh.sh` |
 | Pull upstream Firefox and rebase Hilal on top | `scripts/sync-upstream.sh` |
 | Build on macOS | `scripts/build-macos.sh` |
+| Build/test the Flatpak package | `scripts/build-flatpak.sh` |
 
 All scripts accept `-h` for usage. See `docs/WORKFLOW.md` for the full developer flow.
 
@@ -132,6 +133,7 @@ hilal-browser/              <- this repo
 - `docs/WORKFLOW.md` — full developer workflow, conflict resolution, when to patch vs overlay
 - `docs/BUILD-MACOS.md` — macOS-specific build notes
 - `docs/BUILD-WINDOWS.md` — Windows-specific build notes
+- `docs/BUILD-FLATPAK.md` — Flatpak and Flathub packaging notes
 - `docs/UPSTREAM-SYNC.md` — how to roll forward to a newer Firefox
 - `docs/UPDATES.md` — application update channel, MAR creation, and release signing checklist
 
