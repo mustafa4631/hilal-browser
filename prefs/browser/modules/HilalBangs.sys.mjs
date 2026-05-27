@@ -201,13 +201,24 @@ export var HilalBangs = {
     const bangsMap = this.getBangsMap();
     const bangEntry = bangsMap[bangInfo.bang];
     if (bangEntry) {
+      let resolvedUrl = "";
       if (!bangInfo.query) {
-        return bangEntry.home;
+        resolvedUrl = bangEntry.home;
+      } else {
+        resolvedUrl = bangEntry.search.replace(
+          "{query}",
+          encodeURIComponent(bangInfo.query)
+        );
       }
-      return bangEntry.search.replace(
-        "{query}",
-        encodeURIComponent(bangInfo.query)
-      );
+      try {
+        const uri = Services.io.newURI(resolvedUrl);
+        if (uri.scheme === "http" || uri.scheme === "https") {
+          return resolvedUrl;
+        }
+      } catch (e) {
+        // ignore invalid/non-http URLs
+      }
+      return "";
     }
 
     if (!fallbackToDuckDuckGo) {

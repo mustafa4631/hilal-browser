@@ -1083,12 +1083,21 @@ Hilal Browser: redesign sidebar layout
 +      } else if (url === "about:preferences" || url === "about:settings") {
 +        window.openPreferences();
 +      } else {
-+        const userContextId = this.activeHilalWorkspace?.containerId || 0;
-+        window.openTrustedLinkIn(url, "tab", {
-+          userContextId,
-+          triggeringPrincipal:
-+            Services.scriptSecurityManager.getSystemPrincipal(),
-+        });
++        try {
++          const uri = Services.io.newURI(url);
++          if (uri.scheme === "http" || uri.scheme === "https") {
++            const userContextId = this.activeHilalWorkspace?.containerId || 0;
++            window.openTrustedLinkIn(url, "tab", {
++              userContextId,
++              triggeringPrincipal:
++                Services.scriptSecurityManager.getSystemPrincipal(),
++            });
++          } else {
++            console.warn("Blocked non-http/https custom sidebar URL: " + url);
++          }
++        } catch (e) {
++          console.error("Failed to parse custom sidebar URL: " + url, e);
++        }
 +      }
 +      return;
 +    }
