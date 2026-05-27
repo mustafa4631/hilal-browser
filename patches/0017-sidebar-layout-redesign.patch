@@ -1,5 +1,5 @@
 diff --git a/browser/app/profile/firefox.js b/browser/app/profile/firefox.js
-index a05a8e8fd63a..6924a477e57e 100644
+index a05a8e8fd63a..8b1848adea00 100644
 --- a/browser/app/profile/firefox.js
 +++ b/browser/app/profile/firefox.js
 @@ -59,7 +59,7 @@ pref("extensions.systemAddon.update.enabled", true);
@@ -11,7 +11,7 @@ index a05a8e8fd63a..6924a477e57e 100644
  
  pref("extensions.geckoProfiler.acceptedExtensionIds", "geckoprofiler@mozilla.com,quantum-foxfooding@mozilla.com,raptor@mozilla.org");
  
-@@ -3615,3 +3615,108 @@ pref("browser.contentsharing.newBadge.enabled", true);
+@@ -3615,3 +3615,109 @@ pref("browser.contentsharing.newBadge.enabled", true);
  
  // When enabled, Firefox ignores the distribution.ini file if global.id is MozillaOnline.
  pref("distribution.mozillaonline.ignore", true);
@@ -25,6 +25,7 @@ index a05a8e8fd63a..6924a477e57e 100644
 +pref("hilal.sidebar.footer.privacy", true);
 +pref("hilal.sidebar.footer.settings", true);
 +pref("hilal.sidebar.customItems", "[]");
++pref("hilal.compact.enabled", false);
 +// Hilal Browser - UI Fix Integration
 +pref("hilal.uifix.enabled", true);
 +// Theme Default Options
@@ -121,24 +122,23 @@ index a05a8e8fd63a..6924a477e57e 100644
 +// Allow custom compiled unsigned language packs
 +pref("extensions.langpacks.signatures.required", false);
 diff --git a/browser/base/content/browser-sets.js b/browser/base/content/browser-sets.js
-index 8b153dfac942..8be900517b83 100644
+index 8b153dfac942..51c1598d7123 100644
 --- a/browser/base/content/browser-sets.js
 +++ b/browser/base/content/browser-sets.js
-@@ -316,8 +316,10 @@ document.addEventListener(
+@@ -316,15 +316,12 @@ document.addEventListener(
            }
            break;
          }
 -        case "toggleSidebarKb":
 -          if (SIDEBAR_REVAMP_ENABLED) {
+-            SidebarController.handleToolbarButtonClick();
+-            Glean.sidebar.keyboardShortcut.record({
+-              panel: SidebarController.currentID,
+-              opened: SidebarController._state.launcherExpanded,
+-            });
 +        case "toggleSidebarKb": {
-+          const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
-+          const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
-+          if (SIDEBAR_REVAMP_ENABLED || workspacesEnabled || verticalTabsEnabled) {
-             SidebarController.handleToolbarButtonClick();
-             Glean.sidebar.keyboardShortcut.record({
-               panel: SidebarController.currentID,
-@@ -325,6 +327,7 @@ document.addEventListener(
-             });
++          if (typeof HilalCompactMode !== "undefined") {
++            HilalCompactMode.toggle();
            }
            break;
 +        }
@@ -146,19 +146,21 @@ index 8b153dfac942..8be900517b83 100644
            SidebarController.toggle("viewHistorySidebar");
            break;
 diff --git a/browser/components/customizableui/CustomizableWidgets.sys.mjs b/browser/components/customizableui/CustomizableWidgets.sys.mjs
-index 954698aca61a..dcfebb85bfb3 100644
+index 954698aca61a..8d4bd4e1deed 100644
 --- a/browser/components/customizableui/CustomizableWidgets.sys.mjs
 +++ b/browser/components/customizableui/CustomizableWidgets.sys.mjs
-@@ -295,14 +295,18 @@ export const CustomizableWidgets = [
+@@ -294,15 +294,18 @@ export const CustomizableWidgets = [
+     defaultArea: "nav-bar",
      _introducedByPref: "sidebar.revamp",
      onCommand(aEvent) {
-       const { SidebarController } = aEvent.target.documentGlobal;
+-      const { SidebarController } = aEvent.target.documentGlobal;
 -      if (lazy.sidebarRevampEnabled) {
-+      const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
-+      const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
-+      if (lazy.sidebarRevampEnabled || workspacesEnabled || verticalTabsEnabled) {
-         SidebarController.handleToolbarButtonClick();
+-        SidebarController.handleToolbarButtonClick();
++      const { HilalCompactMode } = aEvent.target.documentGlobal;
++      if (HilalCompactMode) {
++        HilalCompactMode.toggle();
        } else {
++        const { SidebarController } = aEvent.target.documentGlobal;
          SidebarController.toggle();
        }
      },
@@ -1120,7 +1122,7 @@ index 15c466af31de..ef8a10951ba5 100644
        this.#props.launcherExpanded = false;
        return;
 diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/sidebar/browser-sidebar.js
-index d3178e9eb6e3..63ff3149f967 100644
+index d3178e9eb6e3..c8e79f422e04 100644
 --- a/browser/components/sidebar/browser-sidebar.js
 +++ b/browser/components/sidebar/browser-sidebar.js
 @@ -481,7 +481,10 @@ var SidebarController = {
@@ -1135,7 +1137,16 @@ index d3178e9eb6e3..63ff3149f967 100644
        if (!customElements.get("sidebar-main")) {
          ChromeUtils.importESModule(
            "chrome://browser/content/sidebar/sidebar-main.mjs",
-@@ -1071,6 +1074,11 @@ var SidebarController = {
+@@ -569,6 +572,8 @@ var SidebarController = {
+       Services.obs.addObserver(this, "sessionstore-single-window-restored");
+       this._windowRestoredObserverAdded = true;
+     }
++
++    HilalCompactMode.init();
+   },
+ 
+   uninit() {
+@@ -1071,6 +1076,11 @@ var SidebarController = {
     * True if the sidebar is currently open.
     */
    get isOpen() {
@@ -1147,7 +1158,7 @@ index d3178e9eb6e3..63ff3149f967 100644
      return this._box ? !this._box.hidden : false;
    },
  
-@@ -1453,7 +1461,10 @@ var SidebarController = {
+@@ -1453,7 +1463,10 @@ var SidebarController = {
      if (!toolbarButton || this.inSingleTabWindow) {
        return;
      }
@@ -1159,7 +1170,7 @@ index d3178e9eb6e3..63ff3149f967 100644
        toolbarButton.dataset.l10nId = "show-sidebars";
        toolbarButton.checked = this.isOpen;
      } else {
-@@ -2113,7 +2124,19 @@ var SidebarController = {
+@@ -2113,7 +2126,19 @@ var SidebarController = {
        }
  
        this.selectMenuItem(commandID);
@@ -1180,6 +1191,54 @@ index d3178e9eb6e3..63ff3149f967 100644
  
        this._box.setAttribute("checked", "true");
        this._state.command = commandID;
+@@ -2782,3 +2807,47 @@ XPCOMUtils.defineLazyPreferenceGetter(
+     }
+   }
+ );
++
++var HilalCompactMode = {
++  PREF: "hilal.compact.enabled",
++  ATTR: "hilal-compact-mode",
++
++  _prefObserver: null,
++
++  init() {
++    this._prefObserver = (_subject, _topic, _data) => {
++      this._apply(Services.prefs.getBoolPref(this.PREF, false));
++    };
++    Services.prefs.addObserver(this.PREF, this._prefObserver);
++    window.addEventListener("unload", () => this.uninit(), { once: true });
++    this._apply(Services.prefs.getBoolPref(this.PREF, false));
++  },
++
++  uninit() {
++    if (this._prefObserver) {
++      Services.prefs.removeObserver(this.PREF, this._prefObserver);
++      this._prefObserver = null;
++    }
++  },
++
++  get enabled() {
++    return Services.prefs.getBoolPref(this.PREF, false);
++  },
++
++  toggle() {
++    Services.prefs.setBoolPref(this.PREF, !this.enabled);
++  },
++
++  _apply(compact) {
++    document.documentElement.toggleAttribute(this.ATTR, compact);
++    this._syncToolbarButton(compact);
++  },
++
++  _syncToolbarButton(compact) {
++    const btn = document.getElementById("sidebar-button");
++    if (!btn) {
++      return;
++    }
++    btn.checked = compact;
++  },
++};
 diff --git a/browser/components/sidebar/sidebar-main.css b/browser/components/sidebar/sidebar-main.css
 index a8369dde37e3..74f7831fe263 100644
 --- a/browser/components/sidebar/sidebar-main.css
@@ -3087,7 +3146,7 @@ index 6bd76b8607ae..809df0e9bd13 100644
 +hilal-sidebar-workspaces-nav-label = Workspaces
 +hilal-sidebar-panel-label = Hilal Sidebar
 diff --git a/browser/themes/shared/sidebar.css b/browser/themes/shared/sidebar.css
-index 910b7f6c99c7..47c8c30cd84d 100644
+index 910b7f6c99c7..ddefd65740b5 100644
 --- a/browser/themes/shared/sidebar.css
 +++ b/browser/themes/shared/sidebar.css
 @@ -224,6 +224,25 @@
@@ -3116,7 +3175,7 @@ index 910b7f6c99c7..47c8c30cd84d 100644
  menuseparator + #sidebar-extensions-separator {
    display: none;
  }
-@@ -544,3 +563,13 @@ sidebar-main,
+@@ -544,3 +563,54 @@ sidebar-main,
      display: none;
    }
  }
@@ -3129,4 +3188,45 @@ index 910b7f6c99c7..47c8c30cd84d 100644
 +#sidebar-main[hilal-sidebar]:not([vertical-tabs]) {
 +  min-width: unset !important;
 +  max-width: unset !important;
++}
++
++/* Hilal Compact Mode — sidebar slides off-screen, re-appears on hover */
++
++:root[hilal-compact-mode] #sidebar-main {
++  position: fixed;
++  inset-block: 0;
++  inset-inline-start: 0;
++  z-index: 100;
++  transform: translateX(-100%);
++  opacity: 0;
++  pointer-events: none;
++  transition:
++    transform 0.18s cubic-bezier(0.4, 0, 0.2, 1),
++    opacity 0.15s ease;
++  box-shadow: 4px 0 24px 0 color-mix(in srgb, black 22%, transparent);
++  border-radius: 0 var(--border-radius-medium) var(--border-radius-medium) 0;
++}
++
++:root[hilal-compact-mode] #sidebar-main:hover {
++  transform: translateX(0);
++  opacity: 1;
++  pointer-events: auto;
++}
++
++:root[hilal-compact-mode] #sidebar-launcher-splitter {
++  display: none !important;
++}
++
++:root[hilal-compact-mode] #tabbrowser-tabbox {
++  margin-inline-start: 0 !important;
++}
++
++/* Thin hover-target strip so the user can trigger the sidebar from the edge */
++:root[hilal-compact-mode] #sidebar-main::before {
++  content: "";
++  position: fixed;
++  inset-block: 0;
++  inset-inline-start: 0;
++  width: 8px;
++  pointer-events: auto;
 +}
