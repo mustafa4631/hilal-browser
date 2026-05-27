@@ -199,6 +199,11 @@ index d3178e9eb6e3..c8e79f422e04 100644
 +  ATTR: "hilal-compact-mode",
 +
 +  _prefObserver: null,
++  _mouseMoveHandler: null,
++  _mouseLeaveTimer: null,
++  _sidebarVisible: false,
++  _hoverZoneWidth: 8,
++  _leaveDelayMs: 300,
 +
 +  init() {
 +    this._prefObserver = (_subject, _topic, _data) => {
@@ -214,6 +219,7 @@ index d3178e9eb6e3..c8e79f422e04 100644
 +      Services.prefs.removeObserver(this.PREF, this._prefObserver);
 +      this._prefObserver = null;
 +    }
++    this._removeMouseListeners();
 +  },
 +
 +  get enabled() {
@@ -227,6 +233,12 @@ index d3178e9eb6e3..c8e79f422e04 100644
 +  _apply(compact) {
 +    document.documentElement.toggleAttribute(this.ATTR, compact);
 +    this._syncToolbarButton(compact);
++    if (compact) {
++      this._addMouseListeners();
++    } else {
++      this._removeMouseListeners();
++      this._hideSidebar();
++    }
 +  },
 +
 +  _syncToolbarButton(compact) {
@@ -235,6 +247,83 @@ index d3178e9eb6e3..c8e79f422e04 100644
 +      return;
 +    }
 +    btn.checked = compact;
++  },
++
++  _addMouseListeners() {
++    if (this._mouseMoveHandler) {
++      return;
++    }
++    this._mouseMoveHandler = event => this._onMouseMove(event);
++    window.addEventListener("mousemove", this._mouseMoveHandler);
++  },
++
++  _removeMouseListeners() {
++    if (this._mouseMoveHandler) {
++      window.removeEventListener("mousemove", this._mouseMoveHandler);
++      this._mouseMoveHandler = null;
++    }
++    if (this._mouseLeaveTimer) {
++      clearTimeout(this._mouseLeaveTimer);
++      this._mouseLeaveTimer = null;
++    }
++  },
++
++  _onMouseMove(event) {
++    const sidebar = document.getElementById("sidebar-main");
++    if (!sidebar) {
++      return;
++    }
++
++    const mouseX = event.clientX;
++    const isNearLeftEdge = mouseX <= this._hoverZoneWidth;
++
++    if (isNearLeftEdge && !this._sidebarVisible) {
++      this._showSidebar(sidebar);
++    } else if (this._sidebarVisible) {
++      const sidebarRect = sidebar.getBoundingClientRect();
++      const isInsideSidebar =
++        mouseX >= sidebarRect.left &&
++        mouseX <= sidebarRect.right &&
++        event.clientY >= sidebarRect.top &&
++        event.clientY <= sidebarRect.bottom;
++
++      if (!isInsideSidebar && !isNearLeftEdge) {
++        this._scheduleHide();
++      } else {
++        this._cancelHide();
++      }
++    }
++  },
++
++  _showSidebar(sidebar) {
++    this._cancelHide();
++    this._sidebarVisible = true;
++    sidebar.classList.add("hilal-compact-visible");
++  },
++
++  _hideSidebar() {
++    this._sidebarVisible = false;
++    const sidebar = document.getElementById("sidebar-main");
++    if (sidebar) {
++      sidebar.classList.remove("hilal-compact-visible");
++    }
++  },
++
++  _scheduleHide() {
++    if (this._mouseLeaveTimer) {
++      return;
++    }
++    this._mouseLeaveTimer = setTimeout(() => {
++      this._mouseLeaveTimer = null;
++      this._hideSidebar();
++    }, this._leaveDelayMs);
++  },
++
++  _cancelHide() {
++    if (this._mouseLeaveTimer) {
++      clearTimeout(this._mouseLeaveTimer);
++      this._mouseLeaveTimer = null;
++    }
 +  },
 +};
 diff --git a/browser/components/sidebar/sidebar-main.css b/browser/components/sidebar/sidebar-main.css
@@ -2187,7 +2276,7 @@ index 910b7f6c99c7..ddefd65740b5 100644
 +  border-radius: 0 var(--border-radius-medium) var(--border-radius-medium) 0;
 +}
 +
-+:root[hilal-compact-mode] #sidebar-main:hover {
++:root[hilal-compact-mode] #sidebar-main.hilal-compact-visible {
 +  flex: none !important;
 +  inline-size: unset !important;
 +  width: unset !important;
@@ -2216,14 +2305,4 @@ index 910b7f6c99c7..ddefd65740b5 100644
 +  min-width: 0 !important;
 +  max-inline-size: 0 !important;
 +  overflow: visible !important;
-+}
-+
-+/* Thin hover-target strip so the user can trigger the sidebar from the edge */
-+:root[hilal-compact-mode] #sidebar-main::before {
-+  content: "";
-+  position: fixed;
-+  inset-block: 0;
-+  inset-inline-start: 0;
-+  width: 8px;
-+  pointer-events: auto;
 +}
