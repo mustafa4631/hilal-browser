@@ -6,10 +6,10 @@ Prompts for restart when a different language is applied.
 
 --- a/browser/components/preferences/main.js
 +++ b/browser/components/preferences/main.js
-@@ -2539,6 +2539,117 @@
+@@ -2207,5 +2207,116 @@
      }
- 
-     refreshSidebarCustomList();
+
+     refreshBangsList();
 +
 +    // -- Hilal Language Customization -----------------------------------------
 +    const languageSelect = document.getElementById("hilalLanguageSelect");
