@@ -124,6 +124,31 @@ index a05a8e8fd63a..6924a477e57e 100644
 +
 +// Allow custom compiled unsigned language packs
 +pref("extensions.langpacks.signatures.required", false);
+diff --git a/browser/base/content/browser-sets.js b/browser/base/content/browser-sets.js
+index 8b153dfac942..8be900517b83 100644
+--- a/browser/base/content/browser-sets.js
++++ b/browser/base/content/browser-sets.js
+@@ -316,8 +316,10 @@ document.addEventListener(
+           }
+           break;
+         }
+-        case "toggleSidebarKb":
+-          if (SIDEBAR_REVAMP_ENABLED) {
++        case "toggleSidebarKb": {
++          const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++          const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++          if (SIDEBAR_REVAMP_ENABLED || workspacesEnabled || verticalTabsEnabled) {
+             SidebarController.handleToolbarButtonClick();
+             Glean.sidebar.keyboardShortcut.record({
+               panel: SidebarController.currentID,
+@@ -325,6 +327,7 @@ document.addEventListener(
+             });
+           }
+           break;
++        }
+         case "key_gotoHistory":
+           SidebarController.toggle("viewHistorySidebar");
+           break;
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
 index 2561c3c48d35..577cc1fefa28 100644
 --- a/browser/components/preferences/main.js
@@ -1019,6 +1044,31 @@ index 2561c3c48d35..577cc1fefa28 100644
  var {
    InternalHandlerInfoWrapper,
    getFileDisplayName,
+diff --git a/browser/components/customizableui/CustomizableWidgets.sys.mjs b/browser/components/customizableui/CustomizableWidgets.sys.mjs
+index 954698aca61a..dcfebb85bfb3 100644
+--- a/browser/components/customizableui/CustomizableWidgets.sys.mjs
++++ b/browser/components/customizableui/CustomizableWidgets.sys.mjs
+@@ -295,14 +295,18 @@ export const CustomizableWidgets = [
+     _introducedByPref: "sidebar.revamp",
+     onCommand(aEvent) {
+       const { SidebarController } = aEvent.target.documentGlobal;
+-      if (lazy.sidebarRevampEnabled) {
++      const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++      const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++      if (lazy.sidebarRevampEnabled || workspacesEnabled || verticalTabsEnabled) {
+         SidebarController.handleToolbarButtonClick();
+       } else {
+         SidebarController.toggle();
+       }
+     },
+     onCreated(aNode) {
+-      if (lazy.sidebarRevampEnabled) {
++      const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++      const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++      if (lazy.sidebarRevampEnabled || workspacesEnabled || verticalTabsEnabled) {
+         const { SidebarController } = aNode.documentGlobal;
+         SidebarController.updateToolbarButton(aNode);
+         aNode.setAttribute("overflows", "false");
 diff --git a/browser/components/sidebar/SidebarManager.sys.mjs b/browser/components/sidebar/SidebarManager.sys.mjs
 index a9857f4682a0..114a2b1c542b 100644
 --- a/browser/components/sidebar/SidebarManager.sys.mjs
