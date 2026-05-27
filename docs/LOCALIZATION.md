@@ -55,3 +55,12 @@ pref("intl.locale.requested", "");
   avoid noisy Fluent missing-message logs.
 - `browser/app/distribution/moz.build` includes bundled langpacks with a
   wildcard, so new language packs do not need a moz.build edit.
+
+## User Language Selection Settings
+
+The interface language can be set explicitly by the user in **Settings → Hilal Preferences → Language Selection**:
+1. Choosing **System Language (Default)** sets `intl.locale.requested` to `""`, falling back to the OS system language negotiation.
+2. Selecting a specific language sets `intl.locale.requested` to that locale code (e.g., `"tr"`).
+3. The available options in the dropdown are fetched dynamically from the bundled language packs, with a static fallback to `["en-US", "tr"]` if dynamic detection fails.
+4. When a new language is applied, the user is prompted to restart the browser to apply the settings.
+
