@@ -562,7 +562,6 @@
         const inferredWorkspace =
           this._workspaceIdForContainer(tab.userContextId) || this._activeId;
         this._setTabWorkspace(tab, inferredWorkspace);
-        this._scheduleContainerRetarget(tab, inferredWorkspace);
       };
       gBrowser.tabContainer.addEventListener("TabOpen", this._tabOpenHandler);
 
@@ -603,9 +602,13 @@
       this._tabsProgressListener = {
         onLocationChange: (browser, _webProgress, _request, locationURI) => {
           this._maybeHandleAboutWelcome(browser, locationURI);
+          let tab = gBrowser.getTabForBrowser(browser);
+          if (tab) {
+            let workspaceId = this._getTabWorkspace(tab);
+            this._scheduleContainerRetarget(tab, workspaceId);
+          }
 
           if (locationURI && (locationURI.scheme === "http" || locationURI.scheme === "https")) {
-            let tab = gBrowser.getTabForBrowser(browser);
             if (tab) {
               let workspaceId = this._getTabWorkspace(tab);
               if (workspaceId && locationURI.host) {
@@ -885,8 +888,17 @@
 
       // Do not retarget privileged browser pages (about:, chrome:, resource:) as they cannot load in containers
       const spec = tab.linkedBrowser?.currentURI?.spec || "";
+      const isTransientInitialPage = /^(about:newtab|about:blank|about:home)$/i.test(
+        spec
+      );
+      // UI-triggered navigations often start in about:newtab and then resolve to
+      // the real destination. Retargeting during that transient stage can drop
+      // the pending destination load.
+      if (isTransientInitialPage && tab.hasAttribute("busy")) {
+        return false;
+      }
       if (/^(about|chrome|resource):/i.test(spec)) {
-        if (!/^(about:newtab|about:blank|about:home)$/i.test(spec)) {
+        if (!isTransientInitialPage) {
           return false;
         }
       }
