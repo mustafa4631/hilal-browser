@@ -3194,6 +3194,14 @@ index 910b7f6c99c7..ddefd65740b5 100644
 +
 +:root[hilal-compact-mode] #sidebar-main {
 +  position: fixed;
++  flex: 0 0 0 !important;
++  min-inline-size: 0 !important;
++  max-inline-size: 0 !important;
++  inline-size: 0 !important;
++  width: 0 !important;
++  min-width: 0 !important;
++  max-width: 0 !important;
++  overflow: visible;
 +  inset-block: 0;
 +  inset-inline-start: 0;
 +  z-index: 100;
@@ -3208,17 +3216,34 @@ index 910b7f6c99c7..ddefd65740b5 100644
 +}
 +
 +:root[hilal-compact-mode] #sidebar-main:hover {
++  flex: none !important;
++  inline-size: unset !important;
++  width: unset !important;
++  min-inline-size: unset !important;
++  max-inline-size: unset !important;
++  min-width: unset !important;
++  max-width: unset !important;
 +  transform: translateX(0);
 +  opacity: 1;
 +  pointer-events: auto;
 +}
 +
-+:root[hilal-compact-mode] #sidebar-launcher-splitter {
++:root[hilal-compact-mode] #sidebar-launcher-splitter,
++:root[hilal-compact-mode] #sidebar-splitter {
 +  display: none !important;
 +}
 +
 +:root[hilal-compact-mode] #tabbrowser-tabbox {
 +  margin-inline-start: 0 !important;
++}
++
++:root[hilal-compact-mode] #sidebar-box {
++  inline-size: 0 !important;
++  width: 0 !important;
++  min-inline-size: 0 !important;
++  min-width: 0 !important;
++  max-inline-size: 0 !important;
++  overflow: visible !important;
 +}
 +
 +/* Thin hover-target strip so the user can trigger the sidebar from the edge */
