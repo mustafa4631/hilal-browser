@@ -91,6 +91,10 @@ Branding files are NOT patches. Either:
 Same model for `prefs/`: a file at `prefs/browser/app/profile/firefox.js`
 would be copied to `firefox/browser/app/profile/firefox.js` on apply.
 
+Localization uses the same overlay idea. Add bundled language packs under
+`prefs/browser/app/distribution/extensions/` and Hilal-specific Fluent strings
+under `prefs/browser/locales/<locale>/browser/`; see `docs/LOCALIZATION.md`.
+
 ## When a patch fails to apply
 
 This usually means the Firefox checkout is not on the commit in
