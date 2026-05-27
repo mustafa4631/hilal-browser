@@ -1,7 +1,3 @@
-Hilal Browser: redesign sidebar layout
-
----
-
 diff --git a/browser/app/profile/firefox.js b/browser/app/profile/firefox.js
 index a05a8e8fd63a..6924a477e57e 100644
 --- a/browser/app/profile/firefox.js
@@ -149,6 +145,31 @@ index 8b153dfac942..8be900517b83 100644
          case "key_gotoHistory":
            SidebarController.toggle("viewHistorySidebar");
            break;
+diff --git a/browser/components/customizableui/CustomizableWidgets.sys.mjs b/browser/components/customizableui/CustomizableWidgets.sys.mjs
+index 954698aca61a..dcfebb85bfb3 100644
+--- a/browser/components/customizableui/CustomizableWidgets.sys.mjs
++++ b/browser/components/customizableui/CustomizableWidgets.sys.mjs
+@@ -295,14 +295,18 @@ export const CustomizableWidgets = [
+     _introducedByPref: "sidebar.revamp",
+     onCommand(aEvent) {
+       const { SidebarController } = aEvent.target.documentGlobal;
+-      if (lazy.sidebarRevampEnabled) {
++      const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++      const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++      if (lazy.sidebarRevampEnabled || workspacesEnabled || verticalTabsEnabled) {
+         SidebarController.handleToolbarButtonClick();
+       } else {
+         SidebarController.toggle();
+       }
+     },
+     onCreated(aNode) {
+-      if (lazy.sidebarRevampEnabled) {
++      const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++      const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++      if (lazy.sidebarRevampEnabled || workspacesEnabled || verticalTabsEnabled) {
+         const { SidebarController } = aNode.documentGlobal;
+         SidebarController.updateToolbarButton(aNode);
+         aNode.setAttribute("overflows", "false");
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
 index 2561c3c48d35..577cc1fefa28 100644
 --- a/browser/components/preferences/main.js
@@ -1044,31 +1065,6 @@ index 2561c3c48d35..577cc1fefa28 100644
  var {
    InternalHandlerInfoWrapper,
    getFileDisplayName,
-diff --git a/browser/components/customizableui/CustomizableWidgets.sys.mjs b/browser/components/customizableui/CustomizableWidgets.sys.mjs
-index 954698aca61a..dcfebb85bfb3 100644
---- a/browser/components/customizableui/CustomizableWidgets.sys.mjs
-+++ b/browser/components/customizableui/CustomizableWidgets.sys.mjs
-@@ -295,14 +295,18 @@ export const CustomizableWidgets = [
-     _introducedByPref: "sidebar.revamp",
-     onCommand(aEvent) {
-       const { SidebarController } = aEvent.target.documentGlobal;
--      if (lazy.sidebarRevampEnabled) {
-+      const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
-+      const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
-+      if (lazy.sidebarRevampEnabled || workspacesEnabled || verticalTabsEnabled) {
-         SidebarController.handleToolbarButtonClick();
-       } else {
-         SidebarController.toggle();
-       }
-     },
-     onCreated(aNode) {
--      if (lazy.sidebarRevampEnabled) {
-+      const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
-+      const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
-+      if (lazy.sidebarRevampEnabled || workspacesEnabled || verticalTabsEnabled) {
-         const { SidebarController } = aNode.documentGlobal;
-         SidebarController.updateToolbarButton(aNode);
-         aNode.setAttribute("overflows", "false");
 diff --git a/browser/components/sidebar/SidebarManager.sys.mjs b/browser/components/sidebar/SidebarManager.sys.mjs
 index a9857f4682a0..114a2b1c542b 100644
 --- a/browser/components/sidebar/SidebarManager.sys.mjs
@@ -1083,11 +1079,63 @@ index a9857f4682a0..114a2b1c542b 100644
        const currentVisibility = Services.prefs.getStringPref(
          VISIBILITY_SETTING_PREF,
          "always-show"
+diff --git a/browser/components/sidebar/SidebarState.sys.mjs b/browser/components/sidebar/SidebarState.sys.mjs
+index 15c466af31de..ef8a10951ba5 100644
+--- a/browser/components/sidebar/SidebarState.sys.mjs
++++ b/browser/components/sidebar/SidebarState.sys.mjs
+@@ -11,6 +11,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
+   "verticalTabsEnabled",
+   "sidebar.verticalTabs"
+ );
++XPCOMUtils.defineLazyPreferenceGetter(
++  lazy,
++  "hilalWorkspacesEnabled",
++  "hilal.workspaces.enabled",
++  true
++);
+ 
+ const DEFAULT_LAUNCHER_VISIBLE = false;
+ 
+@@ -492,8 +498,12 @@ export class SidebarState {
+     }
+   }
+ 
++  get #hilalEnabled() {
++    return lazy.hilalWorkspacesEnabled || lazy.verticalTabsEnabled;
++  }
++
+   set launcherVisible(visible) {
+-    if (!this.revampEnabled) {
++    if (!this.revampEnabled && !this.#hilalEnabled) {
+       // Launcher not supported in legacy sidebar.
+       this.#props.launcherVisible = false;
+       this.#launcherSplitterEl.hidden = true;
+@@ -522,7 +532,7 @@ export class SidebarState {
+   }
+ 
+   set launcherExpanded(expanded) {
+-    if (!this.revampEnabled) {
++    if (!this.revampEnabled && !this.#hilalEnabled) {
+       // Launcher not supported in legacy sidebar.
+       this.#props.launcherExpanded = false;
+       return;
 diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/sidebar/browser-sidebar.js
-index d3178e9eb6e3..4eec469efb74 100644
+index d3178e9eb6e3..63ff3149f967 100644
 --- a/browser/components/sidebar/browser-sidebar.js
 +++ b/browser/components/sidebar/browser-sidebar.js
-@@ -1071,6 +1071,11 @@ var SidebarController = {
+@@ -481,7 +481,10 @@ var SidebarController = {
+       this._handleLauncherResize(entry)
+     );
+ 
+-    if (this.sidebarRevampEnabled && !BrowserHandler.kiosk) {
++    const hilalEnabled =
++      Services.prefs.getBoolPref("hilal.workspaces.enabled", true) ||
++      Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++    if ((this.sidebarRevampEnabled || hilalEnabled) && !BrowserHandler.kiosk) {
+       if (!customElements.get("sidebar-main")) {
+         ChromeUtils.importESModule(
+           "chrome://browser/content/sidebar/sidebar-main.mjs",
+@@ -1071,6 +1074,11 @@ var SidebarController = {
     * True if the sidebar is currently open.
     */
    get isOpen() {
@@ -1099,7 +1147,19 @@ index d3178e9eb6e3..4eec469efb74 100644
      return this._box ? !this._box.hidden : false;
    },
  
-@@ -2113,7 +2118,19 @@ var SidebarController = {
+@@ -1453,7 +1461,10 @@ var SidebarController = {
+     if (!toolbarButton || this.inSingleTabWindow) {
+       return;
+     }
+-    if (!this.sidebarRevampEnabled) {
++    const hilalActive =
++      Services.prefs.getBoolPref("hilal.workspaces.enabled", true) ||
++      Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++    if (!this.sidebarRevampEnabled && !hilalActive) {
+       toolbarButton.dataset.l10nId = "show-sidebars";
+       toolbarButton.checked = this.isOpen;
+     } else {
+@@ -2113,7 +2124,19 @@ var SidebarController = {
        }
  
        this.selectMenuItem(commandID);
