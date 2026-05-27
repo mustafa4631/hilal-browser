@@ -17,7 +17,7 @@
 0009-hilal-version.patch
 0010-fix-macos-openrsync-dylib-copy.patch
 0011-hilal-ui-fix.patch
-0012-hilal-turkish-localization.patch
+0012-hilal-system-locale-default.patch
 0013-hilal-privacy-levels.patch
 0014-hilal-update-policy.patch
 0015-hilal-preferences-no-update-service.patch
