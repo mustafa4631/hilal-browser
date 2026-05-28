@@ -200,10 +200,12 @@ index d3178e9eb6e3..c8e79f422e04 100644
 +
 +  _prefObserver: null,
 +  _mouseMoveHandler: null,
++  _mouseShowTimer: null,
 +  _mouseLeaveTimer: null,
 +  _sidebarVisible: false,
-+  _hoverZoneWidth: 8,
-+  _leaveDelayMs: 300,
++  _hoverZoneWidth: 12,
++  _showDelayMs: 180,
++  _leaveDelayMs: 400,
 +
 +  init() {
 +    this._prefObserver = (_subject, _topic, _data) => {
@@ -262,6 +264,10 @@ index d3178e9eb6e3..c8e79f422e04 100644
 +      window.removeEventListener("mousemove", this._mouseMoveHandler);
 +      this._mouseMoveHandler = null;
 +    }
++    if (this._mouseShowTimer) {
++      clearTimeout(this._mouseShowTimer);
++      this._mouseShowTimer = null;
++    }
 +    if (this._mouseLeaveTimer) {
 +      clearTimeout(this._mouseLeaveTimer);
 +      this._mouseLeaveTimer = null;
@@ -278,7 +284,19 @@ index d3178e9eb6e3..c8e79f422e04 100644
 +    const isNearLeftEdge = mouseX <= this._hoverZoneWidth;
 +
 +    if (isNearLeftEdge && !this._sidebarVisible) {
-+      this._showSidebar(sidebar);
++      if (this._mouseShowTimer) {
++        return;
++      }
++      this._mouseShowTimer = setTimeout(() => {
++        this._mouseShowTimer = null;
++        const s = document.getElementById("sidebar-main");
++        if (s) {
++          const mx = event.clientX;
++          if (mx <= this._hoverZoneWidth) {
++            this._showSidebar(s);
++          }
++        }
++      }, this._showDelayMs);
 +    } else if (this._sidebarVisible) {
 +      const sidebarRect = sidebar.getBoundingClientRect();
 +      const isInsideSidebar =
@@ -292,11 +310,18 @@ index d3178e9eb6e3..c8e79f422e04 100644
 +      } else {
 +        this._cancelHide();
 +      }
++    } else if (!isNearLeftEdge && this._mouseShowTimer) {
++      clearTimeout(this._mouseShowTimer);
++      this._mouseShowTimer = null;
 +    }
 +  },
 +
 +  _showSidebar(sidebar) {
 +    this._cancelHide();
++    if (this._mouseShowTimer) {
++      clearTimeout(this._mouseShowTimer);
++      this._mouseShowTimer = null;
++    }
 +    this._sidebarVisible = true;
 +    sidebar.classList.add("hilal-compact-visible");
 +  },
