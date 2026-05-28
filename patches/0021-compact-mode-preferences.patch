@@ -333,7 +333,7 @@ index ba7eacff8f6f..35b2cbf11d84 100644
  hilal-sidebar-footer-bookmarks =
      .label = Bookmarks
 diff --git a/browser/themes/shared/sidebar.css b/browser/themes/shared/sidebar.css
-index 19fafff8cb45..a9e20a25d337 100644
+index 19fafff8cb45..ace248471f7d 100644
 --- a/browser/themes/shared/sidebar.css
 +++ b/browser/themes/shared/sidebar.css
 @@ -682,3 +682,61 @@ sidebar-main,
@@ -355,16 +355,16 @@ index 19fafff8cb45..a9e20a25d337 100644
 +  
 +  /* Slide out of screen and hide by default relative to its own natural height */
 +  overflow: visible !important;
-+  opacity: 0;
-+  visibility: hidden;
-+  pointer-events: none;
-+  transform: translateY(-100%) !important;
++  opacity: 0 !important;
++  visibility: hidden !important;
++  pointer-events: none !important;
++  transform: translate3d(0, -100%, 0) !important;
 +  
 +  will-change: transform, opacity;
 +  transition:
 +    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
 +    opacity 0.28s ease-out,
-+    visibility 0s 0.32s;
++    visibility 0s 0.32s !important;
 +}
 +
 +/* Compact Top Toolbar Visible state */
@@ -372,7 +372,7 @@ index 19fafff8cb45..a9e20a25d337 100644
 +  opacity: 1 !important;
 +  visibility: visible !important;
 +  pointer-events: auto !important;
-+  transform: translateY(0) !important;
++  transform: translate3d(0, 0, 0) !important;
 +  
 +  /* Premium aesthetic: unified floating glassmorphism card */
 +  color-scheme: light dark !important;
@@ -386,7 +386,7 @@ index 19fafff8cb45..a9e20a25d337 100644
 +  transition:
 +    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
 +    opacity 0.28s ease-out,
-+    visibility 0s 0s;
++    visibility 0s 0s !important;
 +}
 +
 +/* Expose the unified card background by turning child toolbar backgrounds transparent */
