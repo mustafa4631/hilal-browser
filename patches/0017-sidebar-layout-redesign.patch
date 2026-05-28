@@ -2276,42 +2276,38 @@ index 910b7f6c99c7..ddefd65740b5 100644
 +  max-width: unset !important;
 +}
 +
-+/* Hilal Compact Mode — sidebar slides off-screen, re-appears on hover */
++/* Hilal Compact Mode — sidebar slides off-screen as a floating overlay on hover */
 +
 +:root[hilal-compact-mode] #sidebar-main {
 +  position: fixed;
-+  flex: 0 0 0 !important;
-+  min-inline-size: 0 !important;
-+  max-inline-size: 0 !important;
-+  inline-size: 0 !important;
-+  width: 0 !important;
-+  min-width: 0 !important;
-+  max-width: 0 !important;
-+  overflow: visible;
-+  inset-block: 0;
-+  inset-inline-start: 0;
 +  z-index: 100;
-+  transform: translateX(-100%);
-+  opacity: 0;
-+  pointer-events: none;
-+  transition:
-+    transform 0.18s cubic-bezier(0.4, 0, 0.2, 1),
-+    opacity 0.15s ease;
++  top: 0;
++  bottom: 0;
++  left: 0;
++  overflow: visible;
 +  box-shadow: 4px 0 24px 0 color-mix(in srgb, black 22%, transparent);
 +  border-radius: 0 var(--border-radius-medium) var(--border-radius-medium) 0;
++  transform: translateX(-100%);
++  opacity: 0;
++  visibility: hidden;
++  pointer-events: none;
++  transition:
++    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
++    opacity 0.3s ease-out,
++    visibility 0s 0.35s;
++  will-change: transform;
++  contain: layout style;
 +}
 +
 +:root[hilal-compact-mode] #sidebar-main.hilal-compact-visible {
-+  flex: none !important;
-+  inline-size: unset !important;
-+  width: unset !important;
-+  min-inline-size: unset !important;
-+  max-inline-size: unset !important;
-+  min-width: unset !important;
-+  max-width: unset !important;
 +  transform: translateX(0);
 +  opacity: 1;
++  visibility: visible;
 +  pointer-events: auto;
++  transition:
++    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
++    opacity 0.3s ease-out,
++    visibility 0s 0s;
 +}
 +
 +:root[hilal-compact-mode] #sidebar-launcher-splitter,
