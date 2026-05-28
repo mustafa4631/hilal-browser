@@ -48,7 +48,7 @@ index 4468d36b5c9d..14e226585758 100644
            hilalPrivacyLevelRadioGroup.value = "standard";
          }
 diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/sidebar/browser-sidebar.js
-index 7311388dd53b..5bb6d63e42fd 100644
+index 7311388dd53b..2cc5334c46aa 100644
 --- a/browser/components/sidebar/browser-sidebar.js
 +++ b/browser/components/sidebar/browser-sidebar.js
 @@ -2821,6 +2821,11 @@ var HilalCompactMode = {
@@ -58,7 +58,7 @@ index 7311388dd53b..5bb6d63e42fd 100644
 +  _toolboxVisible: false,
 +  _toolboxShowTimer: null,
 +  _toolboxLeaveTimer: null,
-+  _topHoverZoneHeight: 32,
++  _topHoverZoneHeight: 48,
 +
    init() {
      this._prefObserver = (_subject, _topic, _data) => {
@@ -264,10 +264,10 @@ index ba7eacff8f6f..accca598926d 100644
  hilal-sidebar-footer-bookmarks =
      .label = Bookmarks
 diff --git a/browser/themes/shared/sidebar.css b/browser/themes/shared/sidebar.css
-index 19fafff8cb45..fd401373c8a9 100644
+index 19fafff8cb45..bdfa20b08d15 100644
 --- a/browser/themes/shared/sidebar.css
 +++ b/browser/themes/shared/sidebar.css
-@@ -682,3 +682,64 @@ sidebar-main,
+@@ -682,3 +682,59 @@ sidebar-main,
    border: none !important;
    padding: 0 !important;
  }
@@ -279,22 +279,17 @@ index 19fafff8cb45..fd401373c8a9 100644
 +  z-index: 1001 !important;
 +  top: 0 !important;
 +  left: 12px !important;
-+  
-+  /* Overrides layout height so it takes no vertical space in the window */
-+  height: 0 !important;
-+  min-height: 0 !important;
-+  max-height: 0 !important;
++  width: calc(100vw - 24px) !important;
 +  margin: 0 !important;
 +  border: none !important;
 +  padding: 0 !important;
 +  
-+  /* Slide out of screen and hide by default */
++  /* Slide out of screen and hide by default relative to its own natural height */
 +  overflow: visible !important;
 +  opacity: 0;
 +  visibility: hidden;
 +  pointer-events: none;
-+  transform: translate3d(0, -200px, 0) !important;
-+  width: calc(100vw - 24px) !important;
++  transform: translateY(-100%) !important;
 +  
 +  will-change: transform, opacity;
 +  transition:
@@ -308,7 +303,7 @@ index 19fafff8cb45..fd401373c8a9 100644
 +  opacity: 1 !important;
 +  visibility: visible !important;
 +  pointer-events: auto !important;
-+  transform: translate3d(0, 0, 0) !important;
++  transform: translateY(0) !important;
 +  
 +  /* Premium aesthetic: unified floating glassmorphism card */
 +  background-color: var(--hilal-sidebar-background, var(--toolbar-background-color, #1e1e2e)) !important;
