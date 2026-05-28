@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/VastSea0/hilal-browser/actions"><img src="https://img.shields.io/github/actions/workflow/status/VastSea0/hilal-browser/build.yml?branch=main&style=flat-square&label=build" alt="Build Status" /></a>
+  <a href="https://github.com/VastSea0/hilal-browser/actions/workflows/verify-patches.yml"><img src="https://img.shields.io/github/actions/workflow/status/VastSea0/hilal-browser/verify-patches.yml?branch=main&style=flat-square&label=patches" alt="Patch Verification" /></a>
   <a href="https://discord.gg/JZJ4tmPHFw"><img src="https://img.shields.io/badge/Discord-%235865F2.svg?style=flat-square&logo=discord&logoColor=white" alt="Discord Server" /></a>
   <a href="https://github.com/VastSea0/hilal-browser/releases"><img src="https://img.shields.io/github/v/release/VastSea0/hilal-browser?style=flat-square&color=teal&label=alpha" alt="Latest Release" /></a>
   <a href="https://github.com/VastSea0/hilal-browser/blob/main/LICENSE"><img src="https://img.shields.io/github/license/VastSea0/hilal-browser?style=flat-square&color=blue" alt="License" /></a>
