@@ -53,6 +53,15 @@ if [ -n "$PINNED_FIREFOX_COMMIT" ]; then
 fi
 
 if [ "$FORCE" = 1 ]; then
+  if [ -t 0 ]; then
+    warn "WARNING: --force will reset tracked files in $HILAL_FIREFOX_SRC to HEAD"
+    warn "         and permanently delete untracked/modified files inside the Firefox checkout!"
+    printf "Are you sure you want to continue? (y/N): "
+    read -r reply
+    if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+      die "Aborted by user."
+    fi
+  fi
   warn "--force: resetting tracked files in $HILAL_FIREFOX_SRC to HEAD"
   warn "         and removing branding/hilal + prefs overlays."
   git -C "$HILAL_FIREFOX_SRC" reset --hard HEAD

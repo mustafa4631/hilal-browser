@@ -182,11 +182,21 @@ export var HilalBangs = {
     }
     const merged = { ...this.DEFAULT_BANGS };
     for (const entry of custom) {
-      if (entry && entry.trigger && entry.search) {
-        merged[entry.trigger.replace(/^!/, "").toLowerCase()] = {
-          search: entry.search,
-          home: entry.home || entry.search.replace(/\?.*$/, ""),
-        };
+      if (
+        entry &&
+        typeof entry.trigger === "string" &&
+        typeof entry.search === "string"
+      ) {
+        const triggerClean = entry.trigger.replace(/^!/, "").toLowerCase();
+        if (triggerClean) {
+          merged[triggerClean] = {
+            search: entry.search,
+            home:
+              typeof entry.home === "string"
+                ? entry.home
+                : entry.search.replace(/\?.*$/, ""),
+          };
+        }
       }
     }
     return merged;

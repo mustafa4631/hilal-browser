@@ -172,9 +172,10 @@
     }
 
     async _getEngineIconURL(engine) {
+      let url = "";
       try {
         if (typeof engine.getIconURL === "function") {
-          return (
+          url = (
             (await engine.getIconURL(32)) ||
             (await engine.getIconURL(16)) ||
             (await engine.getIconURL()) ||
@@ -185,14 +186,37 @@
         console.error("HilalWelcome: failed to fetch engine icon", e);
       }
 
-      const iconURI = engine.iconURI || engine._iconURI;
-      return (
-        iconURI?.spec ||
-        (typeof iconURI === "string" ? iconURI : "") ||
-        engine.iconURL ||
-        engine._iconURL ||
-        ""
-      );
+      if (!url) {
+        const iconURI = engine.iconURI || engine._iconURI;
+        url = (
+          iconURI?.spec ||
+          (typeof iconURI === "string" ? iconURI : "") ||
+          engine.iconURL ||
+          engine._iconURL ||
+          ""
+        );
+      }
+
+      return this._sanitizeIconURL(url);
+    }
+
+    _sanitizeIconURL(url) {
+      if (!url) {
+        return "";
+      }
+      try {
+        const parsed = Services.io.newURI(url);
+        const safeSchemes = ["http", "https", "data", "chrome", "resource"];
+        if (safeSchemes.includes(parsed.scheme)) {
+          return url;
+        }
+      } catch (e) {
+        const cleanUrl = String(url).trim().toLowerCase();
+        if (/^(https?|data|chrome|resource):/i.test(cleanUrl)) {
+          return url;
+        }
+      }
+      return "";
     }
 
     _createOverlay() {

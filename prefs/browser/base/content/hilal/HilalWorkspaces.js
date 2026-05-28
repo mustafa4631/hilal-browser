@@ -777,6 +777,9 @@
     }
 
     _getTabWorkspace(tab) {
+      if (!tab) {
+        return this._activeId || DEFAULT_WORKSPACE_ID;
+      }
       let workspaceId = tab.getAttribute("hilal-workspace");
       if (!workspaceId && typeof SessionStore !== "undefined") {
         workspaceId = SessionStore.getCustomTabValue(tab, STORE_KEY);
@@ -960,22 +963,26 @@
       let state = null;
       const currentURI = locationURI?.spec || tab.linkedBrowser?.currentURI?.spec || "";
       const isActuallyLoadingRealURL = currentURI && !/^(about:blank|about:newtab|about:home)$/i.test(currentURI);
+      let rawState = "";
       try {
         if (typeof SessionStore !== "undefined") {
-          state = JSON.parse(SessionStore.getTabState(tab));
-          const entries = state.entries || [];
-          if (
-            entries.length === 0 ||
-            (entries.length === 1 &&
-              (entries[0].url === "about:blank" ||
-                entries[0].url === "about:newtab" ||
-                entries[0].url === "about:home"))
-          ) {
-            isFreshNewTab = !isActuallyLoadingRealURL;
+          rawState = SessionStore.getTabState(tab);
+          if (rawState) {
+            state = JSON.parse(rawState);
+            const entries = state.entries || [];
+            if (
+              entries.length === 0 ||
+              (entries.length === 1 &&
+                (entries[0].url === "about:blank" ||
+                  entries[0].url === "about:newtab" ||
+                  entries[0].url === "about:home"))
+            ) {
+              isFreshNewTab = !isActuallyLoadingRealURL;
+            }
           }
         }
       } catch (e) {
-        // Ignored
+        this._warn("failed to parse initial tab state", e);
       }
 
       if (isFreshNewTab) {
@@ -988,7 +995,12 @@
       } else {
         try {
           if (!state && typeof SessionStore !== "undefined") {
-            state = JSON.parse(SessionStore.getTabState(tab));
+            if (!rawState) {
+              rawState = SessionStore.getTabState(tab);
+            }
+            if (rawState) {
+              state = JSON.parse(rawState);
+            }
           }
           if (state) {
             state.userContextId = targetUserContextId;
@@ -1124,11 +1136,12 @@
 
       if (
         nextSelected &&
-        (selectedWorkspace !== this._activeId ||
+        (!selected ||
+          selectedWorkspace !== this._activeId ||
           selected.hidden ||
           selected.closing)
       ) {
-        if (!(pinnedIsPublic && selected.pinned) && !(groupsIsPublic && selected.group)) {
+        if (!selected || (!(pinnedIsPublic && selected.pinned) && !(groupsIsPublic && selected.group))) {
           gBrowser.selectedTab = nextSelected;
         }
       }
