@@ -998,8 +998,18 @@
               delete state.groupId;
               delete state.splitViewId;
             }
-            if (isActuallyLoadingRealURL && (!state.entries || state.entries.length === 0)) {
-              state.entries = [{ url: currentURI, title: tab.label || currentURI }];
+            if (isActuallyLoadingRealURL) {
+              if (!state.entries) {
+                state.entries = [];
+              }
+              const activeIndex = (state.index || state.entries.length || 1) - 1;
+              const activeEntry = state.entries[activeIndex];
+              if (!activeEntry || /^(about:blank|about:newtab|about:home)$/i.test(activeEntry.url)) {
+                state.entries[activeIndex >= 0 ? activeIndex : 0] = { url: currentURI, title: currentURI };
+              } else if (activeEntry.url !== currentURI) {
+                state.entries.push({ url: currentURI, title: currentURI });
+                state.index = state.entries.length;
+              }
             }
             state.extData = state.extData || {};
             state.extData[STORE_KEY] = workspaceId;
