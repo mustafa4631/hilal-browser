@@ -182,3 +182,7 @@ pref("hilal.welcome-screen.seen", false);
 
 // About dialog release notes link
 pref("app.releaseNotesURL.aboutDialog", "https://github.com/vastsea0/hilal-browser/releases");
+
+// Help and feedback custom URLs
+pref("app.support.baseURL", "https://github.com/vastsea0/hilal-browser/issues");
+pref("app.feedback.baseURL", "https://github.com/vastsea0/hilal-browser/issues");

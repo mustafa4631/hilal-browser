@@ -1,8 +1,10 @@
-Hilal Browser: redirect About Dialog links to Hilal custom domains
+Hilal Browser: redirect About Dialog and Help links to Hilal custom domains
 
 Modify the href attributes inside aboutDialog.xhtml to point to Hilal's
 official website (hilal.gkdevstudio.org) and GitHub repository
 (github.com/vastsea0/hilal-browser).
+Also configure getHelpLinkURL in utilityOverlay.js to skip topic appending
+when custom Hilal/GitHub domains are used.
 
 diff --git a/browser/base/content/aboutDialog.xhtml b/browser/base/content/aboutDialog.xhtml
 index 3ffd464b960a..97889e2b4787 100644
@@ -41,3 +43,16 @@ index 3ffd464b960a..97889e2b4787 100644
        </hbox>
        <description id="trademark" data-l10n-id="trademarkInfo"></description>
      </vbox>
+diff --git a/browser/base/content/utilityOverlay.js b/browser/base/content/utilityOverlay.js
+index e692f340a0fb..b10db2462195 100644
+--- a/browser/base/content/utilityOverlay.js
++++ b/browser/base/content/utilityOverlay.js
+@@ -534,5 +534,8 @@ function makeURLAbsolute(aBase, aUrl) {
+ 
+ function getHelpLinkURL(aHelpTopic) {
+   var url = Services.urlFormatter.formatURLPref("app.support.baseURL");
++  if (url.includes("github.com") || url.includes("hilal.gkdevstudio.org")) {
++    return url;
++  }
+   return url + aHelpTopic;
+ }
