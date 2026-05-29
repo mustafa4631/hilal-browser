@@ -9,11 +9,14 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/make-full-update.sh <version> [output.mar]
+  scripts/make-full-update.sh [--allow-unsigned] <version> [output.mar]
+
+Options:
+  --allow-unsigned       Allow creating an unsigned MAR for development/local testing.
 
 Environment:
   HILAL_MAR_CHANNEL_ID   MAR channel id to embed. Defaults to hilal-release.
-  HILAL_SIGNMAR_NSS_DIR  Optional NSS database containing the MAR signing cert.
+  HILAL_SIGNMAR_NSS_DIR  Required NSS database containing the MAR signing cert (unless --allow-unsigned is passed).
   HILAL_SIGNMAR_CERT     Optional signing certificate nickname. Defaults to mar_sig.
 
 Notes:
@@ -24,17 +27,39 @@ Notes:
 EOF
 }
 
-if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ] || [ $# -lt 1 ]; then
+ALLOW_UNSIGNED=0
+ARGS=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --allow-unsigned)
+      ALLOW_UNSIGNED=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -*)
+      die "Unknown argument: $1"
+      ;;
+    *)
+      ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [ ${#ARGS[@]} -lt 1 ]; then
   usage
-  exit 0
+  exit 1
 fi
 
 require_firefox_src
 
-version="$1"
+version="${ARGS[0]}"
 channel="${HILAL_MAR_CHANNEL_ID:-${MAR_CHANNEL_ID:-hilal-release}}"
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
-out="${2:-$repo_root/dist/hilal-$version.complete.mar}"
+out="${ARGS[1]:-$repo_root/dist/hilal-$version.complete.mar}"
 
 log "Resolving Firefox object directory..."
 obj_dir="$(
@@ -100,7 +125,11 @@ if [ -n "${HILAL_SIGNMAR_NSS_DIR:-}" ]; then
   mv "$signed_out" "$out"
   log "Signed MAR verified: $out"
 else
-  warn "MAR is unsigned. Set HILAL_SIGNMAR_NSS_DIR for production updates."
+  if [ "$ALLOW_UNSIGNED" = "1" ]; then
+    warn "MAR is unsigned. This is dangerous and not suitable for production updates."
+  else
+    die "ERROR: Production updates must be signed. Please set HILAL_SIGNMAR_NSS_DIR or pass --allow-unsigned for development/testing."
+  fi
 fi
 
 log "Complete MAR created: $out"
