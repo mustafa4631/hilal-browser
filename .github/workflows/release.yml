@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.vars.outputs.tag }}
+      has_secrets: ${{ steps.check_secrets.outputs.has_secrets }}
 
     steps:
       - name: Determine tag
@@ -31,6 +32,18 @@ jobs:
             TAG="${{ github.ref_name }}"
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Check macOS signing secrets
+        id: check_secrets
+        run: |
+          if [ -n "${{ secrets.CODESIGN_IDENTITY }}" ] && \
+             [ -n "${{ secrets.APPLE_ID }}" ] && \
+             [ -n "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" ] && \
+             [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create GitHub release (DRAFT)
         uses: softprops/action-gh-release@v2
@@ -46,8 +59,9 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 120
 
-    # ÇÖZÜM: Job seviyesinde 'env' kullanamayacağımız için doğrudan 'secrets' kontrolü yapıyoruz.
-    if: ${{ secrets.CODESIGN_IDENTITY != '' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
+    # ÇÖZÜM: create-release adımından gelen 'has_secrets' çıktısını kontrol ediyoruz.
+    # Bu yöntem GitHub Actions parser kurallarına %100 uygundur.
+    if: ${{ needs.create-release.outputs.has_secrets == 'true' }}
 
     env:
       HAS_CODESIGN: ${{ secrets.CODESIGN_IDENTITY }}
