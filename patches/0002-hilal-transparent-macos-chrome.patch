@@ -86,7 +86,7 @@ index 73becdf3f864..7540ee375ceb 100644
 +    --toolbox-background-color: var(--hilal-glass-toolbar-background);
 +    --toolbox-background-color-inactive: var(--hilal-glass-toolbar-background-inactive);
 +    --toolbar-background-color: transparent;
-+    --sidebar-background-color: transparent;
++    --sidebar-background-color: -moz-sidebar;
 +    --sidebar-border-color: var(--hilal-glass-border-color);
 +    --chrome-content-separator-color: var(--hilal-glass-border-color);
 +    --content-area-shadow: var(--hilal-glass-shadow);
