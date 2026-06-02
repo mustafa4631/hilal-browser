@@ -182,11 +182,21 @@ export var HilalBangs = {
     }
     const merged = { ...this.DEFAULT_BANGS };
     for (const entry of custom) {
-      if (entry && entry.trigger && entry.search) {
-        merged[entry.trigger.replace(/^!/, "").toLowerCase()] = {
-          search: entry.search,
-          home: entry.home || entry.search.replace(/\?.*$/, ""),
-        };
+      if (
+        entry &&
+        typeof entry.trigger === "string" &&
+        typeof entry.search === "string"
+      ) {
+        const triggerClean = entry.trigger.replace(/^!/, "").toLowerCase();
+        if (triggerClean) {
+          merged[triggerClean] = {
+            search: entry.search,
+            home:
+              typeof entry.home === "string"
+                ? entry.home
+                : entry.search.replace(/\?.*$/, ""),
+          };
+        }
       }
     }
     return merged;
@@ -195,31 +205,51 @@ export var HilalBangs = {
   resolveQuery(query, { fallbackToDuckDuckGo = false } = {}) {
     const bangInfo = this._parseQuery(query);
     if (!bangInfo) {
-      return "";
+      return null;
     }
 
     const bangsMap = this.getBangsMap();
     const bangEntry = bangsMap[bangInfo.bang];
     if (bangEntry) {
+      let resolvedUrl = "";
       if (!bangInfo.query) {
-        return bangEntry.home;
+        resolvedUrl = bangEntry.home;
+      } else {
+        resolvedUrl = bangEntry.search.replace(
+          "{query}",
+          encodeURIComponent(bangInfo.query)
+        );
       }
-      return bangEntry.search.replace(
-        "{query}",
-        encodeURIComponent(bangInfo.query)
-      );
+      try {
+        const uri = Services.io.newURI(resolvedUrl);
+        if (uri.scheme === "http" || uri.scheme === "https") {
+          return { url: resolvedUrl };
+        }
+      } catch (e) {
+        // ignore invalid/non-http URLs
+      }
+      return null;
     }
 
-    if (!fallbackToDuckDuckGo) {
-      return "";
+    let shouldFallback = fallbackToDuckDuckGo;
+    try {
+      shouldFallback = shouldFallback && Services.prefs.getBoolPref("hilal.bangs.fallback_to_ddg", false);
+    } catch (e) {
+      shouldFallback = false;
+    }
+
+    if (!shouldFallback) {
+      return { query: bangInfo.query || "" };
     }
 
     const duckDuckGoQuery = `!${bangInfo.rawBang}${
       bangInfo.query ? ` ${bangInfo.query}` : ""
     }`;
-    return `https://duckduckgo.com/?q=${this._encodeDuckDuckGoQuery(
-      duckDuckGoQuery
-    )}`;
+    return {
+      url: `https://duckduckgo.com/?q=${this._encodeDuckDuckGoQuery(
+        duckDuckGoQuery
+      )}`,
+    };
   },
 
   getDefaultBangs() {

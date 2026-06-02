@@ -15,6 +15,7 @@
 #   scripts/apply.sh --force      # reset Firefox tree to a clean state first
 #   scripts/apply.sh --no-symlinks # copy instead of symlink (Windows CI)
 #   HILAL_FIREFOX_SRC=/path/to/ff scripts/apply.sh
+#   HILAL_UBLOCK_XPI=/path/to/uBlock.xpi scripts/apply.sh # offline extension source
 
 set -euo pipefail
 
@@ -37,7 +38,30 @@ done
 
 require_firefox_src
 
+PINNED_FIREFOX_COMMIT=""
+if [ -f "$HILAL_REPO_ROOT/FIREFOX_COMMIT" ]; then
+  PINNED_FIREFOX_COMMIT="$(tr -d '[:space:]' < "$HILAL_REPO_ROOT/FIREFOX_COMMIT")"
+fi
+if [ -n "$PINNED_FIREFOX_COMMIT" ]; then
+  if ! git -C "$HILAL_FIREFOX_SRC" cat-file -e "$PINNED_FIREFOX_COMMIT^{commit}" 2>/dev/null; then
+    die "Pinned Firefox commit is not present in $HILAL_FIREFOX_SRC: $PINNED_FIREFOX_COMMIT. Run scripts/setup-firefox.sh first."
+  fi
+  CURRENT_FIREFOX_COMMIT="$(git -C "$HILAL_FIREFOX_SRC" rev-parse HEAD)"
+  if [ "$CURRENT_FIREFOX_COMMIT" != "$PINNED_FIREFOX_COMMIT" ]; then
+    die "Firefox checkout is at $CURRENT_FIREFOX_COMMIT, but Hilal patches are pinned to $PINNED_FIREFOX_COMMIT. Run scripts/setup-firefox.sh before applying patches."
+  fi
+fi
+
 if [ "$FORCE" = 1 ]; then
+  if [ -t 0 ]; then
+    warn "WARNING: --force will reset tracked files in $HILAL_FIREFOX_SRC to HEAD"
+    warn "         and permanently delete untracked/modified files inside the Firefox checkout!"
+    printf "Are you sure you want to continue? (y/N): "
+    read -r reply
+    if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+      die "Aborted by user."
+    fi
+  fi
   warn "--force: resetting tracked files in $HILAL_FIREFOX_SRC to HEAD"
   warn "         and removing branding/hilal + prefs overlays."
   git -C "$HILAL_FIREFOX_SRC" reset --hard HEAD
@@ -48,6 +72,8 @@ if [ "$FORCE" = 1 ]; then
     browser/components/preferences/hilal.inc.xhtml \
     browser/base/content/hilal/ \
     browser/themes/shared/hilal-ui-fix.css \
+    browser/themes/shared/firefox-ui-fix.css \
+    browser/themes/shared/hilal-ui-overrides.css \
     browser/app/distribution/policies.json \
     browser/app/distribution/extensions/ \
     browser/modules/HilalBangs.sys.mjs \
@@ -80,6 +106,23 @@ calculate_series_hash() {
   fi
 }
 
+read_series
+CURRENT_HASH=""
+STATE_FILE="$HILAL_FIREFOX_SRC/.hilal-applied"
+SKIP_PATCHES=0
+if [ "${#SERIES[@]}" -gt 0 ]; then
+  CURRENT_HASH=$(calculate_series_hash)
+  if [ "$FORCE" = 0 ] && [ -f "$STATE_FILE" ]; then
+    STORED_HASH=$(cat "$STATE_FILE" 2>/dev/null || true)
+    if [ "$CURRENT_HASH" = "$STORED_HASH" ]; then
+      log "Patches are already up-to-date (matching checksum: $CURRENT_HASH). Skipping patch application."
+      SKIP_PATCHES=1
+    else
+      die "Patch series changed since this Firefox tree was stamped (stored $STORED_HASH, current $CURRENT_HASH). Run scripts/apply.sh --force from the pinned Firefox checkout to rebuild a clean Hilal tree."
+    fi
+  fi
+fi
+
 if [ -d "$HILAL_FIREFOX_SRC/browser/branding/huma" ]; then
   warn "Removing stale pre-Hilal branding overlay: browser/branding/huma"
   rm -rf "$HILAL_FIREFOX_SRC/browser/branding/huma"
@@ -107,22 +150,9 @@ fi
 
 # -- 2. Apply patches in series order ----------------------------------------
 
-read_series
 if [ "${#SERIES[@]}" -eq 0 ]; then
   warn "patches/series is empty; no patches to apply."
 else
-  CURRENT_HASH=$(calculate_series_hash)
-  STATE_FILE="$HILAL_FIREFOX_SRC/.hilal-applied"
-  SKIP_PATCHES=0
-
-  if [ "$FORCE" = 0 ] && [ -f "$STATE_FILE" ]; then
-    STORED_HASH=$(cat "$STATE_FILE" 2>/dev/null || true)
-    if [ "$CURRENT_HASH" = "$STORED_HASH" ]; then
-      log "Patches are already up-to-date (matching checksum: $CURRENT_HASH). Skipping patch application."
-      SKIP_PATCHES=1
-    fi
-  fi
-
   if [ "$SKIP_PATCHES" = 0 ]; then
     applied=0
     skipped=0
@@ -153,7 +183,7 @@ if [ -d "$HILAL_REPO_ROOT/prefs" ] && [ "$(find "$HILAL_REPO_ROOT/prefs" -type f
   # path in the Firefox source. Subdirectories under prefs/ mirror the tree.
   (
     cd "$HILAL_REPO_ROOT/prefs"
-    find . -type f ! -name '.DS_Store' ! -name '.gitkeep' -print0 | while IFS= read -r -d '' rel; do
+    find . -type f ! -path './browser/locales/*' ! -name '.DS_Store' ! -name '.gitkeep' -print0 | while IFS= read -r -d '' rel; do
       rel="${rel#./}"
       dst="$HILAL_FIREFOX_SRC/$rel"
       mkdir -p "$(dirname "$dst")"
@@ -188,7 +218,13 @@ get_sha256() {
   elif command -v shasum >/dev/null 2>&1; then
     shasum -a 256 "$file" | cut -d' ' -f1
   else
-    python3 -c "import hashlib; print(hashlib.sha256(open('$file','rb').read()).hexdigest())"
+    python3 - "$file" <<'PY'
+import hashlib
+import sys
+
+with open(sys.argv[1], "rb") as f:
+    print(hashlib.sha256(f.read()).hexdigest())
+PY
   fi
 }
 
@@ -204,9 +240,19 @@ verify_ubo_checksum() {
 }
 
 if ! verify_ubo_checksum; then
-  log "Downloading uBlock Origin v${UBO_VERSION} extension..."
-  if ! curl -L -f -s -o "$UBO_PATH" "$UBO_URL"; then
-    die "Failed to download uBlock Origin from ${UBO_URL}."
+  if [ -n "${HILAL_UBLOCK_XPI:-}" ]; then
+    [ -f "$HILAL_UBLOCK_XPI" ] || die "HILAL_UBLOCK_XPI does not exist: $HILAL_UBLOCK_XPI"
+    local_ubo_hash="$(get_sha256 "$HILAL_UBLOCK_XPI")"
+    if [ "$local_ubo_hash" != "$UBO_SHA256" ]; then
+      die "HILAL_UBLOCK_XPI checksum mismatch: expected $UBO_SHA256, got $local_ubo_hash"
+    fi
+    log "Using uBlock Origin v${UBO_VERSION} from HILAL_UBLOCK_XPI."
+    cp -f "$HILAL_UBLOCK_XPI" "$UBO_PATH"
+  else
+    log "Downloading uBlock Origin v${UBO_VERSION} extension..."
+    if ! curl -L -f -s -o "$UBO_PATH" "$UBO_URL"; then
+      die "Failed to download uBlock Origin from ${UBO_URL}."
+    fi
   fi
   if ! verify_ubo_checksum; then
     rm -f "$UBO_PATH"
@@ -216,6 +262,9 @@ if ! verify_ubo_checksum; then
 else
   log "uBlock Origin v${UBO_VERSION} is already present and verified."
 fi
+
+# -- 5. Merge Hilal custom Turkish translations into local source tree -------
+python3 "$HILAL_REPO_ROOT/scripts/merge-locales.py" "$HILAL_REPO_ROOT" "$HILAL_FIREFOX_SRC"
 
 log "All Hilal changes applied. Build with: scripts/build-macos.sh"
 

@@ -179,3 +179,15 @@ pref("geo.provider.use_geoclue", false);
 
 // First-run onboarding screen state
 pref("hilal.welcome-screen.seen", false);
+
+// About dialog release notes link
+pref("app.releaseNotesURL.aboutDialog", "https://github.com/vastsea0/hilal-browser/releases");
+
+// Help and feedback custom URLs
+pref("app.support.baseURL", "https://github.com/vastsea0/hilal-browser/issues");
+pref("app.feedback.baseURL", "https://github.com/vastsea0/hilal-browser/issues");
+
+// Privacy-first opt-in overrides
+pref("hilal.bangs.fallback_to_ddg", false);
+pref("hilal.workspaces.remember_host_mapping", false);
+

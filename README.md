@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/VastSea0/hilal-browser/actions"><img src="https://img.shields.io/github/actions/workflow/status/VastSea0/hilal-browser/build.yml?branch=main&style=flat-square&label=build" alt="Build Status" /></a>
+  <a href="https://github.com/VastSea0/hilal-browser/actions/workflows/verify-patches.yml"><img src="https://img.shields.io/github/actions/workflow/status/VastSea0/hilal-browser/verify-patches.yml?branch=main&style=flat-square&label=patches" alt="Patch Verification" /></a>
   <a href="https://discord.gg/JZJ4tmPHFw"><img src="https://img.shields.io/badge/Discord-%235865F2.svg?style=flat-square&logo=discord&logoColor=white" alt="Discord Server" /></a>
   <a href="https://github.com/VastSea0/hilal-browser/releases"><img src="https://img.shields.io/github/v/release/VastSea0/hilal-browser?style=flat-square&color=teal&label=alpha" alt="Latest Release" /></a>
   <a href="https://github.com/VastSea0/hilal-browser/blob/main/LICENSE"><img src="https://img.shields.io/github/license/VastSea0/hilal-browser?style=flat-square&color=blue" alt="License" /></a>
@@ -63,7 +63,7 @@ Everything Hilal-specific lives in this repository:
 git clone https://github.com/VastSea0/hilal-browser.git
 cd hilal-browser
 
-# 3. Clone Firefox into ./firefox (gitignored)
+# 3. Clone Firefox into ./firefox (gitignored) and checkout FIREFOX_COMMIT
 scripts/setup-firefox.sh
 
 # 4. Apply all Hilal patches and overlays
@@ -84,11 +84,12 @@ The Firefox source tree under `./firefox/` is **gitignored** inside this reposit
 
 | Goal | Command |
 | --- | --- |
-| Get a Firefox checkout next to this repo | `scripts/setup-firefox.sh` |
+| Get the pinned Firefox checkout next to this repo | `scripts/setup-firefox.sh` |
 | Apply every Hilal patch + overlay onto Firefox | `scripts/apply.sh` |
 | Regenerate patches from changes you made in `./firefox` | `scripts/refresh.sh` |
 | Pull upstream Firefox and rebase Hilal on top | `scripts/sync-upstream.sh` |
 | Build on macOS | `scripts/build-macos.sh` |
+| Build/test the Flatpak package | `scripts/build-flatpak.sh` |
 
 All scripts accept `-h` for usage. See `docs/WORKFLOW.md` for the full developer flow.
 
@@ -132,6 +133,8 @@ hilal-browser/              <- this repo
 - `docs/WORKFLOW.md` — full developer workflow, conflict resolution, when to patch vs overlay
 - `docs/BUILD-MACOS.md` — macOS-specific build notes
 - `docs/BUILD-WINDOWS.md` — Windows-specific build notes
+- `docs/BUILD-FLATPAK.md` — Flatpak and Flathub packaging notes
+- `docs/LOCALIZATION.md` — bundled langpacks and Hilal locale overlays
 - `docs/UPSTREAM-SYNC.md` — how to roll forward to a newer Firefox
 - `docs/UPDATES.md` — application update channel, MAR creation, and release signing checklist
 

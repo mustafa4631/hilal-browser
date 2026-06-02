@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.gkdevstudio.Hilal</id>
+  <metadata_license>MPL-2.0</metadata_license>
+  <project_license>MPL-2.0 AND GPL-3.0-only</project_license>
+
+  <name>Hilal</name>
+  <summary>Privacy-first web browser built on Firefox</summary>
+  <developer id="org.gkdevstudio">
+    <name>GK Dev Studio</name>
+  </developer>
+
+  <launchable type="desktop-id">org.gkdevstudio.Hilal.desktop</launchable>
+  <provides>
+    <binary>hilal</binary>
+  </provides>
+
+  <description>
+    <p>Hilal is a lightweight browser built as a patch and overlay layer on top of Firefox. It combines Gecko compatibility with Hilal workspaces, vertical tabs, privacy-focused defaults, and bundled uBlock Origin protection.</p>
+    <ul>
+      <li>Container-based workspaces for separating browsing contexts.</li>
+      <li>Vertical collapsible tabs for wide-screen browsing.</li>
+      <li>Bundled uBlock Origin with checksum-pinned release artifacts.</li>
+      <li>Hilal branding and preferences maintained separately from upstream Firefox.</li>
+    </ul>
+  </description>
+
+  <releases>
+    <release version="0.2.0-alpha.5" date="2026-05-29" type="development"/>
+  </releases>
+
+  <content_rating type="oars-1.1"/>
+
+  <url type="homepage">https://hilal.gkdevstudio.org/</url>
+  <url type="bugtracker">https://github.com/VastSea0/hilal-browser/issues</url>
+  <url type="vcs-browser">https://github.com/VastSea0/hilal-browser</url>
+  <url type="translate">https://github.com/VastSea0/hilal-browser</url>
+
+  <keywords>
+    <keyword>browser</keyword>
+    <keyword>web</keyword>
+    <keyword>privacy</keyword>
+    <keyword>firefox</keyword>
+    <keyword>workspace</keyword>
+  </keywords>
+
+  <categories>
+    <category>Network</category>
+    <category>WebBrowser</category>
+  </categories>
+
+  <screenshots>
+    <screenshot type="default">
+      <image type="source">https://raw.githubusercontent.com/VastSea0/hilal-browser/v0.2.0-alpha.4/prefs/browser/base/content/hilal/black-white.png</image>
+      <caption>Hilal Browser main window with vertical tabs and workspace controls</caption>
+    </screenshot>
+    <screenshot>
+      <image type="source">https://raw.githubusercontent.com/VastSea0/hilal-browser/v0.2.0-alpha.4/prefs/browser/base/content/hilal/welcome-home-preview.png</image>
+      <caption>Hilal welcome experience</caption>
+    </screenshot>
+  </screenshots>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#F7C948</color>
+    <color type="primary" scheme_preference="dark">#FFE08A</color>
+  </branding>
+
+  <custom>
+    <value key="flathub::manifest">https://github.com/VastSea0/hilal-browser/blob/main/org.gkdevstudio.Hilal.yml</value>
+  </custom>
+</component>

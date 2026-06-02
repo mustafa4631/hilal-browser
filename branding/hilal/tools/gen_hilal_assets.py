@@ -93,9 +93,10 @@ def composite_on(bg: Image.Image, fg: Image.Image, scale=0.8, dy=0) -> Image.Ima
 
 
 def save_ico(path: Path, sizes: list[int]):
-    base = open_logo(max(sizes))
-    layers = [base.resize((s, s), Image.LANCZOS) for s in sizes]
-    layers[0].save(path, format="ICO", sizes=[(s, s) for s in sizes],
+    sizes_desc = sorted(sizes, reverse=True)
+    base = open_logo(sizes_desc[0])
+    layers = [base.resize((s, s), Image.LANCZOS) for s in sizes_desc]
+    layers[0].save(path, format="ICO", sizes=[(s, s) for s in sizes_desc],
                    append_images=layers[1:])
 
 
@@ -260,11 +261,11 @@ def main():
     save_ico(BRAND_DIR / "newwindow.ico", [16, 24, 32, 48])
 
     # Private mode ico: tinted
-    pb_layers = []
-    for s in (16, 24, 32, 48):
-        pb_layers.append(tint_private(open_logo(s)))
+    pb_sizes = (16, 24, 32, 48)
+    pb_sizes_desc = sorted(pb_sizes, reverse=True)
+    pb_layers = [tint_private(open_logo(s)) for s in pb_sizes_desc]
     pb_layers[0].save(BRAND_DIR / "pbmode.ico", format="ICO",
-                      sizes=[(s, s) for s in (16, 24, 32, 48)],
+                      sizes=[(s, s) for s in pb_sizes_desc],
                       append_images=pb_layers[1:])
 
     save_doc_ico(BRAND_DIR / "document.ico", "DOC", [16, 24, 32, 48, 64])

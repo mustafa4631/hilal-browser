@@ -1,0 +1,38 @@
+name: Verify patches
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: verify-patches-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  HILAL_FIREFOX_UPSTREAM: https://github.com/mozilla-firefox/firefox.git
+
+jobs:
+  verify-patches:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout Hilal Browser
+        uses: actions/checkout@v4
+
+      - name: Cache Firefox source checkout
+        uses: actions/cache@v4
+        with:
+          path: firefox
+          key: firefox-${{ hashFiles('FIREFOX_COMMIT') }}
+          restore-keys: |
+            firefox-
+
+      - name: Set up Firefox source tree
+        run: scripts/setup-firefox.sh
+
+      - name: Apply Hilal patches
+        run: scripts/apply.sh --force

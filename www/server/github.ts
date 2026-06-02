@@ -28,6 +28,7 @@ export interface UpdateManifestEntry {
   size: number;
   type?: string;
   displayVersion?: string;
+  firefoxVersion?: string;
   appVersion?: string;
   platformVersion?: string;
   buildID?: string;
@@ -39,6 +40,7 @@ export interface UpdateManifest {
   schema?: number;
   version?: string;
   displayVersion?: string;
+  firefoxVersion?: string;
   appVersion?: string;
   platformVersion?: string;
   buildID?: string;

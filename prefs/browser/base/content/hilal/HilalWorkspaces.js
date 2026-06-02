@@ -7,15 +7,6 @@
 (function () {
   "use strict";
 
-  let PlacesUtils;
-  try {
-    PlacesUtils = ChromeUtils.importESModule(
-      "resource://gre/modules/PlacesUtils.sys.mjs"
-    ).PlacesUtils;
-  } catch (e) {
-    // ignore
-  }
-
   const PREF_DATA = "hilal.workspaces.data";
   const PREF_ACTIVE = "hilal.workspaces.active";
   const PREF_ENABLED = "hilal.workspaces.enabled";
@@ -134,6 +125,9 @@
       "permissions.default.microphone": 2,
       "places.history.enabled": false,
       "privacy.clearOnShutdown_v2.browsingHistoryAndDownloads": true,
+      "privacy.resistFingerprinting": true,
+      "privacy.resistFingerprinting.pbmode": true,
+      "privacy.resistFingerprinting.letterboxing": true,
     },
   };
 
@@ -188,6 +182,14 @@
 
     get _isCustomizing() {
       return document.documentElement.hasAttribute("customizing");
+    }
+
+    get activeContainerId() {
+      if (!this._enabled) {
+        return 0;
+      }
+      const workspace = this._getWorkspaceById(this._activeId);
+      return workspace ? (workspace.containerId || 0) : 0;
     }
 
     _normalizeName(name, fallback) {
@@ -447,69 +449,22 @@
       }
     }
 
-    async _ensureWorkspaceBookmarksFolders() {
-      if (!PlacesUtils) {
-        return false;
+    _obfuscate(str) {
+      if (typeof window !== "undefined" && window.btoa) {
+        return window.btoa(str.split("").map(c => String.fromCharCode(c.charCodeAt(0) ^ 42)).join(""));
       }
-      let changed = false;
-      for (const workspace of this._workspaces) {
-        if (workspace.id === DEFAULT_WORKSPACE_ID) {
-          workspace.bookmarkFolderGuid = PlacesUtils.bookmarks.toolbarGuid;
-          continue;
-        }
-
-        let folderExists = false;
-        if (workspace.bookmarkFolderGuid) {
-          try {
-            let folder = await PlacesUtils.bookmarks.fetch(workspace.bookmarkFolderGuid);
-            if (folder && folder.type === PlacesUtils.bookmarks.TYPE_FOLDER) {
-              folderExists = true;
-              if (folder.title !== workspace.name) {
-                await PlacesUtils.bookmarks.update({
-                  guid: workspace.bookmarkFolderGuid,
-                  title: workspace.name,
-                });
-              }
-            }
-          } catch (e) {
-            // folder might have been deleted manually
-          }
-        }
-
-        if (!folderExists) {
-          try {
-            let folder = await PlacesUtils.bookmarks.insert({
-              type: PlacesUtils.bookmarks.TYPE_FOLDER,
-              parentGuid: PlacesUtils.bookmarks.toolbarGuid,
-              title: workspace.name,
-            });
-            workspace.bookmarkFolderGuid = folder.guid;
-            changed = true;
-          } catch (e) {
-            this._warn(`failed to create bookmark folder for ${workspace.name}`, e);
-          }
-        }
-      }
-      return changed;
+      return str;
     }
 
-    _applyBookmarksToolbar() {
-      if (!PlacesUtils) {
-        return;
-      }
-      const activeWorkspace = this._getWorkspaceById(this._activeId);
-      if (!activeWorkspace) {
-        return;
-      }
-      const folderGuid = activeWorkspace.bookmarkFolderGuid || PlacesUtils.bookmarks.toolbarGuid;
-      const placeUrl = `place:parent=${folderGuid}`;
-
-      let placesToolbar = document.getElementById("PlacesToolbar");
-      if (placesToolbar && placesToolbar._placesView) {
-        if (placesToolbar._placesView.place !== placeUrl) {
-          placesToolbar._placesView.place = placeUrl;
+    _deobfuscate(str) {
+      try {
+        if (typeof window !== "undefined" && window.atob) {
+          return window.atob(str).split("").map(c => String.fromCharCode(c.charCodeAt(0) ^ 42)).join("");
         }
+      } catch (e) {
+        // ignore
       }
+      return str;
     }
 
     _recordVisitedHost(workspaceId, host) {
@@ -517,11 +472,20 @@
         return;
       }
       try {
+        if (!Services.prefs.getBoolPref("hilal.workspaces.remember_host_mapping", false)) {
+          return;
+        }
         const prefName = "hilal.workspaces.host_mapping";
         let mapping = {};
         try {
           const raw = Services.prefs.getStringPref(prefName, "{}");
-          mapping = JSON.parse(raw);
+          const parsed = JSON.parse(raw);
+          for (let obfHost of Object.keys(parsed)) {
+            const deobfHost = this._deobfuscate(obfHost);
+            if (deobfHost) {
+              mapping[deobfHost] = parsed[obfHost];
+            }
+          }
         } catch (e) {
           // ignore
         }
@@ -530,7 +494,12 @@
         }
         if (!mapping[host].includes(workspaceId)) {
           mapping[host].push(workspaceId);
-          Services.prefs.setStringPref(prefName, JSON.stringify(mapping));
+          const obfMapping = {};
+          for (let plainHost of Object.keys(mapping)) {
+            const obfHost = this._obfuscate(plainHost);
+            obfMapping[obfHost] = mapping[plainHost];
+          }
+          Services.prefs.setStringPref(prefName, JSON.stringify(obfMapping));
         }
       } catch (e) {
         this._warn("failed to record visited host", e);
@@ -540,16 +509,15 @@
     init() {
       this._loadData();
       this._enabled = Services.prefs.getBoolPref(PREF_ENABLED, true);
-      this._applyPrivacyLevel();
+
+      const initializedPref = "hilal.privacy.initialized";
+      if (!Services.prefs.getBoolPref(initializedPref, false)) {
+        this._applyPrivacyLevel();
+        Services.prefs.setBoolPref(initializedPref, true);
+      }
+
       this._hookEvents();
       this._apply();
-
-      this._ensureWorkspaceBookmarksFolders().then(changed => {
-        if (changed) {
-          this._saveData();
-        }
-        this._applyBookmarksToolbar();
-      }).catch(err => this._warn("failed to initialize bookmarks folders", err));
 
       this._tryBuildSidebarUI();
 
@@ -605,26 +573,70 @@
       if (!Services.prefs.getBoolPref("sidebar.revamp", false)) {
         return;
       }
-      let retries = 0;
-      const MAX_RETRIES = 120;
-      const attempt = () => {
+
+      let built = false;
+      const build = () => {
+        if (built) {
+          return true;
+        }
         const sidebarEl = document.querySelector("sidebar-main");
-        const hasShadowRoot = sidebarEl?.shadowRoot?.querySelector(".wrapper");
-        if (hasShadowRoot) {
+        const hasWrapper = sidebarEl?.shadowRoot?.querySelector(".wrapper");
+        if (hasWrapper) {
+          built = true;
           this._buildUI();
           this._updateUI();
           if (!this._enabled && this._container) {
             this._container.hidden = true;
           }
-          return;
+          return true;
         }
-        if (++retries < MAX_RETRIES) {
-          setTimeout(attempt, 100);
-        } else {
-          this._warn("gave up waiting for sidebar-main shadow root");
-        }
+        return false;
       };
-      attempt();
+
+      if (build()) {
+        return;
+      }
+
+      const docObserver = new MutationObserver((mutations, obs) => {
+        if (build()) {
+          obs.disconnect();
+        } else {
+          const sidebarEl = document.querySelector("sidebar-main");
+          if (sidebarEl && sidebarEl.shadowRoot && !sidebarEl._hilalShadowObserver) {
+            const shadowObserver = new MutationObserver((mutationsSub, obsSub) => {
+              if (build()) {
+                obsSub.disconnect();
+                obs.disconnect();
+              }
+            });
+            shadowObserver.observe(sidebarEl.shadowRoot, {
+              childList: true,
+              subtree: true,
+            });
+            sidebarEl._hilalShadowObserver = shadowObserver;
+          }
+        }
+      });
+
+      docObserver.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+      });
+
+      const sidebarEl = document.querySelector("sidebar-main");
+      if (sidebarEl && sidebarEl.shadowRoot) {
+        const shadowObserver = new MutationObserver((mutationsSub, obsSub) => {
+          if (build()) {
+            obsSub.disconnect();
+            docObserver.disconnect();
+          }
+        });
+        shadowObserver.observe(sidebarEl.shadowRoot, {
+          childList: true,
+          subtree: true,
+        });
+        sidebarEl._hilalShadowObserver = shadowObserver;
+      }
     }
 
     _hookEvents() {
@@ -637,7 +649,6 @@
         const inferredWorkspace =
           this._workspaceIdForContainer(tab.userContextId) || this._activeId;
         this._setTabWorkspace(tab, inferredWorkspace);
-        this._scheduleContainerRetarget(tab, inferredWorkspace);
       };
       gBrowser.tabContainer.addEventListener("TabOpen", this._tabOpenHandler);
 
@@ -678,9 +689,13 @@
       this._tabsProgressListener = {
         onLocationChange: (browser, _webProgress, _request, locationURI) => {
           this._maybeHandleAboutWelcome(browser, locationURI);
+          let tab = gBrowser.getTabForBrowser(browser);
+          if (tab) {
+            let workspaceId = this._getTabWorkspace(tab);
+            this._scheduleContainerRetarget(tab, workspaceId, locationURI);
+          }
 
           if (locationURI && (locationURI.scheme === "http" || locationURI.scheme === "https")) {
-            let tab = gBrowser.getTabForBrowser(browser);
             if (tab) {
               let workspaceId = this._getTabWorkspace(tab);
               if (workspaceId && locationURI.host) {
@@ -849,6 +864,9 @@
     }
 
     _getTabWorkspace(tab) {
+      if (!tab) {
+        return this._activeId || DEFAULT_WORKSPACE_ID;
+      }
       let workspaceId = tab.getAttribute("hilal-workspace");
       if (!workspaceId && typeof SessionStore !== "undefined") {
         workspaceId = SessionStore.getCustomTabValue(tab, STORE_KEY);
@@ -944,7 +962,7 @@
       return tab;
     }
 
-    _needsContainerRetarget(tab, workspaceId) {
+    _needsContainerRetarget(tab, workspaceId, locationURI = null) {
       if (this._isCustomizing) {
         return false;
       }
@@ -959,9 +977,21 @@
       }
 
       // Do not retarget privileged browser pages (about:, chrome:, resource:) as they cannot load in containers
-      const spec = tab.linkedBrowser?.currentURI?.spec || "";
+      const spec = locationURI?.spec || tab.linkedBrowser?.currentURI?.spec || "";
+      if (spec === "about:blank" || spec === "") {
+        return false;
+      }
+      const isTransientInitialPage = /^(about:newtab|about:home)$/i.test(
+        spec
+      );
+      // UI-triggered navigations often start in about:newtab and then resolve to
+      // the real destination. Retargeting during that transient stage can drop
+      // the pending destination load.
+      if (isTransientInitialPage && tab.hasAttribute("busy")) {
+        return false;
+      }
       if (/^(about|chrome|resource):/i.test(spec)) {
-        if (!/^(about:newtab|about:blank|about:home)$/i.test(spec)) {
+        if (!isTransientInitialPage) {
           return false;
         }
       }
@@ -969,9 +999,9 @@
       return true;
     }
 
-    _scheduleContainerRetarget(tab, workspaceId) {
+    _scheduleContainerRetarget(tab, workspaceId, locationURI = null) {
       if (
-        !this._needsContainerRetarget(tab, workspaceId) ||
+        !this._needsContainerRetarget(tab, workspaceId, locationURI) ||
         this._retargetingTabs.has(tab)
       ) {
         return;
@@ -984,24 +1014,36 @@
           tab.isConnected &&
           !tab.closing &&
           this._getTabWorkspace(tab) === workspaceId &&
-          this._needsContainerRetarget(tab, workspaceId)
+          this._needsContainerRetarget(tab, workspaceId, locationURI)
         ) {
           this._moveTabToWorkspace(tab, workspaceId, {
             copy: false,
             select: tab.selected,
+            locationURI,
           });
         }
       }, 0);
     }
 
-    _moveTabToWorkspace(
+    async _moveTabToWorkspace(
       tab,
       workspaceId,
-      { copy = false, select = false } = {}
+      { copy = false, select = false, locationURI = null } = {}
     ) {
       const workspace = this._getWorkspaceById(workspaceId);
       if (!tab || !workspace || tab.closing) {
         return null;
+      }
+
+      try {
+        const { TabStateFlusher } = ChromeUtils.importESModule(
+          "resource:///modules/sessionstore/TabStateFlusher.sys.mjs"
+        );
+        if (TabStateFlusher && tab.linkedBrowser) {
+          await TabStateFlusher.flush(tab.linkedBrowser);
+        }
+      } catch (e) {
+        this._warn("failed to flush tab state before move", e);
       }
 
       const targetUserContextId = workspace.containerId || 0;
@@ -1020,22 +1062,28 @@
       let newTab = null;
       let isFreshNewTab = false;
       let state = null;
+      const currentURI = locationURI?.spec || tab.linkedBrowser?.currentURI?.spec || "";
+      const isActuallyLoadingRealURL = currentURI && !/^(about:blank|about:newtab|about:home)$/i.test(currentURI);
+      let rawState = "";
       try {
         if (typeof SessionStore !== "undefined") {
-          state = JSON.parse(SessionStore.getTabState(tab));
-          const entries = state.entries || [];
-          if (
-            entries.length === 0 ||
-            (entries.length === 1 &&
-              (entries[0].url === "about:blank" ||
-                entries[0].url === "about:newtab" ||
-                entries[0].url === "about:home"))
-          ) {
-            isFreshNewTab = true;
+          rawState = SessionStore.getTabState(tab);
+          if (rawState) {
+            state = JSON.parse(rawState);
+            const entries = state.entries || [];
+            if (
+              entries.length === 0 ||
+              (entries.length === 1 &&
+                (entries[0].url === "about:blank" ||
+                  entries[0].url === "about:newtab" ||
+                  entries[0].url === "about:home"))
+            ) {
+              isFreshNewTab = !isActuallyLoadingRealURL;
+            }
           }
         }
       } catch (e) {
-        // Ignored
+        this._warn("failed to parse initial tab state", e);
       }
 
       if (isFreshNewTab) {
@@ -1048,14 +1096,34 @@
       } else {
         try {
           if (!state && typeof SessionStore !== "undefined") {
-            state = JSON.parse(SessionStore.getTabState(tab));
+            if (!rawState) {
+              rawState = SessionStore.getTabState(tab);
+            }
+            if (rawState) {
+              state = JSON.parse(rawState);
+            }
           }
           if (state) {
             state.userContextId = targetUserContextId;
             state.pinned = false;
             state.hidden = false;
-            delete state.groupId;
-            delete state.splitViewId;
+            if (workspaceId !== this._activeId) {
+              delete state.groupId;
+              delete state.splitViewId;
+            }
+            if (isActuallyLoadingRealURL) {
+              if (!state.entries) {
+                state.entries = [];
+              }
+              const activeIndex = (state.index || state.entries.length || 1) - 1;
+              const activeEntry = state.entries[activeIndex];
+              if (!activeEntry || /^(about:blank|about:newtab|about:home)$/i.test(activeEntry.url)) {
+                state.entries[activeIndex >= 0 ? activeIndex : 0] = { url: currentURI, title: currentURI };
+              } else if (activeEntry.url !== currentURI) {
+                state.entries.push({ url: currentURI, title: currentURI });
+                state.index = state.entries.length;
+              }
+            }
             state.extData = state.extData || {};
             state.extData[STORE_KEY] = workspaceId;
             if (sourceWasPinned) {
@@ -1080,7 +1148,7 @@
             "failed to preserve tab state while moving workspace tab",
             e
           );
-          const uri = tab.linkedBrowser?.currentURI?.spec || "about:newtab";
+          const uri = currentURI || "about:newtab";
           newTab = gBrowser.addWebTab(uri, {
             inBackground: !(select || sourceWasSelected),
             tabIndex: tab._tPos + 1,
@@ -1169,11 +1237,12 @@
 
       if (
         nextSelected &&
-        (selectedWorkspace !== this._activeId ||
+        (!selected ||
+          selectedWorkspace !== this._activeId ||
           selected.hidden ||
           selected.closing)
       ) {
-        if (!(pinnedIsPublic && selected.pinned) && !(groupsIsPublic && selected.group)) {
+        if (!selected || (!(pinnedIsPublic && selected.pinned) && !(groupsIsPublic && selected.group))) {
           gBrowser.selectedTab = nextSelected;
         }
       }
@@ -1201,7 +1270,6 @@
         }
       }
 
-      this._applyBookmarksToolbar();
     }
 
     switchTo(id) {
@@ -1274,7 +1342,7 @@
       this._updateUI();
     }
 
-    remove(id) {
+    async remove(id) {
       if (this._workspaces.length <= 1) {
         return;
       }
@@ -1296,7 +1364,7 @@
         tab => this._getTabWorkspace(tab) === id
       );
       for (const tab of tabsToMove) {
-        this._moveTabToWorkspace(tab, fallback.id, {
+        await this._moveTabToWorkspace(tab, fallback.id, {
           copy: false,
           select: tab.selected,
         });
@@ -1309,18 +1377,18 @@
       }
       this._removeWorkspaceContainer(workspace);
 
-      // Clean up Bookmark folder
-      if (workspace.bookmarkFolderGuid && PlacesUtils) {
-        PlacesUtils.bookmarks.remove(workspace.bookmarkFolderGuid).catch(err => {
-          this._warn(`failed to remove bookmark folder on deletion for ${workspace.name}`, err);
-        });
-      }
-
       // Clean up host mappings from preference
       try {
         const prefName = "hilal.workspaces.host_mapping";
         const raw = Services.prefs.getStringPref(prefName, "{}");
-        let mapping = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        let mapping = {};
+        for (let obfHost of Object.keys(parsed)) {
+          const deobfHost = this._deobfuscate(obfHost);
+          if (deobfHost) {
+            mapping[deobfHost] = parsed[obfHost];
+          }
+        }
         let mappingChanged = false;
         for (let host of Object.keys(mapping)) {
           let idx = mapping[host].indexOf(id);
@@ -1334,7 +1402,12 @@
           }
         }
         if (mappingChanged) {
-          Services.prefs.setStringPref(prefName, JSON.stringify(mapping));
+          const obfMapping = {};
+          for (let plainHost of Object.keys(mapping)) {
+            const obfHost = this._obfuscate(plainHost);
+            obfMapping[obfHost] = mapping[plainHost];
+          }
+          Services.prefs.setStringPref(prefName, JSON.stringify(obfMapping));
         }
       } catch (e) {
         this._warn("failed to clean up host mapping on deletion", e);

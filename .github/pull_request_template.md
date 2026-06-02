@@ -21,6 +21,10 @@ Describe what this pull request changes and why.
 scripts/apply.sh --force
 ```
 
+## Test plan
+
+- [ ] The `verify-patches` workflow is green on this PR in GitHub Actions.
+
 ## Testing
 
 List the commands you ran and the result.

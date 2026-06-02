@@ -1,14 +1,11 @@
-Hilal Browser: redesign sidebar workspace layout
-
 diff --git a/browser/app/profile/firefox.js b/browser/app/profile/firefox.js
-index 8a8c9849b9e0..bcdcf98ce8ad 100644
+index 622b00493f81..339062fb2b8b 100644
 --- a/browser/app/profile/firefox.js
 +++ b/browser/app/profile/firefox.js
-@@ -3601,6 +3601,14 @@ pref("browser.contentsharing.newBadge.enabled", true);
- // When enabled, Firefox ignores the distribution.ini file if global.id is MozillaOnline.
- pref("distribution.mozillaonline.ignore", false);
- pref("hilal.bangs.custom", "[]");
-+pref("hilal.workspaces.showBookmarks", false);
+@@ -3712,3 +3712,11 @@ pref("intl.locale.requested", "");
+ 
+ // Allow custom compiled unsigned language packs
+ pref("extensions.langpacks.signatures.required", false);
 +pref("hilal.sidebar.footer.bookmarks", false);
 +pref("hilal.sidebar.footer.history", true);
 +pref("hilal.sidebar.footer.passwords", false);
@@ -16,9 +13,58 @@ index 8a8c9849b9e0..bcdcf98ce8ad 100644
 +pref("hilal.sidebar.footer.privacy", true);
 +pref("hilal.sidebar.footer.settings", true);
 +pref("hilal.sidebar.customItems", "[]");
-
- // Hilal Browser - UI Fix Integration
- pref("hilal.uifix.enabled", true);
++pref("hilal.compact.enabled", false);
+diff --git a/browser/base/content/browser-sets.js b/browser/base/content/browser-sets.js
+index 8b153dfac942..51c1598d7123 100644
+--- a/browser/base/content/browser-sets.js
++++ b/browser/base/content/browser-sets.js
+@@ -316,15 +316,12 @@ document.addEventListener(
+           }
+           break;
+         }
+-        case "toggleSidebarKb":
+-          if (SIDEBAR_REVAMP_ENABLED) {
+-            SidebarController.handleToolbarButtonClick();
+-            Glean.sidebar.keyboardShortcut.record({
+-              panel: SidebarController.currentID,
+-              opened: SidebarController._state.launcherExpanded,
+-            });
++        case "toggleSidebarKb": {
++          if (typeof HilalCompactMode !== "undefined") {
++            HilalCompactMode.toggle();
+           }
+           break;
++        }
+         case "key_gotoHistory":
+           SidebarController.toggle("viewHistorySidebar");
+           break;
+diff --git a/browser/components/customizableui/CustomizableWidgets.sys.mjs b/browser/components/customizableui/CustomizableWidgets.sys.mjs
+index 954698aca61a..8d4bd4e1deed 100644
+--- a/browser/components/customizableui/CustomizableWidgets.sys.mjs
++++ b/browser/components/customizableui/CustomizableWidgets.sys.mjs
+@@ -294,15 +294,18 @@ export const CustomizableWidgets = [
+     defaultArea: "nav-bar",
+     _introducedByPref: "sidebar.revamp",
+     onCommand(aEvent) {
+-      const { SidebarController } = aEvent.target.documentGlobal;
+-      if (lazy.sidebarRevampEnabled) {
+-        SidebarController.handleToolbarButtonClick();
++      const { HilalCompactMode } = aEvent.target.documentGlobal;
++      if (HilalCompactMode) {
++        HilalCompactMode.toggle();
+       } else {
++        const { SidebarController } = aEvent.target.documentGlobal;
+         SidebarController.toggle();
+       }
+     },
+     onCreated(aNode) {
+-      if (lazy.sidebarRevampEnabled) {
++      const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++      const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++      if (lazy.sidebarRevampEnabled || workspacesEnabled || verticalTabsEnabled) {
+         const { SidebarController } = aNode.documentGlobal;
+         SidebarController.updateToolbarButton(aNode);
+         aNode.setAttribute("overflows", "false");
 diff --git a/browser/components/sidebar/SidebarManager.sys.mjs b/browser/components/sidebar/SidebarManager.sys.mjs
 index a9857f4682a0..114a2b1c542b 100644
 --- a/browser/components/sidebar/SidebarManager.sys.mjs
@@ -33,28 +79,103 @@ index a9857f4682a0..114a2b1c542b 100644
        const currentVisibility = Services.prefs.getStringPref(
          VISIBILITY_SETTING_PREF,
          "always-show"
+diff --git a/browser/components/sidebar/SidebarState.sys.mjs b/browser/components/sidebar/SidebarState.sys.mjs
+index 15c466af31de..ef8a10951ba5 100644
+--- a/browser/components/sidebar/SidebarState.sys.mjs
++++ b/browser/components/sidebar/SidebarState.sys.mjs
+@@ -11,6 +11,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
+   "verticalTabsEnabled",
+   "sidebar.verticalTabs"
+ );
++XPCOMUtils.defineLazyPreferenceGetter(
++  lazy,
++  "hilalWorkspacesEnabled",
++  "hilal.workspaces.enabled",
++  true
++);
+ 
+ const DEFAULT_LAUNCHER_VISIBLE = false;
+ 
+@@ -492,8 +498,12 @@ export class SidebarState {
+     }
+   }
+ 
++  get #hilalEnabled() {
++    return lazy.hilalWorkspacesEnabled || lazy.verticalTabsEnabled;
++  }
++
+   set launcherVisible(visible) {
+-    if (!this.revampEnabled) {
++    if (!this.revampEnabled && !this.#hilalEnabled) {
+       // Launcher not supported in legacy sidebar.
+       this.#props.launcherVisible = false;
+       this.#launcherSplitterEl.hidden = true;
+@@ -522,7 +532,7 @@ export class SidebarState {
+   }
+ 
+   set launcherExpanded(expanded) {
+-    if (!this.revampEnabled) {
++    if (!this.revampEnabled && !this.#hilalEnabled) {
+       // Launcher not supported in legacy sidebar.
+       this.#props.launcherExpanded = false;
+       return;
 diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/sidebar/browser-sidebar.js
-index ef7b67413392..784f7952b906 100644
+index d3178e9eb6e3..7311388dd53b 100644
 --- a/browser/components/sidebar/browser-sidebar.js
 +++ b/browser/components/sidebar/browser-sidebar.js
-@@ -1049,6 +1049,10 @@ var SidebarController = {
+@@ -481,7 +481,10 @@ var SidebarController = {
+       this._handleLauncherResize(entry)
+     );
+ 
+-    if (this.sidebarRevampEnabled && !BrowserHandler.kiosk) {
++    const hilalEnabled =
++      Services.prefs.getBoolPref("hilal.workspaces.enabled", true) ||
++      Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++    if ((this.sidebarRevampEnabled || hilalEnabled) && !BrowserHandler.kiosk) {
+       if (!customElements.get("sidebar-main")) {
+         ChromeUtils.importESModule(
+           "chrome://browser/content/sidebar/sidebar-main.mjs",
+@@ -569,6 +572,8 @@ var SidebarController = {
+       Services.obs.addObserver(this, "sessionstore-single-window-restored");
+       this._windowRestoredObserverAdded = true;
+     }
++
++    HilalCompactMode.init();
+   },
+ 
+   uninit() {
+@@ -1071,6 +1076,11 @@ var SidebarController = {
     * True if the sidebar is currently open.
     */
    get isOpen() {
-+    if (Services.prefs.getBoolPref("hilal.workspaces.enabled", true) &&
-+        Services.prefs.getBoolPref("sidebar.verticalTabs", false)) {
++    const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++    const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++    if (workspacesEnabled || verticalTabsEnabled) {
 +      return this.sidebarContainer ? !this.sidebarContainer.hidden : false;
 +    }
      return this._box ? !this._box.hidden : false;
    },
-
-@@ -2091,7 +2095,18 @@ var SidebarController = {
+ 
+@@ -1453,7 +1463,10 @@ var SidebarController = {
+     if (!toolbarButton || this.inSingleTabWindow) {
+       return;
+     }
+-    if (!this.sidebarRevampEnabled) {
++    const hilalActive =
++      Services.prefs.getBoolPref("hilal.workspaces.enabled", true) ||
++      Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++    if (!this.sidebarRevampEnabled && !hilalActive) {
+       toolbarButton.dataset.l10nId = "show-sidebars";
+       toolbarButton.checked = this.isOpen;
+     } else {
+@@ -2113,7 +2126,19 @@ var SidebarController = {
        }
-
+ 
        this.selectMenuItem(commandID);
 -      this._box.hidden = this._splitter.hidden = false;
-+      if (Services.prefs.getBoolPref("hilal.workspaces.enabled", true) &&
-+          Services.prefs.getBoolPref("sidebar.verticalTabs", false)) {
++      const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++      const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++      if (workspacesEnabled || verticalTabsEnabled) {
 +        const isStandardPanel = [
 +          "viewHistorySidebar",
 +          "viewBookmarksSidebar",
@@ -65,14 +186,186 @@ index ef7b67413392..784f7952b906 100644
 +      } else {
 +        this._box.hidden = this._splitter.hidden = false;
 +      }
-
+ 
        this._box.setAttribute("checked", "true");
        this._state.command = commandID;
+@@ -2782,3 +2807,171 @@ XPCOMUtils.defineLazyPreferenceGetter(
+     }
+   }
+ );
++
++var HilalCompactMode = {
++  PREF: "hilal.compact.enabled",
++  ATTR: "hilal-compact-mode",
++
++  _prefObserver: null,
++  _mouseMoveHandler: null,
++  _mouseShowTimer: null,
++  _mouseLeaveTimer: null,
++  _sidebarVisible: false,
++  _hoverZoneWidth: 32,
++  _showDelayMs: 180,
++  _leaveDelayMs: 400,
++
++  init() {
++    this._prefObserver = (_subject, _topic, _data) => {
++      this._apply(Services.prefs.getBoolPref(this.PREF, false));
++    };
++    Services.prefs.addObserver(this.PREF, this._prefObserver);
++    window.addEventListener("unload", () => this.uninit(), { once: true });
++    this._apply(Services.prefs.getBoolPref(this.PREF, false));
++  },
++
++  uninit() {
++    if (this._prefObserver) {
++      Services.prefs.removeObserver(this.PREF, this._prefObserver);
++      this._prefObserver = null;
++    }
++    this._removeMouseListeners();
++  },
++
++  get enabled() {
++    return Services.prefs.getBoolPref(this.PREF, false);
++  },
++
++  toggle() {
++    Services.prefs.setBoolPref(this.PREF, !this.enabled);
++  },
++
++  _apply(compact) {
++    document.documentElement.toggleAttribute(this.ATTR, compact);
++    this._syncToolbarButton(compact);
++    if (compact) {
++      this._addMouseListeners();
++    } else {
++      this._removeMouseListeners();
++      this._hideSidebar();
++    }
++  },
++
++  _syncToolbarButton(compact) {
++    const btn = document.getElementById("sidebar-button");
++    if (!btn) {
++      return;
++    }
++    btn.checked = compact;
++  },
++
++  _addMouseListeners() {
++    if (this._mouseMoveHandler) {
++      return;
++    }
++    this._mouseMoveHandler = event => this._onMouseMove(event);
++    window.addEventListener("mousemove", this._mouseMoveHandler);
++  },
++
++  _removeMouseListeners() {
++    if (this._mouseMoveHandler) {
++      window.removeEventListener("mousemove", this._mouseMoveHandler);
++      this._mouseMoveHandler = null;
++    }
++    if (this._mouseShowTimer) {
++      clearTimeout(this._mouseShowTimer);
++      this._mouseShowTimer = null;
++    }
++    if (this._mouseLeaveTimer) {
++      clearTimeout(this._mouseLeaveTimer);
++      this._mouseLeaveTimer = null;
++    }
++  },
++
++  _onMouseMove(event) {
++    const sidebar = document.getElementById("sidebar-main");
++    if (!sidebar) {
++      return;
++    }
++
++    this._lastMouseX = event.clientX;
++    this._lastMouseY = event.clientY;
++
++    const isLeft = SidebarController._positionStart;
++    const windowWidth = window.innerWidth;
++    const isNearEdge = isLeft
++      ? (this._lastMouseX <= this._hoverZoneWidth)
++      : (this._lastMouseX >= windowWidth - this._hoverZoneWidth);
++
++    if (isNearEdge && !this._sidebarVisible) {
++      if (this._mouseShowTimer) {
++        return;
++      }
++      this._mouseShowTimer = setTimeout(() => {
++        this._mouseShowTimer = null;
++        const s = document.getElementById("sidebar-main");
++        if (s) {
++          const isStillLeft = SidebarController._positionStart;
++          const isStillNear = isStillLeft
++            ? (this._lastMouseX <= this._hoverZoneWidth)
++            : (this._lastMouseX >= window.innerWidth - this._hoverZoneWidth);
++          if (isStillNear) {
++            this._showSidebar(s);
++          }
++        }
++      }, this._showDelayMs);
++    } else if (this._sidebarVisible) {
++      const sidebarRect = sidebar.getBoundingClientRect();
++      const width = 280;
++      const isInsideSidebar = isLeft
++        ? (this._lastMouseX >= 0 && this._lastMouseX <= width &&
++           this._lastMouseY >= sidebarRect.top && this._lastMouseY <= sidebarRect.bottom)
++        : (this._lastMouseX >= windowWidth - width && this._lastMouseX <= windowWidth &&
++           this._lastMouseY >= sidebarRect.top && this._lastMouseY <= sidebarRect.bottom);
++
++      if (!isInsideSidebar && !isNearEdge) {
++        this._scheduleHide();
++      } else {
++        this._cancelHide();
++      }
++    } else if (!isNearEdge && this._mouseShowTimer) {
++      clearTimeout(this._mouseShowTimer);
++      this._mouseShowTimer = null;
++    }
++  },
++
++  _showSidebar(sidebar) {
++    this._cancelHide();
++    if (this._mouseShowTimer) {
++      clearTimeout(this._mouseShowTimer);
++      this._mouseShowTimer = null;
++    }
++    this._sidebarVisible = true;
++    sidebar.classList.add("hilal-compact-visible");
++  },
++
++  _hideSidebar() {
++    this._sidebarVisible = false;
++    const sidebar = document.getElementById("sidebar-main");
++    if (sidebar) {
++      sidebar.classList.remove("hilal-compact-visible");
++    }
++  },
++
++  _scheduleHide() {
++    if (this._mouseLeaveTimer) {
++      return;
++    }
++    this._mouseLeaveTimer = setTimeout(() => {
++      this._mouseLeaveTimer = null;
++      this._hideSidebar();
++    }, this._leaveDelayMs);
++  },
++
++  _cancelHide() {
++    if (this._mouseLeaveTimer) {
++      clearTimeout(this._mouseLeaveTimer);
++      this._mouseLeaveTimer = null;
++    }
++  },
++};
 diff --git a/browser/components/sidebar/sidebar-main.css b/browser/components/sidebar/sidebar-main.css
-index d16a3b60b365..dc512b24d74a 100644
+index a8369dde37e3..db8d498444f9 100644
 --- a/browser/components/sidebar/sidebar-main.css
 +++ b/browser/components/sidebar/sidebar-main.css
-@@ -18,6 +18,488 @@
+@@ -17,6 +17,520 @@
    width: 100%;
  }
  
@@ -354,34 +647,66 @@ index d16a3b60b365..dc512b24d74a 100644
 +  padding: 4px 8px;
 +}
 +
-+.hilal-new-tab-button {
-+  appearance: none;
++.hilal-pinned-section {
++  display: flex;
++  flex-direction: column;
++  gap: 8px;
++  margin-block: 12px 14px;
++  flex: 0 0 auto;
++}
++
++.hilal-pinned-grid {
++  display: grid;
++  grid-template-columns: repeat(3, 1fr);
++  gap: 8px;
++  width: 100%;
++}
++
++.hilal-pinned-card {
++  aspect-ratio: 1;
 +  align-items: center;
-+  background: color-mix(in srgb, var(--hilal-sidebar-background) 94%, white);
++  background: var(--hilal-sidebar-faint);
 +  border: 1px solid var(--hilal-sidebar-border);
 +  border-radius: 8px;
-+  box-shadow: 0 1px 4px color-mix(in srgb, black 10%, transparent);
-+  box-sizing: border-box;
-+  color: var(--hilal-sidebar-text);
 +  cursor: pointer;
 +  display: flex;
-+  flex: 0 0 auto;
-+  font: inherit;
-+  font-size: 13px;
-+  font-weight: 700;
-+  gap: 8px;
 +  justify-content: center;
-+  margin-block: 12px 14px;
-+  min-block-size: 32px;
-+  padding: 0 12px;
++  position: relative;
++  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 +}
 +
-+.hilal-new-tab-button:hover {
++.hilal-pinned-card:hover {
 +  background: var(--hilal-sidebar-hover);
++  border-color: color-mix(in srgb, var(--hilal-sidebar-text) 20%, transparent);
++  transform: translateY(-1px);
 +}
 +
-+.hilal-new-tab-button .hilal-icon {
-+  color: var(--hilal-sidebar-blue);
++.hilal-pinned-card:active {
++  transform: scale(0.95);
++}
++
++.hilal-pinned-card:focus-visible {
++  outline: var(--focus-outline);
++  outline-offset: var(--focus-outline-offset);
++}
++
++.hilal-pinned-active {
++  background: var(--hilal-sidebar-highlight) !important;
++  border-color: color-mix(in srgb, var(--hilal-sidebar-text) 15%, transparent) !important;
++  color: var(--hilal-sidebar-highlight-text);
++  box-shadow: 0 2px 8px color-mix(in srgb, AccentColor 25%, transparent);
++}
++
++.hilal-pinned-favicon {
++  block-size: 36px;
++  inline-size: 36px;
++  object-fit: contain;
++  filter: drop-shadow(0 1.5px 3px rgba(0, 0, 0, 0.15));
++  pointer-events: none;
++}
++
++.hilal-pinned-card .hilal-tab-loading {
++  transform: scale(0.8);
 +}
 +
 +.hilal-panel-scroll {
@@ -561,8 +886,33 @@ index d16a3b60b365..dc512b24d74a 100644
  .wrapper {
    display: grid;
    grid-template-rows: auto min-content min-content;
+@@ -185,3 +699,24 @@
+ .bottom-actions {
+   align-self: end;
+ }
++
++#hilal-tabs-section {
++  flex: 1 1 auto;
++  display: flex;
++  flex-direction: column;
++  min-height: 250px;
++}
++
++.hilal-tabstrip-container {
++  flex: 1 1 auto;
++  display: flex;
++  flex-direction: column;
++  min-height: 0;
++}
++
++.hilal-tabstrip-container > slot[name="tabstrip"] {
++  display: flex;
++  flex-direction: column;
++  flex: 1 1 auto;
++  min-height: 0;
++}
 diff --git a/browser/components/sidebar/sidebar-main.mjs b/browser/components/sidebar/sidebar-main.mjs
-index 8acc798e5d22..e4b0ec1fb655 100644
+index 8acc798e5d22..3c87b01b9a6c 100644
 --- a/browser/components/sidebar/sidebar-main.mjs
 +++ b/browser/components/sidebar/sidebar-main.mjs
 @@ -18,8 +18,9 @@ import "chrome://browser/content/sidebar/sidebar-pins-promo.mjs";
@@ -677,7 +1027,7 @@ index 8acc798e5d22..e4b0ec1fb655 100644
      this._toolsIntersectionObserver?.disconnect();
      this._toolsResizeObserver?.disconnect();
      this.ownerDocument
-@@ -163,6 +228,475 @@ export default class SidebarMain extends MozLitElement {
+@@ -163,6 +228,643 @@ export default class SidebarMain extends MozLitElement {
        ?.disconnectedCallback();
    }
  
@@ -699,10 +1049,9 @@ index 8acc798e5d22..e4b0ec1fb655 100644
 +      return true;
 +    }
 +    const manager = window.gHilalWorkspaces;
-+    if (
-+      !manager ||
-+      !Services.prefs.getBoolPref("hilal.workspaces.enabled", true)
-+    ) {
++    const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++    const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++    if (!manager || (!workspacesEnabled && !verticalTabsEnabled)) {
 +      return false;
 +    }
 +    this._hilalManager = manager;
@@ -804,17 +1153,29 @@ index 8acc798e5d22..e4b0ec1fb655 100644
 +        );
 +        this._sidebarMain?.toggleAttribute("vertical-tabs", enabled);
 +        this.toggleAttribute("vertical-tabs", enabled);
-+        this.requestUpdate();
-+      } else if (data === "hilal.workspaces.enabled") {
-+        const shouldBeActive =
-+          window.gHilalWorkspaces &&
-+          Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++        const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++        const shouldBeActive = window.gHilalWorkspaces && (workspacesEnabled || enabled);
 +        if (shouldBeActive !== this.hilalSidebarActive) {
 +          if (shouldBeActive) {
 +            this.maybeInitHilalSidebar();
 +          } else {
 +            this.uninitHilalSidebar();
 +          }
++        } else {
++          this.requestUpdate();
++        }
++      } else if (data === "hilal.workspaces.enabled") {
++        const workspacesEnabled = Services.prefs.getBoolPref("hilal.workspaces.enabled", true);
++        const verticalTabsEnabled = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
++        const shouldBeActive = window.gHilalWorkspaces && (workspacesEnabled || verticalTabsEnabled);
++        if (shouldBeActive !== this.hilalSidebarActive) {
++          if (shouldBeActive) {
++            this.maybeInitHilalSidebar();
++          } else {
++            this.uninitHilalSidebar();
++          }
++        } else {
++          this.requestUpdate();
 +        }
 +      } else if (
 +        data.startsWith("hilal.workspaces.") ||
@@ -911,9 +1272,22 @@ index 8acc798e5d22..e4b0ec1fb655 100644
 +    if (!workspaceId || !this._hilalManager?._getTabWorkspace) {
 +      return [];
 +    }
-+    return [...window.gBrowser.tabs].filter(
-+      tab => this._hilalManager._getTabWorkspace(tab) === workspaceId
++    const pinnedIsPublic = Services.prefs.getBoolPref(
++      "hilal.workspaces.pinned.public",
++      false
 +    );
++    const groupsIsPublic = Services.prefs.getBoolPref(
++      "hilal.workspaces.groups.public",
++      false
++    );
++    return [...window.gBrowser.tabs].filter(tab => {
++      const tabWorkspaceId = this._hilalManager._getTabWorkspace(tab);
++      return (
++        tabWorkspaceId === workspaceId ||
++        (pinnedIsPublic && tab.pinned) ||
++        (groupsIsPublic && tab.group)
++      );
++    });
 +  }
 +
 +  get activeHilalWorkspace() {
@@ -940,6 +1314,110 @@ index 8acc798e5d22..e4b0ec1fb655 100644
 +    );
 +  }
 +
++  get filteredHilalPinnedTabs() {
++    return this.filteredHilalTabs.filter(tab => tab.pinned);
++  }
++
++  get filteredHilalUnpinnedTabs() {
++    return this.filteredHilalTabs.filter(tab => !tab.pinned);
++  }
++
++  handleTabMouseEnter(tab, event) {
++    try {
++      SessionStore.speculativeConnectOnTabHover(tab);
++    } catch (e) {}
++    tab.dispatchEvent(new CustomEvent("TabHoverStart", { bubbles: true }));
++  }
++
++  handleTabMouseLeave(tab, event) {
++    tab.dispatchEvent(new CustomEvent("TabHoverEnd", { bubbles: true }));
++  }
++
++  handleTabDragStart(tab, event) {
++    this._draggedTab = tab;
++    event.dataTransfer.effectAllowed = "move";
++    event.dataTransfer.setData("text/plain", tab.label);
++    try {
++      tab.dispatchEvent(new CustomEvent("TabHoverEnd", { bubbles: true }));
++    } catch (e) {}
++  }
++
++  handleTabDragOver(tab, event) {
++    if (!this._draggedTab) {
++      return;
++    }
++    event.preventDefault();
++    event.dataTransfer.dropEffect = "move";
++  }
++
++  handleTabDrop(targetTab, event) {
++    event.preventDefault();
++    event.stopPropagation();
++    if (!this._draggedTab || this._draggedTab === targetTab) {
++      return;
++    }
++
++    if (this._draggedTab.pinned && !targetTab.pinned) {
++      window.gBrowser.unpinTab(this._draggedTab);
++    } else if (!this._draggedTab.pinned && targetTab.pinned) {
++      window.gBrowser.pinTab(this._draggedTab);
++    }
++
++    window.gBrowser.moveTabTo(this._draggedTab, targetTab._tPos);
++    this._draggedTab = null;
++    this.scheduleHilalRefresh();
++  }
++
++  handlePinnedContainerDragOver(event) {
++    if (!this._draggedTab) {
++      return;
++    }
++    event.preventDefault();
++    event.dataTransfer.dropEffect = "move";
++  }
++
++  handlePinnedContainerDrop(event) {
++    event.preventDefault();
++    if (!this._draggedTab) {
++      return;
++    }
++
++    if (!this._draggedTab.pinned) {
++      window.gBrowser.pinTab(this._draggedTab);
++    }
++
++    this._draggedTab = null;
++    this.scheduleHilalRefresh();
++  }
++
++  handleUnpinnedContainerDragOver(event) {
++    if (!this._draggedTab) {
++      return;
++    }
++    event.preventDefault();
++    event.dataTransfer.dropEffect = "move";
++  }
++
++  handleUnpinnedContainerDrop(event) {
++    event.preventDefault();
++    if (!this._draggedTab) {
++      return;
++    }
++
++    if (this._draggedTab.pinned) {
++      window.gBrowser.unpinTab(this._draggedTab);
++    }
++
++    const workspaceTabs = this.filteredHilalUnpinnedTabs;
++    if (workspaceTabs.length > 0) {
++      const lastTab = workspaceTabs[workspaceTabs.length - 1];
++      window.gBrowser.moveTabTo(this._draggedTab, lastTab._tPos);
++    }
++
++    this._draggedTab = null;
++    this.scheduleHilalRefresh();
++  }
++
 +  get filteredHilalBookmarks() {
 +    const query = this.hilalSearchQuery.trim().toLocaleLowerCase();
 +    if (!query) {
@@ -956,7 +1434,7 @@ index 8acc798e5d22..e4b0ec1fb655 100644
 +    return (
 +      tab.label ||
 +      tab.getAttribute("label") ||
-+      this.fluentStrings.formatValueSync("hilal-sidebar-new-tab")
++      this.fluentStrings.formatValueSync("hilal-sidebar-new-tab-label")
 +    );
 +  }
 +
@@ -1065,20 +1543,36 @@ index 8acc798e5d22..e4b0ec1fb655 100644
 +  }
 +
 +  openHilalFooterItem(item) {
++    const isCompact = document.documentElement.hasAttribute("hilal-compact-mode");
 +    if (typeof item === "object" && item !== null) {
 +      const url = this.normalizeHilalShortcutUrl(item.url);
 +      if (url === "viewBookmarksSidebar" || url === "about:bookmarks") {
-+        window.SidebarController.show("viewBookmarksSidebar");
++        if (isCompact) {
++          window.PlacesCommandHook.showPlacesOrganizer("AllBookmarks");
++        } else {
++          window.SidebarController.show("viewBookmarksSidebar");
++        }
 +      } else if (url === "viewHistorySidebar" || url === "about:history") {
-+        window.SidebarController.show("viewHistorySidebar");
++        if (isCompact) {
++          window.PlacesCommandHook.showPlacesOrganizer("History");
++        } else {
++          window.SidebarController.show("viewHistorySidebar");
++        }
 +      } else if (
 +        url === "viewCPMSidebar" ||
 +        url === "about:logins" ||
 +        url === "about:passwords"
 +      ) {
-+        window.SidebarController.show("viewCPMSidebar");
++        if (isCompact) {
++          window.openTrustedLinkIn("about:logins", "tab", {
++            userContextId: 0,
++            triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
++          });
++        } else {
++          window.SidebarController.show("viewCPMSidebar");
++        }
 +      } else if (url === "about:downloads") {
-+        if (window.DownloadsPanel && window.DownloadsButton?.getAnchor()) {
++        if (!isCompact && window.DownloadsPanel && window.DownloadsButton?.getAnchor()) {
 +          window.DownloadsPanel.showPanel(true);
 +        } else {
 +          window.BrowserCommands.downloadsUI();
@@ -1088,27 +1582,51 @@ index 8acc798e5d22..e4b0ec1fb655 100644
 +      } else if (url === "about:preferences" || url === "about:settings") {
 +        window.openPreferences();
 +      } else {
-+        const userContextId = this.activeHilalWorkspace?.containerId || 0;
-+        window.openTrustedLinkIn(url, "tab", {
-+          userContextId,
-+          triggeringPrincipal:
-+            Services.scriptSecurityManager.getSystemPrincipal(),
-+        });
++        try {
++          const uri = Services.io.newURI(url);
++          if (uri.scheme === "http" || uri.scheme === "https") {
++            const userContextId = this.activeHilalWorkspace?.containerId || 0;
++            window.openTrustedLinkIn(url, "tab", {
++              userContextId,
++              triggeringPrincipal:
++                Services.scriptSecurityManager.getSystemPrincipal(),
++            });
++          } else {
++            console.warn("Blocked non-http/https custom sidebar URL: " + url);
++          }
++        } catch (e) {
++          console.error("Failed to parse custom sidebar URL: " + url, e);
++        }
 +      }
 +      return;
 +    }
 +    switch (item) {
 +      case "bookmarks":
-+        window.SidebarController.show("viewBookmarksSidebar");
++        if (isCompact) {
++          window.PlacesCommandHook.showPlacesOrganizer("AllBookmarks");
++        } else {
++          window.SidebarController.show("viewBookmarksSidebar");
++        }
 +        break;
 +      case "history":
-+        window.SidebarController.show("viewHistorySidebar");
++        if (isCompact) {
++          window.PlacesCommandHook.showPlacesOrganizer("History");
++        } else {
++          window.SidebarController.show("viewHistorySidebar");
++        }
 +        break;
 +      case "passwords":
-+        window.SidebarController.show("viewCPMSidebar");
++        if (isCompact) {
++          window.openTrustedLinkIn("about:logins", "tab", {
++            userContextId: 0,
++            triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
++          });
++        } else {
++          window.SidebarController.show("viewCPMSidebar");
++        }
 +        break;
 +      case "downloads":
-+        if (window.DownloadsPanel && window.DownloadsButton?.getAnchor()) {
++        if (!isCompact && window.DownloadsPanel && window.DownloadsButton?.getAnchor()) {
 +          window.DownloadsPanel.showPanel(true);
 +        } else {
 +          window.BrowserCommands.downloadsUI();
@@ -1153,7 +1671,7 @@ index 8acc798e5d22..e4b0ec1fb655 100644
    get isToolsDragging() {
      return this.toolsSplitter.getAttribute("state") === "dragging";
    }
-@@ -509,6 +1016,16 @@ export default class SidebarMain extends MozLitElement {
+@@ -509,6 +1211,16 @@ export default class SidebarMain extends MozLitElement {
  
    async handleEvent(e) {
      switch (e.type) {
@@ -1170,11 +1688,16 @@ index 8acc798e5d22..e4b0ec1fb655 100644
        case "command":
          switch (e.target.id) {
            case "sidebar-context-menu-manage-extension":
-@@ -649,6 +1166,12 @@ export default class SidebarMain extends MozLitElement {
+@@ -648,7 +1360,16 @@ export default class SidebarMain extends MozLitElement {
+     this._toolsResizeObserver?.disconnect();
    }
  
-   updated() {
+-  updated() {
++  updated(changedProperties) {
 +    if (this.hilalSidebarActive) {
++      if (changedProperties?.has("hilalSearchQuery")) {
++        this.applySearchFiltering();
++      }
 +      return;
 +    }
 +    if (!this._toolsIntersectionObserver || !this._toolsResizeObserver) {
@@ -1183,7 +1706,66 @@ index 8acc798e5d22..e4b0ec1fb655 100644
      if (
        window.SidebarController.sidebarRevampVisibility !== "expand-on-hover"
      ) {
-@@ -790,7 +1313,467 @@ export default class SidebarMain extends MozLitElement {
+@@ -671,6 +1392,58 @@ export default class SidebarMain extends MozLitElement {
+     }
+   }
+ 
++  applySearchFiltering() {
++    if (!window.gHilalWorkspaces || !window.gBrowser) {
++      return;
++    }
++    const query = this.hilalSearchQuery.trim().toLocaleLowerCase();
++    if (!query) {
++      window.gHilalWorkspaces._apply();
++      return;
++    }
++
++    const activeWorkspaceId = window.gHilalWorkspaces._activeId;
++    const pinnedIsPublic = window.gHilalWorkspaces._pinnedIsPublic;
++    const groupsIsPublic = window.gHilalWorkspaces._groupsIsPublic;
++
++    for (const tab of window.gBrowser.tabs) {
++      const workspaceId = window.gHilalWorkspaces._getTabWorkspace(tab);
++      const isPinnedSession =
++        typeof SessionStore !== "undefined" &&
++        SessionStore.getCustomTabValue(tab, "hilalWorkspacePinned") === "true";
++      const isTabPinned = tab.pinned || isPinnedSession;
++      const isTabGrouped = !!tab.group;
++
++      const belongsToActiveWorkspace =
++        workspaceId === activeWorkspaceId ||
++        (pinnedIsPublic && isTabPinned) ||
++        (groupsIsPublic && isTabGrouped);
++
++      if (belongsToActiveWorkspace) {
++        const title = this.getHilalTabTitle(tab).toLocaleLowerCase();
++        if (title.includes(query)) {
++          if (tab.hidden && window.gHilalWorkspaces._isHiddenByWorkspace(tab)) {
++            window.gHilalWorkspaces._showWorkspaceTab(tab);
++          } else if (tab.hidden) {
++            window.gBrowser.showTab(tab);
++          }
++        } else {
++          if (!tab.selected && !tab.closing) {
++            if (tab.pinned) {
++              window.gHilalWorkspaces._rememberPinned(tab);
++              window.gBrowser.unpinTab(tab);
++            }
++            window.gBrowser.hideTab(tab, "hilal-workspace");
++          }
++        }
++      } else {
++        if (!tab.pinned && !(groupsIsPublic && tab.group)) {
++          window.gHilalWorkspaces._hideWorkspaceTab(tab);
++        }
++      }
++    }
++  }
++
+   getEntrypointValues(action) {
+     let providerInfo;
+     if (action.view === "viewGenaiChatSidebar") {
+@@ -790,7 +1563,409 @@ export default class SidebarMain extends MozLitElement {
      return container && !container.hidden;
    }
  
@@ -1245,77 +1827,6 @@ index 8acc798e5d22..e4b0ec1fb655 100644
 +    `;
 +  }
 +
-+  hilalTabTemplate(tab) {
-+    const active = tab === window.gBrowser.selectedTab;
-+    const loading = tab.hasAttribute("busy");
-+    return html`
-+      <div
-+        class=${classMap({
-+          "hilal-row": true,
-+          "hilal-tab-row": true,
-+          "hilal-row-active": active,
-+        })}
-+        role="button"
-+        tabindex="0"
-+        title=${this.getHilalTabTitle(tab)}
-+        @click=${() => this.selectHilalTab(tab)}
-+        @keydown=${event => {
-+          if (event.target !== event.currentTarget) {
-+            return;
-+          }
-+          if (event.key === "Enter" || event.key === " ") {
-+            event.preventDefault();
-+            this.selectHilalTab(tab);
-+          }
-+        }}
-+        @contextmenu=${event => {
-+          event.preventDefault();
-+          event.stopPropagation();
-+          const popup = document.getElementById("tabContextMenu");
-+          if (popup) {
-+            MozXULElement.insertFTLIfNeeded("browser/tabContextMenu.ftl");
-+            popup.querySelectorAll("[data-lazy-l10n-id]").forEach(el => {
-+              el.setAttribute(
-+                "data-l10n-id",
-+                el.getAttribute("data-lazy-l10n-id")
-+              );
-+              el.removeAttribute("data-lazy-l10n-id");
-+            });
-+            window.TabContextMenu.contextTab = tab;
-+            window.TabContextMenu.contextTabs = [tab];
-+            popup.openPopupAtScreen(event.screenX, event.screenY, true);
-+          }
-+        }}
-+      >
-+        ${when(
-+          loading,
-+          () =>
-+            html`<span class="hilal-tab-loading" aria-hidden="true"></span>`,
-+          () => html`
-+            <img
-+              class="hilal-tab-favicon"
-+              alt=""
-+              src=${this.getHilalTabIcon(tab)}
-+              @error=${event => {
-+                event.currentTarget.src =
-+                  "chrome://global/skin/icons/defaultFavicon.svg";
-+              }}
-+            />
-+          `
-+        )}
-+        <span class="hilal-row-title">${this.getHilalTabTitle(tab)}</span>
-+        <span class="hilal-row-spacer"></span>
-+        <button
-+          class="hilal-tab-close"
-+          type="button"
-+          data-l10n-id="hilal-sidebar-close-tab"
-+          @click=${event => this.closeHilalTab(tab, event)}
-+        >
-+          ${this.hilalIcon("close")}
-+        </button>
-+      </div>
-+    `;
-+  }
 +
 +  hilalBookmarkTemplate(bookmark) {
 +    const badge = this.getHilalBookmarkBadge(bookmark);
@@ -1461,37 +1972,56 @@ index 8acc798e5d22..e4b0ec1fb655 100644
 +      />
 +      <div class="wrapper" hidden></div>
 +      <div class="hilal-sidebar-layout">
-+        <nav class="hilal-workspace-rail" aria-label=${railLabel}>
-+          <div class="hilal-workspace-list">
-+            ${repeat(
-+              this.hilalWorkspaces,
-+              workspace => workspace.id,
-+              workspace => this.hilalWorkspaceTemplate(workspace)
-+            )}
-+          </div>
-+          <div class="hilal-workspace-add-wrap">
-+            <button
-+              id="hilal-workspace-add"
-+              type="button"
-+              data-l10n-id="hilal-sidebar-add-workspace"
-+              @click=${() => this.showHilalCreateWorkspace()}
-+            >
-+              ${this.hilalIcon("plus")}
-+            </button>
-+          </div>
-+        </nav>
++        ${when(
++          Services.prefs.getBoolPref("hilal.workspaces.enabled", true),
++          () => html`
++            <nav class="hilal-workspace-rail" aria-label=${railLabel}>
++              <div class="hilal-workspace-list">
++                ${repeat(
++                  this.hilalWorkspaces,
++                  workspace => workspace.id,
++                  workspace => this.hilalWorkspaceTemplate(workspace)
++                )}
++              </div>
++              <div class="hilal-workspace-add-wrap">
++                <button
++                  id="hilal-workspace-add"
++                  type="button"
++                  data-l10n-id="hilal-sidebar-add-workspace"
++                  @click=${() => this.showHilalCreateWorkspace()}
++                >
++                  ${this.hilalIcon("plus")}
++                </button>
++              </div>
++            </nav>
++          `
++        )}
 +        ${when(
 +          Services.prefs.getBoolPref("sidebar.verticalTabs", false),
 +          () => html`
 +            <section class="hilal-sidebar-panel" aria-label=${panelLabel}>
 +              <div class="hilal-panel-header">
-+                <span class="hilal-panel-workspace-icon" aria-hidden="true">
-+                  ${activeWorkspace?.emoji || "\u{1F5C2}"}
-+                </span>
++                ${when(
++                  Services.prefs.getBoolPref("hilal.workspaces.enabled", true),
++                  () => html`
++                    <span class="hilal-panel-workspace-icon" aria-hidden="true">
++                      ${activeWorkspace?.emoji || "\u{1F5C2}"}
++                    </span>
++                  `
++                )}
 +                <span class="hilal-panel-title">
-+                  ${activeWorkspace?.name || workspaceFallback}
++                  ${(Services.prefs.getBoolPref("hilal.workspaces.enabled", true) && activeWorkspace) ? activeWorkspace.name : workspaceFallback}
 +                </span>
 +                <span class="hilal-row-spacer"></span>
++                <button
++                  class="hilal-icon-button"
++                  type="button"
++                  title=${this.fluentStrings.formatValueSync("hilal-sidebar-new-tab-label")}
++                  aria-label=${this.fluentStrings.formatValueSync("hilal-sidebar-new-tab-label")}
++                  @click=${() => this.openHilalNewTab()}
++                >
++                  ${this.hilalIcon("plus")}
++                </button>
 +                <button
 +                  class="hilal-icon-button"
 +                  type="button"
@@ -1501,14 +2031,19 @@ index 8acc798e5d22..e4b0ec1fb655 100644
 +                >
 +                  ${this.hilalIcon("search")}
 +                </button>
-+                <button
-+                  class="hilal-icon-button"
-+                  type="button"
-+                  data-l10n-id="hilal-sidebar-workspace-menu"
-+                  @click=${event => this.showHilalActiveWorkspaceMenu(event)}
-+                >
-+                  ${this.hilalIcon("menu")}
-+                </button>
++                ${when(
++                  Services.prefs.getBoolPref("hilal.workspaces.enabled", true),
++                  () => html`
++                    <button
++                      class="hilal-icon-button"
++                      type="button"
++                      data-l10n-id="hilal-sidebar-workspace-menu"
++                      @click=${event => this.showHilalActiveWorkspaceMenu(event)}
++                    >
++                      ${this.hilalIcon("menu")}
++                    </button>
++                  `
++                )}
 +              </div>
 +              ${when(
 +                this.hilalSearchOpen,
@@ -1524,31 +2059,20 @@ index 8acc798e5d22..e4b0ec1fb655 100644
 +                  />
 +                `
 +              )}
-+              <button
-+                class="hilal-new-tab-button"
-+                type="button"
-+                @click=${() => this.openHilalNewTab()}
-+              >
-+                ${this.hilalIcon("plus")}
-+                <span data-l10n-id="hilal-sidebar-new-tab"></span>
-+              </button>
 +              <div class="hilal-panel-scroll">
 +                <section
 +                  class="hilal-section"
++                  id="hilal-tabs-section"
 +                  aria-labelledby="hilal-tabs-heading"
 +                >
 +                  <div class="hilal-section-heading" id="hilal-tabs-heading">
 +                    <span data-l10n-id="hilal-sidebar-open-tabs"></span>
 +                    <span class="hilal-count-badge"
-+                      >${this.hilalTabs.length}</span
++                      >${this.filteredHilalUnpinnedTabs.length}</span
 +                    >
 +                  </div>
-+                  <div class="hilal-row-list">
-+                    ${repeat(
-+                      this.filteredHilalTabs,
-+                      tab => tab,
-+                      tab => this.hilalTabTemplate(tab)
-+                    )}
++                  <div class="hilal-tabstrip-container">
++                    <slot name="tabstrip"></slot>
 +                  </div>
 +                </section>
 +                ${when(
@@ -1652,10 +2176,10 @@ index 8acc798e5d22..e4b0ec1fb655 100644
      let enabledToolsAndExtensionsCount =
        this.enabledToolsAndExtensionsCount() + 1;
 diff --git a/browser/locales/en-US/browser/sidebar.ftl b/browser/locales/en-US/browser/sidebar.ftl
-index 6bd76b8607ae..0a064b88febb 100644
+index 6bd76b8607ae..809df0e9bd13 100644
 --- a/browser/locales/en-US/browser/sidebar.ftl
 +++ b/browser/locales/en-US/browser/sidebar.ftl
-@@ -251,3 +251,35 @@ sidebar-widget-hide-sidebar2 =
+@@ -251,3 +251,38 @@ sidebar-widget-hide-sidebar2 =
  # users who do not have any pinned tabs. Indicates that they can drop tabs in
  # this area to pin them.
  sidebar-pins-promo-text = Drag important tabs here to keep them within reach
@@ -1664,7 +2188,10 @@ index 6bd76b8607ae..0a064b88febb 100644
 +hilal-sidebar-open-tabs = Open Tabs
 +hilal-sidebar-bookmarks = Bookmarks
 +hilal-sidebar-passwords = Passwords
-+hilal-sidebar-new-tab = New Tab
++hilal-sidebar-new-tab =
++    .title = New Tab
++    .aria-label = New Tab
++hilal-sidebar-new-tab-label = New Tab
 +hilal-sidebar-history = History
 +hilal-sidebar-downloads = Downloads
 +hilal-sidebar-privacy = Privacy Report
@@ -1691,12 +2218,11 @@ index 6bd76b8607ae..0a064b88febb 100644
 +hilal-sidebar-badge-tool = Tool
 +hilal-sidebar-workspaces-nav-label = Workspaces
 +hilal-sidebar-panel-label = Hilal Sidebar
-
 diff --git a/browser/themes/shared/sidebar.css b/browser/themes/shared/sidebar.css
-index d4e5f2d00d35..d11fb3b54170 100644
+index c29b18e0abaf..19fafff8cb45 100644
 --- a/browser/themes/shared/sidebar.css
 +++ b/browser/themes/shared/sidebar.css
-@@ -582,3 +582,13 @@ sidebar-main,
+@@ -563,3 +563,122 @@ sidebar-main,
      display: none;
    }
  }
@@ -1710,432 +2236,112 @@ index d4e5f2d00d35..d11fb3b54170 100644
 +  min-width: unset !important;
 +  max-width: unset !important;
 +}
-diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
---- a/browser/components/preferences/main.js
-+++ b/browser/components/preferences/main.js
-@@ -1820,8 +1820,12 @@
-     }
- 
-     const hilalWsCheckbox = document.getElementById("hilalWorkspacesEnabled");
--    const hilalWsPinnedPublicCheckbox = document.getElementById("hilalWorkspacesPinnedPublic");
--    const hilalWsGroupsPublicCheckbox = document.getElementById("hilalWorkspacesGroupsPublic");
-+    const hilalWsPinnedPublicCheckbox = document.getElementById(
-+      "hilalWorkspacesPinnedPublic"
-+    );
-+    const hilalWsGroupsPublicCheckbox = document.getElementById(
-+      "hilalWorkspacesGroupsPublic"
-+    );
-     const hilalPrivacyLevelRadioGroup = /** @type {HTMLElement|null} */ (
-       document.getElementById("hilalPrivacyLevel")
-     );
-@@ -1897,6 +1901,37 @@
-         Services.prefs.setStringPref("hilal.privacy.level", level);
-       });
-     }
-+    const hilalSbBookmarks = document.getElementById(
-+      "hilalSidebarFooterBookmarks"
-+    );
-+    const hilalSbHistory = document.getElementById("hilalSidebarFooterHistory");
-+    const hilalSbPasswords = document.getElementById(
-+      "hilalSidebarFooterPasswords"
-+    );
-+    const hilalSbDownloads = document.getElementById(
-+      "hilalSidebarFooterDownloads"
-+    );
-+    const hilalSbPrivacy = document.getElementById("hilalSidebarFooterPrivacy");
-+    const hilalSbSettings = document.getElementById(
-+      "hilalSidebarFooterSettings"
-+    );
 +
-+    const bindBoolPref = (element, prefName, defaultValue) => {
-+      if (element) {
-+        element.checked = Services.prefs.getBoolPref(prefName, defaultValue);
-+        element.addEventListener("command", function () {
-+          Services.prefs.setBoolPref(prefName, element.checked);
-+        });
-+      }
-+    };
++/* Hilal Compact Mode — sidebar slides off-screen as a floating overlay on hover */
 +
-+    bindBoolPref(hilalSbBookmarks, "hilal.sidebar.footer.bookmarks", false);
-+    bindBoolPref(hilalSbHistory, "hilal.sidebar.footer.history", true);
-+    bindBoolPref(hilalSbPasswords, "hilal.sidebar.footer.passwords", false);
-+    bindBoolPref(hilalSbDownloads, "hilal.sidebar.footer.downloads", true);
-+    bindBoolPref(hilalSbPrivacy, "hilal.sidebar.footer.privacy", true);
-+    bindBoolPref(hilalSbSettings, "hilal.sidebar.footer.settings", true);
++:root[hilal-compact-mode] #sidebar-main {
++  position: fixed !important;
++  z-index: 1000 !important;
++  top: 0 !important;
++  bottom: 0 !important;
++  
++  /* Overrides layout size to 0 so it takes no space in the browser hbox container */
++  width: 0 !important;
++  min-width: 0 !important;
++  max-width: 0 !important;
++  margin: 0 !important;
++  border: none !important;
++  padding: 0 !important;
++  
++  /* Floating container setup */
++  overflow: visible !important;
++  box-shadow: none !important;
++  background: transparent !important;
++  opacity: 0;
++  visibility: hidden;
++  pointer-events: none;
++  will-change: transform, opacity;
++  contain: layout style;
++}
 +
-     setEventListener("hilalWorkspacesReset", "command", function () {
-       if (
-         Services.prompt.confirm(
-@@ -1912,6 +1947,14 @@
-         Services.prefs.setBoolPref("hilal.workspaces.pinned.public", false);
-         Services.prefs.setBoolPref("hilal.workspaces.groups.public", false);
-         Services.prefs.setStringPref("hilal.privacy.level", "standard");
-+        Services.prefs.setBoolPref("hilal.sidebar.footer.bookmarks", false);
-+        Services.prefs.setBoolPref("hilal.sidebar.footer.history", true);
-+        Services.prefs.setBoolPref("hilal.sidebar.footer.passwords", false);
-+        Services.prefs.setBoolPref("hilal.sidebar.footer.downloads", true);
-+        Services.prefs.setBoolPref("hilal.sidebar.footer.privacy", true);
-+        Services.prefs.setBoolPref("hilal.sidebar.footer.settings", true);
-+        Services.prefs.setStringPref("hilal.sidebar.customItems", "[]");
-+        refreshSidebarCustomList();
-         if (hilalWsCheckbox) {
-           hilalWsCheckbox.checked = true;
-         }
-@@ -1924,6 +1967,12 @@
-         if (hilalPrivacyLevelRadioGroup) {
-           hilalPrivacyLevelRadioGroup.value = "standard";
-         }
-+        if (hilalSbBookmarks) hilalSbBookmarks.checked = false;
-+        if (hilalSbHistory) hilalSbHistory.checked = true;
-+        if (hilalSbPasswords) hilalSbPasswords.checked = false;
-+        if (hilalSbDownloads) hilalSbDownloads.checked = true;
-+        if (hilalSbPrivacy) hilalSbPrivacy.checked = true;
-+        if (hilalSbSettings) hilalSbSettings.checked = true;
-       }
-     });
- 
-@@ -2097,18 +2146,27 @@
- 
-       const addRow = (trigger, search, home, isCustom) => {
-         const item = document.createXULElement("richlistitem");
--        item.setAttribute("style", "padding: 6px; border-bottom: 1px solid var(--in-content-border-color); align-items: center; display: flex; flex-direction: row;");
-+        item.setAttribute(
-+          "style",
-+          "padding: 6px; border-bottom: 1px solid var(--in-content-border-color); align-items: center; display: flex; flex-direction: row;"
-+        );
-         item.setAttribute("trigger", trigger);
-         item.setAttribute("isCustom", isCustom ? "true" : "false");
- 
-         const triggerLabel = document.createXULElement("label");
-         triggerLabel.setAttribute("value", "!" + trigger);
--        triggerLabel.setAttribute("style", "font-weight: bold; width: 80px; min-width: 80px; margin-right: 10px;");
-+        triggerLabel.setAttribute(
-+          "style",
-+          "font-weight: bold; width: 80px; min-width: 80px; margin-right: 10px;"
-+        );
-         item.appendChild(triggerLabel);
- 
-         const typeLabel = document.createXULElement("label");
-         typeLabel.setAttribute("value", isCustom ? "(custom)" : "(default)");
--        typeLabel.setAttribute("style", "color: gray; width: 80px; min-width: 80px; margin-right: 10px;");
-+        typeLabel.setAttribute(
-+          "style",
-+          "color: gray; width: 80px; min-width: 80px; margin-right: 10px;"
-+        );
-         item.appendChild(typeLabel);
- 
-         const urlLabel = document.createXULElement("label");
-@@ -2177,19 +2235,31 @@
- 
-     if (bangsSaveBtn) {
-       bangsSaveBtn.addEventListener("command", () => {
--        const trigger = bangsTriggerInput ? bangsTriggerInput.value.trim().toLowerCase().replace(/^!/, "") : "";
--        const search = bangsSearchUrlInput ? bangsSearchUrlInput.value.trim() : "";
-+        const trigger = bangsTriggerInput
-+          ? bangsTriggerInput.value.trim().toLowerCase().replace(/^!/, "")
-+          : "";
-+        const search = bangsSearchUrlInput
-+          ? bangsSearchUrlInput.value.trim()
-+          : "";
-         const home = bangsHomeUrlInput ? bangsHomeUrlInput.value.trim() : "";
- 
-         if (!trigger || !search) {
--          Services.prompt.alert(window, "Invalid Input", "Trigger and Search URL are required.");
-+          Services.prompt.alert(
-+            window,
-+            "Invalid Input",
-+            "Trigger and Search URL are required."
-+          );
-           return;
-         }
- 
-         // Check if trigger is already in use by default bangs
-         const defaults = HilalBangs.getDefaultBangs();
-         if (trigger in defaults) {
--          Services.prompt.alert(window, "Duplicate Trigger", "The trigger '!" + trigger + "' is reserved as a default bang.");
-+          Services.prompt.alert(
-+            window,
-+            "Duplicate Trigger",
-+            "The trigger '!" + trigger + "' is reserved as a default bang."
-+          );
-           return;
-         }
- 
-@@ -2222,7 +2292,15 @@
-         const isCustom = selected.getAttribute("isCustom") === "true";
- 
-         if (isCustom && trigger) {
--          if (Services.prompt.confirm(window, "Remove Bang", "Are you sure you want to remove the custom bang '!" + trigger + "'?")) {
-+          if (
-+            Services.prompt.confirm(
-+              window,
-+              "Remove Bang",
-+              "Are you sure you want to remove the custom bang '!" +
-+                trigger +
-+                "'?"
-+            )
-+          ) {
-             const customs = HilalBangs.getCustomBangs() || [];
-             const filtered = customs.filter(c => c.trigger !== trigger);
-             HilalBangs.setCustomBangs(filtered);
-@@ -2233,6 +2311,260 @@
-     }
- 
-     refreshBangsList();
++/* Left sidebar positioning */
++:root[hilal-compact-mode] #sidebar-main:not([sidebar-positionend]) {
++  left: 0 !important;
++  right: auto !important;
++  transform: translate3d(-340px, 0, 0) !important;
++  transition:
++    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
++    opacity 0.28s ease-out,
++    visibility 0s 0.32s;
++}
 +
-+    // -- Hilal Sidebar Custom Shortcuts ---------------------------------------
-+    const sidebarCustomList = document.getElementById("hilalSidebarCustomList");
-+    const sidebarCustomAddBtn = document.getElementById(
-+      "hilalSidebarCustomAdd"
-+    );
-+    const sidebarCustomRemoveBtn = document.getElementById(
-+      "hilalSidebarCustomRemove"
-+    );
-+    const sidebarCustomForm = document.getElementById("hilalSidebarCustomForm");
-+    const sidebarCustomNameInput = document.getElementById(
-+      "hilalSidebarCustomName"
-+    );
-+    const sidebarCustomUrlInput = document.getElementById(
-+      "hilalSidebarCustomUrl"
-+    );
-+    const sidebarCustomIconSelect = document.getElementById(
-+      "hilalSidebarCustomIcon"
-+    );
-+    const sidebarCustomSaveBtn = document.getElementById(
-+      "hilalSidebarCustomSave"
-+    );
-+    const sidebarCustomCancelBtn = document.getElementById(
-+      "hilalSidebarCustomCancel"
-+    );
++/* Right sidebar positioning */
++:root[hilal-compact-mode] #sidebar-main[sidebar-positionend] {
++  right: 0 !important;
++  left: auto !important;
++  transform: translate3d(340px, 0, 0) !important;
++  transition:
++    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
++    opacity 0.28s ease-out,
++    visibility 0s 0.32s;
++}
 +
-+    function getCustomSidebarItems() {
-+      try {
-+        const value = Services.prefs.getStringPref(
-+          "hilal.sidebar.customItems",
-+          "[]"
-+        );
-+        return JSON.parse(value);
-+      } catch (e) {
-+        return [];
-+      }
-+    }
++/* Compact Sidebar Visible state */
++:root[hilal-compact-mode] #sidebar-main.hilal-compact-visible {
++  opacity: 1 !important;
++  visibility: visible !important;
++  pointer-events: auto !important;
++  transform: translate3d(0, 0, 0) !important;
++  transition:
++    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
++    opacity 0.28s ease-out,
++    visibility 0s 0s;
++}
 +
-+    function setCustomSidebarItems(items) {
-+      Services.prefs.setStringPref(
-+        "hilal.sidebar.customItems",
-+        JSON.stringify(items)
-+      );
-+    }
++/* Floating aesthetic styles applied to the inner Lit component */
++:root[hilal-compact-mode] sidebar-main,
++:root[hilal-compact-mode] html\:sidebar-main {
++  display: block !important;
++  width: 280px !important;
++  min-width: 280px !important;
++  max-width: 280px !important;
++  height: 100% !important;
++  background-color: var(--hilal-sidebar-background, var(--sidebar-background-color, #1e1e2e)) !important;
++  box-shadow: 4px 0 32px 0 rgba(0, 0, 0, 0.35), 0 4px 16px 0 rgba(0, 0, 0, 0.25) !important;
++  border-radius: 0 16px 16px 0 !important;
++  border-inline-end: 1px solid var(--hilal-sidebar-border, rgba(255, 255, 255, 0.1)) !important;
++  border-inline-start: none !important;
++  margin: 0 !important;
++  padding: 0 !important;
++}
 +
-+    function normalizeSidebarShortcutUrl(url) {
-+      const value = String(url || "").trim();
-+      if (!value) {
-+        return "";
-+      }
-+      if (/^[a-z][a-z0-9+.-]*:/i.test(value)) {
-+        return value;
-+      }
-+      return "https://" + value;
-+    }
++/* Round left corners instead if sidebar is on the right side */
++:root[hilal-compact-mode] #sidebar-main[sidebar-positionend] sidebar-main,
++:root[hilal-compact-mode] #sidebar-main[sidebar-positionend] html\:sidebar-main {
++  border-radius: 16px 0 0 16px !important;
++  border-inline-start: 1px solid var(--hilal-sidebar-border, rgba(255, 255, 255, 0.1)) !important;
++  border-inline-end: none !important;
++  box-shadow: -4px 0 32px 0 rgba(0, 0, 0, 0.35), 0 4px 16px 0 rgba(0, 0, 0, 0.25) !important;
++}
 +
-+    function getSidebarShortcutFaviconUrl(url) {
-+      const normalizedUrl = normalizeSidebarShortcutUrl(url);
-+      if (!normalizedUrl) {
-+        return "";
-+      }
-+      try {
-+        const uri = Services.io.newURI(normalizedUrl);
-+        if (uri.scheme === "http" || uri.scheme === "https") {
-+          return "page-icon:" + uri.spec;
-+        }
-+      } catch (e) {
-+        // Keep the user-selected fallback icon for non-URL shortcuts.
-+      }
-+      return "";
-+    }
++:root[hilal-compact-mode] #sidebar-launcher-splitter,
++:root[hilal-compact-mode] #sidebar-splitter {
++  display: none !important;
++}
 +
-+    function refreshSidebarCustomList() {
-+      if (!sidebarCustomList) {
-+        return;
-+      }
-+      sidebarCustomList.textContent = "";
++:root[hilal-compact-mode] #tabbrowser-tabbox {
++  margin-inline-start: 0 !important;
++  margin-inline-end: 0 !important;
++}
 +
-+      const items = getCustomSidebarItems();
-+
-+      const addRow = (id, name, url, icon, faviconUrl) => {
-+        const item = document.createXULElement("richlistitem");
-+        item.setAttribute(
-+          "style",
-+          "padding: 6px; border-bottom: 1px solid var(--in-content-border-color); align-items: center; display: flex; flex-direction: row;"
-+        );
-+        item.setAttribute("itemId", id);
-+        item.setAttribute("name", name);
-+        item.setAttribute("url", url);
-+        item.setAttribute("icon", icon);
-+        item.setAttribute("faviconUrl", faviconUrl);
-+
-+        if (faviconUrl) {
-+          const favicon = document.createElement("img");
-+          favicon.setAttribute("src", faviconUrl);
-+          favicon.setAttribute("alt", "");
-+          favicon.setAttribute(
-+            "style",
-+            "margin-right: 12px; width: 16px; height: 16px; object-fit: contain; border-radius: 3px;"
-+          );
-+          favicon.addEventListener("error", () => {
-+            favicon.hidden = true;
-+          });
-+          item.appendChild(favicon);
-+        } else {
-+          const iconContainer = document.createXULElement("span");
-+          iconContainer.setAttribute("class", "hilal-icon hilal-icon-" + icon);
-+          iconContainer.setAttribute(
-+            "style",
-+            "margin-right: 12px; width: 16px; height: 16px; background-color: currentColor; display: inline-block;"
-+          );
-+          item.appendChild(iconContainer);
-+        }
-+
-+        const nameLabel = document.createXULElement("label");
-+        nameLabel.setAttribute("value", name);
-+        nameLabel.setAttribute(
-+          "style",
-+          "font-weight: bold; width: 150px; min-width: 150px; margin-right: 10px;"
-+        );
-+        item.appendChild(nameLabel);
-+
-+        const urlLabel = document.createXULElement("label");
-+        urlLabel.setAttribute("value", url);
-+        urlLabel.setAttribute("flex", "1");
-+        urlLabel.setAttribute("crop", "end");
-+        item.appendChild(urlLabel);
-+
-+        sidebarCustomList.appendChild(item);
-+      };
-+
-+      for (const entry of items) {
-+        if (entry && entry.id) {
-+          addRow(
-+            entry.id,
-+            entry.name,
-+            entry.url,
-+            entry.icon || "link",
-+            entry.faviconUrl || getSidebarShortcutFaviconUrl(entry.url)
-+          );
-+        }
-+      }
-+    }
-+
-+    if (sidebarCustomList) {
-+      sidebarCustomList.addEventListener("select", () => {
-+        const selected = sidebarCustomList.selectedItem;
-+        if (sidebarCustomRemoveBtn) {
-+          sidebarCustomRemoveBtn.disabled = !selected;
-+        }
-+      });
-+    }
-+
-+    if (sidebarCustomAddBtn) {
-+      sidebarCustomAddBtn.addEventListener("command", () => {
-+        if (sidebarCustomForm) {
-+          sidebarCustomForm.hidden = false;
-+        }
-+        if (sidebarCustomNameInput) {
-+          sidebarCustomNameInput.value = "";
-+          sidebarCustomNameInput.focus();
-+        }
-+        if (sidebarCustomUrlInput) {
-+          sidebarCustomUrlInput.value = "";
-+        }
-+        if (sidebarCustomIconSelect) {
-+          sidebarCustomIconSelect.value = "link";
-+        }
-+      });
-+    }
-+
-+    if (sidebarCustomCancelBtn) {
-+      sidebarCustomCancelBtn.addEventListener("command", () => {
-+        if (sidebarCustomForm) {
-+          sidebarCustomForm.hidden = true;
-+        }
-+      });
-+    }
-+
-+    if (sidebarCustomSaveBtn) {
-+      sidebarCustomSaveBtn.addEventListener("command", () => {
-+        const name = sidebarCustomNameInput
-+          ? sidebarCustomNameInput.value.trim()
-+          : "";
-+        const url = normalizeSidebarShortcutUrl(
-+          sidebarCustomUrlInput ? sidebarCustomUrlInput.value.trim() : ""
-+        );
-+        const icon = sidebarCustomIconSelect
-+          ? sidebarCustomIconSelect.value
-+          : "link";
-+
-+        if (!name || !url) {
-+          Services.prompt.alert(
-+            window,
-+            "Invalid Input",
-+            "Name and URL are required."
-+          );
-+          return;
-+        }
-+
-+        const items = getCustomSidebarItems();
-+        const id = "item_" + Date.now();
-+        items.push({
-+          id,
-+          name,
-+          url,
-+          icon,
-+          faviconUrl: getSidebarShortcutFaviconUrl(url),
-+        });
-+
-+        setCustomSidebarItems(items);
-+        refreshSidebarCustomList();
-+
-+        if (sidebarCustomForm) {
-+          sidebarCustomForm.hidden = true;
-+        }
-+      });
-+    }
-+
-+    if (sidebarCustomRemoveBtn) {
-+      sidebarCustomRemoveBtn.addEventListener("command", () => {
-+        const selected = sidebarCustomList
-+          ? sidebarCustomList.selectedItem
-+          : null;
-+        if (!selected) {
-+          return;
-+        }
-+
-+        const id = selected.getAttribute("itemId");
-+        const name = selected.getAttribute("name");
-+
-+        if (id) {
-+          if (
-+            Services.prompt.confirm(
-+              window,
-+              "Remove Shortcut",
-+              "Are you sure you want to remove the custom shortcut '" +
-+                name +
-+                "'?"
-+            )
-+          ) {
-+            const items = getCustomSidebarItems();
-+            const filtered = items.filter(item => item.id !== id);
-+            setCustomSidebarItems(filtered);
-+            refreshSidebarCustomList();
-+            if (sidebarCustomRemoveBtn) {
-+              sidebarCustomRemoveBtn.disabled = true;
-+            }
-+          }
-+        }
-+      });
-+    }
-+
-+    refreshSidebarCustomList();
-   },
- };
- 
++:root[hilal-compact-mode] #sidebar-box {
++  inline-size: 0 !important;
++  width: 0 !important;
++  min-inline-size: 0 !important;
++  min-width: 0 !important;
++  max-inline-size: 0 !important;
++  overflow: visible !important;
++  margin: 0 !important;
++  border: none !important;
++  padding: 0 !important;
++}

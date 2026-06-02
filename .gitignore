@@ -14,7 +14,14 @@ firefox/
 obj-*/
 dist/
 package-stage/
+repo/
+flatpak-build/
+.flatpak-builder/
+.packages/
 *.dmg
+*.flatpak
+*.flatpakref
+*.flatpakrepo
 *.pkg
 *.tar.bz2
 *.tar.xz
@@ -70,6 +77,7 @@ venv/
 # === Scratch / artifacts ====================================================
 artifacts/
 tmp/
+scratch/
 *.log
 *.rej
 *.orig

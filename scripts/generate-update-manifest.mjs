@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
-import { createReadStream, statSync, writeFileSync } from "node:fs";
+import {
+  createReadStream,
+  existsSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, resolve } from "node:path";
 
 const args = process.argv.slice(2);
@@ -61,6 +67,25 @@ if (!options.version) {
   usage(1);
 }
 
+if (!options.appVersion) {
+  options.appVersion = readFirefoxVersion();
+}
+
+if (!options.appVersion) {
+  console.error(
+    "Missing --app-version. This must be the Firefox/Gecko version from browser/config/version.txt, not the Hilal release version."
+  );
+  usage(1);
+}
+
+options.appVersion = stripTagPrefix(options.appVersion);
+if (!isFirefoxAppVersion(options.appVersion)) {
+  console.error(
+    `Invalid --app-version '${options.appVersion}'. Expected a Firefox version such as 153.0a1, 152.0, or 140.0.1esr.`
+  );
+  process.exit(1);
+}
+
 if (!options.buildID) {
   options.buildID = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
 }
@@ -102,10 +127,9 @@ const manifest = {
   generatedAt: new Date().toISOString(),
   version: stripTagPrefix(options.version),
   displayVersion: stripTagPrefix(options.displayVersion || options.version),
-  appVersion: stripTagPrefix(options.appVersion || options.version),
-  platformVersion: stripTagPrefix(
-    options.platformVersion || options.appVersion || options.version
-  ),
+  firefoxVersion: options.appVersion,
+  appVersion: options.appVersion,
+  platformVersion: stripTagPrefix(options.platformVersion || options.appVersion),
   buildID: options.buildID,
   channel: options.channel,
   detailsURL: options.detailsURL,
@@ -149,6 +173,18 @@ function stripTagPrefix(version) {
   return String(version).replace(/^v/i, "");
 }
 
+function readFirefoxVersion() {
+  const file = resolve("firefox/browser/config/version.txt");
+  if (!existsSync(file)) {
+    return "";
+  }
+  return readFileSync(file, "utf8").trim();
+}
+
+function isFirefoxAppVersion(version) {
+  return /^\d+(?:\.\d+)*(?:(?:a|b)\d+|esr)?$/i.test(version);
+}
+
 function sha512(file) {
   return new Promise((resolveHash, reject) => {
     const hash = createHash("sha512");
@@ -161,7 +197,7 @@ function sha512(file) {
 
 function usage(code) {
   console.error(`Usage:
-  scripts/generate-update-manifest.mjs --version <version> --build-id <YYYYMMDDHHMMSS> \\
+  scripts/generate-update-manifest.mjs --version <hilal-version> --app-version <firefox-version> --build-id <YYYYMMDDHHMMSS> \\
     --mar <platform>=<path/to/file.mar> --mar-url <platform>=<https://github.com/.../file.mar> \\
     [--mar <platform>=<path/to/another.mar> --mar-url <platform>=<https://...>] \\
     [--channel hilal-release] [--output dist/hilal-update-manifest.json]
@@ -170,6 +206,7 @@ Platforms:
   macos-x86_64, macos-arm64, linux-x86_64, linux-arm64, windows-x86_64, windows-arm64
 
 The generated JSON must be uploaded to the same GitHub release as the MAR files.
+  --app-version must be the Firefox/Gecko version shipped in the build, for example 153.0a1.
 The website update endpoint serves an update only when platform, channel, URL,
 sha512 hash, and size are all present.`);
   process.exit(code);

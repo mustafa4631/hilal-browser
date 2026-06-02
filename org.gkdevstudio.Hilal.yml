@@ -1,0 +1,63 @@
+app-id: org.gkdevstudio.Hilal
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+base: org.mozilla.firefox.BaseApp
+base-version: '25.08'
+command: hilal
+
+
+finish-args:
+  - --allow=devel
+  - --share=ipc
+  - --share=network
+  - --socket=pulseaudio
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pcsc
+  - --socket=cups
+  - --device=all
+  - --filesystem=xdg-download:rw
+  - --filesystem=xdg-run/speech-dispatcher:ro
+  - --filesystem=/run/.heim_org.h5l.kcm-socket
+  - --talk-name=org.a11y.Bus
+  - --talk-name=org.freedesktop.FileManager1
+  - --talk-name=org.gtk.vfs.*
+  - --system-talk-name=org.freedesktop.NetworkManager
+  - --own-name=org.gkdevstudio.Hilal.*
+  - --own-name=org.mpris.MediaPlayer2.hilal.*
+  - --persist=.mozilla
+  - --env=DICPATH=/usr/share/hunspell
+
+cleanup:
+  - /include
+  - /lib/debug
+  - /lib/pkgconfig
+  - /share/aclocal
+  - /share/man
+
+modules:
+  - name: hilal-browser
+    buildsystem: simple
+    build-commands:
+      - install -d "$FLATPAK_DEST/lib"
+      - tar -xf hilal-browser/app-archive.tar.xz -C "$FLATPAK_DEST/lib"
+      - install -Dm755 hilal-browser/flatpak/hilal "$FLATPAK_DEST/bin/hilal"
+      - install -Dm644 hilal-browser/flatpak/org.gkdevstudio.Hilal.desktop "$FLATPAK_DEST/share/applications/org.gkdevstudio.Hilal.desktop"
+      - install -Dm644 hilal-browser/flatpak/org.gkdevstudio.Hilal.metainfo.xml "$FLATPAK_DEST/share/metainfo/org.gkdevstudio.Hilal.metainfo.xml"
+      - install -Dm644 hilal-browser/flatpak/policies.json "$FLATPAK_DEST/lib/firefox/distribution/policies.json"
+      - install -Dm644 hilal-browser/LICENSE "$FLATPAK_DEST/share/licenses/org.gkdevstudio.Hilal/hilal-browser/LICENSE"
+      - install -Dm644 hilal-browser/branding/hilal/default16.png "$FLATPAK_DEST/share/icons/hicolor/16x16/apps/org.gkdevstudio.Hilal.png"
+      - install -Dm644 hilal-browser/branding/hilal/default32.png "$FLATPAK_DEST/share/icons/hicolor/32x32/apps/org.gkdevstudio.Hilal.png"
+      - install -Dm644 hilal-browser/branding/hilal/default48.png "$FLATPAK_DEST/share/icons/hicolor/48x48/apps/org.gkdevstudio.Hilal.png"
+      - install -Dm644 hilal-browser/branding/hilal/default64.png "$FLATPAK_DEST/share/icons/hicolor/64x64/apps/org.gkdevstudio.Hilal.png"
+      - install -Dm644 hilal-browser/branding/hilal/default128.png "$FLATPAK_DEST/share/icons/hicolor/128x128/apps/org.gkdevstudio.Hilal.png"
+      - install -Dm644 hilal-browser/branding/hilal/default256.png "$FLATPAK_DEST/share/icons/hicolor/256x256/apps/org.gkdevstudio.Hilal.png"
+    sources:
+      # HILAL_SOURCE_BEGIN
+      - type: git
+        url: https://github.com/VastSea0/hilal-browser.git
+        tag: v0.2.0-alpha.5
+        commit: b497cad592030a25ee4a659d008f4b794b970b75
+        dest: hilal-browser
+      # HILAL_SOURCE_END
