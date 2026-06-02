@@ -130,6 +130,8 @@ jobs:
         if: ${{ env.HAS_SIGN_DB != '' }}
         env:
           HILAL_SIGNING_DB_BASE64: ${{ secrets.HILAL_SIGNING_DB_BASE64 }}
+          HILAL_SIGNMAR_NSS_DIR: /tmp/signing-db
+          HILAL_SIGNMAR_CERT: mar_sig
         run: |
           mkdir -p /tmp/signing-db
           echo "$HILAL_SIGNING_DB_BASE64" | base64 -d > signing-db.tar.gz
@@ -149,14 +151,28 @@ jobs:
             --mar-url macos-arm64="https://github.com/vastsea0/hilal-browser/releases/download/$TAG/hilal-macos-arm64.complete.mar" \
             --output dist/hilal-update-manifest.json
 
+      - name: Generate Checksums
+        run: |
+          cd dist
+          shasum -a 256 $(find . -maxdepth 1 -type f ! -name "SHA256SUMS") > SHA256SUMS
+          echo "Checksums generated: dist/SHA256SUMS"
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          format: 'spdx-json'
+          output-file: 'dist/hilal-browser-sbom.spdx.json'
+
       - name: Upload assets
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.create-release.outputs.tag }}
           files: |
             dist/*.dmg
-            dist/hilal-macos-arm64.complete.mar
+            dist/*.mar
             dist/hilal-update-manifest.json
+            dist/SHA256SUMS
+            dist/hilal-browser-sbom.spdx.json
 
   publish-release:
     needs: [create-release, sign-macos]
