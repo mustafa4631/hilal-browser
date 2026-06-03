@@ -23,12 +23,11 @@
   }
 
   const STAGES = [
-    { title: "Welcome", short: "01", icon: "moon" },
-    { title: "Settings", short: "02", icon: "settings" },
-    { title: "Privacy", short: "03", icon: "shield" },
-    { title: "Search", short: "04", icon: "search" },
-    { title: "Workspaces", short: "05", icon: "tabs" },
-    { title: "Ready", short: "06", icon: "check" },
+    { title: "First choices", icon: "settings" },
+    { title: "Privacy", icon: "shield" },
+    { title: "Search", icon: "search" },
+    { title: "Spaces", icon: "tabs" },
+    { title: "Ready", icon: "check" },
   ];
 
   const CHROME_TO_HIDE = ["#navigator-toolbox", "#browser"];
@@ -37,7 +36,7 @@
     {
       key: "standard",
       label: "Balanced",
-      badge: "LibreWolf-like",
+      badge: "Everyday",
       description:
         "RFP, strict tracking protection, HTTPS-only, URL cleanup, WebGL off, and cookie/cache cleanup on close.",
       detail:
@@ -50,7 +49,7 @@
     {
       key: "strict",
       label: "Strict",
-      badge: "Less compatible",
+      badge: "Less exposed",
       description:
         "Adds First Party Isolation on top of Balanced and disables WebRTC entirely.",
       detail: "Video calls and some sign-in flows may break.",
@@ -62,7 +61,7 @@
     {
       key: "extreme",
       label: "Maximum",
-      badge: "Not Tor",
+      badge: "Local only",
       description:
         "Adds JavaScript, camera, microphone, location, and history blocking on top of Strict.",
       detail:
@@ -78,7 +77,6 @@
     {
       key: "personal",
       label: "Personal",
-      short: "P",
       icon: "home",
       colorClass: "blue",
       workspaceColor: "blue",
@@ -86,7 +84,6 @@
     {
       key: "work",
       label: "Work",
-      short: "W",
       icon: "folder",
       colorClass: "amber",
       workspaceColor: "orange",
@@ -94,7 +91,6 @@
     {
       key: "social",
       label: "Social",
-      short: "S",
       icon: "star",
       colorClass: "rose",
       workspaceColor: "pink",
@@ -211,7 +207,7 @@
         this._selectedEngine = duckDuckGo || this._engines[0];
       }
 
-      if (this._engines.length === 0) {
+      if (!this._engines.length) {
         this._engines = [
           { name: "DuckDuckGo", originalEngine: null, iconURL: "" },
           { name: "Google", originalEngine: null, iconURL: "" },
@@ -291,22 +287,22 @@
             ${this._logoHTML()}
           </div>
           <h1 class="hw-intro-title" id="hw-intro-title">
-            <span data-l10n-id="hilal-welcome-intro-line-1">Welcome to Hilal</span>
-            <span data-l10n-id="hilal-welcome-intro-line-2">A calmer internet</span>
+            <span data-l10n-id="hilal-welcome-intro-line-1">Hilal starts here</span>
+            <span data-l10n-id="hilal-welcome-intro-line-2">Keep the window quiet</span>
           </h1>
           <button type="button" class="hw-intro-button hw-btn-primary" id="hw-start-btn">
-            <span data-l10n-id="hilal-welcome-action-start">Start</span>
+            <span data-l10n-id="hilal-welcome-action-start">Set up</span>
             <span class="hw-icon hw-icon-arrow-right"></span>
           </button>
         </section>
       `;
       this._overlay.replaceChildren(MozXULElement.parseXULToFragment(markup));
       document.getElementById("hw-start-btn")?.addEventListener("click", () => {
-        this._beginPages();
+        this._beginFlow();
       });
     }
 
-    async _beginPages() {
+    async _beginFlow() {
       const button = document.getElementById("hw-start-btn");
       if (button) {
         button.disabled = true;
@@ -329,34 +325,31 @@
       }
 
       const markup = `
-        <div class="hw-pages" role="dialog" aria-modal="true" aria-labelledby="hw-stage-title" data-stage="${this._stage}" xmlns="http://www.w3.org/1999/xhtml">
-          <aside class="hw-page-sidebar">
+        <div class="hw-flow" role="dialog" aria-modal="true" aria-labelledby="hw-stage-title" data-stage="${this._stage}" xmlns="http://www.w3.org/1999/xhtml">
+          <header class="hw-flow-top">
             <div class="hw-brand">
               <span class="hw-brand-mark">${this._logoHTML()}</span>
               <span class="hw-brand-text" data-l10n-id="hilal-welcome-brand-text">Hilal Browser</span>
             </div>
-            <div class="hw-sidebar-copy">
-              ${this._stageCopyHTML()}
+            <div class="hw-progress" aria-hidden="true">
+              ${this._stepsHTML()}
             </div>
-            <div class="hw-sidebar-bottom">
-              <div class="hw-progress">
-                <span class="hw-step-count" data-l10n-id="hilal-welcome-step-count" data-l10n-args='{"current": ${this._stage + 1}, "total": ${STAGES.length}}'>Step ${this._stage + 1}/${STAGES.length}</span>
-                <ol class="hw-steps">
-                  ${this._stepsHTML()}
-                </ol>
-              </div>
-              ${this._actionsHTML()}
-            </div>
-          </aside>
-          <main class="hw-page-content">
             <button type="button" class="hw-skip" id="hw-skip-btn">
               <span data-l10n-id="hilal-welcome-skip">Skip</span>
               <span class="hw-icon hw-icon-close"></span>
             </button>
-            <section class="hw-content">
+          </header>
+          <main class="hw-stage">
+            <section class="hw-stage-copy">
+              ${this._stageCopyHTML()}
+            </section>
+            <section class="hw-stage-panel">
               ${this._stageHTML()}
             </section>
           </main>
+          <footer class="hw-flow-actions">
+            ${this._actionsHTML()}
+          </footer>
         </div>
       `;
       this._overlay.replaceChildren(MozXULElement.parseXULToFragment(markup));
@@ -365,17 +358,12 @@
 
     _stepsHTML() {
       return STAGES.map((stage, index) => {
-        let state = "";
-        if (index < this._stage) {
-          state = " hw-step-done";
-        } else if (index === this._stage) {
-          state = " hw-step-active";
-        }
+        const active = index === this._stage;
+        const done = index < this._stage;
         return `
-          <li class="hw-step${state}">
-            <span class="hw-step-dot"></span>
-            <span class="hw-step-label" data-l10n-id="hilal-welcome-step-label-${stage.icon}">${stage.title}</span>
-          </li>
+          <span class="hw-progress-dot${active ? " hw-progress-active" : ""}${done ? " hw-progress-done" : ""}">
+            <span data-l10n-id="hilal-welcome-step-label-${stage.icon}">${stage.title}</span>
+          </span>
         `;
       }).join("");
     }
@@ -383,40 +371,34 @@
     _stageCopyHTML() {
       const stageCopies = [
         {
-          kicker: "Welcome",
-          title: "A quieter start for the web.",
+          kicker: "First choices",
+          title: "Decide what Hilal should touch.",
           subtitle:
-            "Hilal opens with privacy, workspaces, and search choices in one calm flow.",
+            "Keep the first run quiet: import only what you want and choose whether system links should open here.",
         },
         {
-          kicker: "Bring your trail",
-          title: "A new start, same bookmarks.",
+          kicker: "Privacy",
+          title: "Pick a protection posture.",
           subtitle:
-            "Move bookmarks, history, and passwords in one pass, then decide whether Hilal should become your default browser.",
-        },
-        {
-          kicker: "Privacy Level",
-          title: "Choose the amount of hardening.",
-          subtitle:
-            "uBlock Origin is already installed. Pick the Hilal privacy profile that matches how much site compatibility you want to keep.",
+            "Hilal can stay comfortable for daily browsing or tighten the surfaces that websites use to recognize you.",
         },
         {
           kicker: "Search",
-          title: "Choose your default search.",
+          title: "Choose the address-bar engine.",
           subtitle:
-            "Select the search engine Hilal should use from the address bar. You can change it later in settings.",
+            "This is the engine Hilal uses when you type into the bar. You can change it whenever the browser is open.",
         },
         {
-          kicker: "Workspaces",
-          title: "Keep flows apart from day one.",
+          kicker: "Spaces",
+          title: "Start with fewer mixed tabs.",
           subtitle:
-            "Create a few starter spaces so personal, work, and social browsing do not collapse into the same tab pile.",
+            "Create a small set of spaces now, or leave the browser empty and shape it later.",
         },
         {
-          kicker: "Ready",
-          title: "Everything is in place.",
+          kicker: "Finish",
+          title: "Ready for a clean window.",
           subtitle:
-            "Hilal will apply your choices and open into a clean browsing window.",
+            "Your choices are saved locally. Hilal will leave the setup layer and return the browser chrome.",
         },
       ];
       const copy = stageCopies[this._stage];
@@ -424,6 +406,7 @@
         <p class="hw-kicker" data-l10n-id="hilal-welcome-stage-${this._stage}-kicker">${copy.kicker}</p>
         <h1 class="hw-title" id="hw-stage-title" data-l10n-id="hilal-welcome-stage-${this._stage}-title">${copy.title}</h1>
         <p class="hw-sub" data-l10n-id="hilal-welcome-stage-${this._stage}-subtitle">${copy.subtitle}</p>
+        <span class="hw-step-count" data-l10n-id="hilal-welcome-step-count" data-l10n-args='{"current": ${this._stage + 1}, "total": ${STAGES.length}}'>Step ${this._stage + 1}/${STAGES.length}</span>
       `;
     }
 
@@ -431,73 +414,47 @@
       switch (this._stage) {
         case 0:
           return `
-            <div class="hw-hero-visual">
-              <figure class="hw-home-image-frame">
-                <img class="hw-home-preview-image" src="chrome://browser/content/hilal/welcome-home-preview.png" data-l10n-id="hilal-welcome-home-preview-image-alt" alt="Hilal Browser home page preview" />
-              </figure>
-              <div class="hw-feature-row">
-                <span><span class="hw-icon hw-icon-shield"></span><span data-l10n-id="hilal-welcome-feature-privacy">Privacy focused</span></span>
-                <span><span class="hw-icon hw-icon-tabs"></span><span data-l10n-id="hilal-welcome-feature-workspaces">Workspaces</span></span>
-                <span><span class="hw-icon hw-icon-moon"></span><span data-l10n-id="hilal-welcome-feature-clean">Clean interface</span></span>
-              </div>
-            </div>
-          `;
-        case 1:
-          return `
-            <div class="hw-row-list">
-              <label class="hw-row" for="hw-default-browser-toggle">
-                <span class="hw-row-main">
-                  <span class="hw-row-icon hw-icon hw-icon-check"></span>
-                  <span class="hw-row-info">
-                    <span class="hw-row-label" data-l10n-id="hilal-welcome-default-browser-label">Default browser</span>
-                    <span class="hw-row-desc" data-l10n-id="hilal-welcome-default-browser-desc">Make Hilal Browser your default browser for system links.</span>
-                  </span>
+            <div class="hw-choice-stack">
+              <label class="hw-line-choice" for="hw-default-browser-toggle">
+                <span class="hw-line-icon hw-icon hw-icon-check"></span>
+                <span class="hw-line-copy">
+                  <span class="hw-line-title" data-l10n-id="hilal-welcome-default-browser-label">Default browser</span>
+                  <span class="hw-line-desc" data-l10n-id="hilal-welcome-default-browser-desc">Use Hilal when the system opens web links.</span>
                 </span>
                 <span class="hw-toggle">
                   <input type="checkbox" id="hw-default-browser-toggle"${this._defaultBrowserSelected ? ' checked="checked"' : ""}/>
                   <span class="hw-toggle-track"></span>
                 </span>
               </label>
-              <div class="hw-row">
-                <span class="hw-row-main">
-                  <span class="hw-row-icon hw-icon hw-icon-folder"></span>
-                  <span class="hw-row-info">
-                    <span class="hw-row-label" data-l10n-id="hilal-welcome-import-label">Bookmarks and passwords</span>
-                    <span class="hw-row-desc" data-l10n-id="hilal-welcome-import-desc">Import your existing bookmarks, history, and passwords from another browser.</span>
-                  </span>
+              <div class="hw-line-choice">
+                <span class="hw-line-icon hw-icon hw-icon-folder"></span>
+                <span class="hw-line-copy">
+                  <span class="hw-line-title" data-l10n-id="hilal-welcome-import-label">Browser data</span>
+                  <span class="hw-line-desc" data-l10n-id="hilal-welcome-import-desc">Bring bookmarks, history, and passwords from another browser.</span>
                 </span>
                 <button type="button" class="hw-btn-secondary" id="hw-import-btn" data-l10n-id="hilal-welcome-import-button">Import</button>
               </div>
             </div>
           `;
-        case 2:
+        case 1:
           return `
-            <div class="hw-privacy-stack">
-              <div class="hw-privacy-note">
-                <span class="hw-row-icon hw-icon hw-icon-shield"></span>
-                <span class="hw-row-info">
-                  <span class="hw-row-label" data-l10n-id="hilal-welcome-ublock-label">uBlock Origin is installed by default</span>
-                  <span class="hw-row-desc" data-l10n-id="hilal-welcome-ublock-desc">Ad, tracking, and harmful-site filter lists are ready on first launch. The privacy level controls Hilal's own browser hardening settings.</span>
-                </span>
-              </div>
-              <div class="hw-privacy-list">
-                ${this._privacyLevelsHTML()}
-              </div>
+            <div class="hw-privacy-list">
+              ${this._privacyLevelsHTML()}
             </div>
           `;
-        case 3:
+        case 2:
           return `
             <div class="hw-engine-list">
               ${this._enginesHTML()}
             </div>
           `;
-        case 4:
+        case 3:
           return `
             <div class="hw-workspace-list">
               ${this._workspacesHTML()}
             </div>
           `;
-        case 5:
+        case 4:
           return `
             <div class="hw-summary">
               ${this._summaryHTML()}
@@ -516,20 +473,18 @@
       let primaryFallback = "Continue";
       if (isLast) {
         primaryL10nId = "hilal-welcome-action-start-browsing";
-        primaryFallback = "Start browsing";
+        primaryFallback = "Open Hilal";
       }
 
       return `
-        <div class="hw-actions">
-          <button type="button" class="hw-btn-ghost" id="hw-prev-btn"${isFirst ? ' disabled="disabled"' : ""}>
-            <span class="hw-icon hw-icon-arrow-left"></span>
-            <span data-l10n-id="hilal-welcome-action-back">Back</span>
-          </button>
-          <button type="button" class="hw-btn-primary" id="${primaryId}">
-            <span data-l10n-id="${primaryL10nId}">${primaryFallback}</span>
-            <span class="hw-icon hw-icon-${isLast ? "check" : "arrow-right"}"></span>
-          </button>
-        </div>
+        <button type="button" class="hw-btn-ghost" id="hw-prev-btn"${isFirst ? ' disabled="disabled"' : ""}>
+          <span class="hw-icon hw-icon-arrow-left"></span>
+          <span data-l10n-id="hilal-welcome-action-back">Back</span>
+        </button>
+        <button type="button" class="hw-btn-primary" id="${primaryId}">
+          <span data-l10n-id="${primaryL10nId}">${primaryFallback}</span>
+          <span class="hw-icon hw-icon-${isLast ? "check" : "arrow-right"}"></span>
+        </button>
       `;
     }
 
@@ -544,11 +499,8 @@
               <span class="hw-engine-icon">
                 ${this._engineIconHTML(engine)}
               </span>
-              <span class="hw-engine-meta">
-                <span class="hw-engine-name">${name}</span>
-                ${isDuckDuckGo ? `<span class="hw-pill" data-l10n-id="hilal-welcome-recommended">Recommended</span>` : ""}
-              </span>
-              <span class="hw-choice-check hw-icon hw-icon-check"></span>
+              <span class="hw-engine-name">${name}</span>
+              ${isDuckDuckGo ? `<span class="hw-pill" data-l10n-id="hilal-welcome-recommended">Recommended</span>` : ""}
             </button>
           `;
         })
@@ -560,13 +512,12 @@
         const active = this._selectedPrivacyLevel === level.key;
         return `
           <button type="button" class="hw-privacy-choice${active ? " hw-choice-active" : ""}" data-privacy-level="${level.key}" aria-pressed="${active}">
-            <span class="hw-privacy-header">
-              <span class="hw-privacy-title" data-l10n-id="${level.l10nLabel}">${level.label}</span>
+            <span class="hw-choice-top">
+              <span class="hw-choice-title" data-l10n-id="${level.l10nLabel}">${level.label}</span>
               <span class="hw-pill" data-l10n-id="${level.l10nBadge}">${level.badge}</span>
             </span>
-            <span class="hw-privacy-desc" data-l10n-id="${level.l10nDesc}">${level.description}</span>
-            <span class="hw-privacy-detail" data-l10n-id="${level.l10nDetail}">${level.detail}</span>
-            <span class="hw-choice-check hw-icon hw-icon-check"></span>
+            <span class="hw-choice-desc" data-l10n-id="${level.l10nDesc}">${level.description}</span>
+            <span class="hw-choice-detail" data-l10n-id="${level.l10nDetail}">${level.detail}</span>
           </button>
         `;
       }).join("");
@@ -587,8 +538,7 @@
               <span class="hw-icon hw-icon-${item.icon}"></span>
             </span>
             <span class="hw-workspace-label" data-l10n-id="hilal-welcome-workspace-label-${item.key}">${item.label}</span>
-            <span class="hw-workspace-state" data-l10n-id="hilal-welcome-workspace-state-${active ? "added" : "skipped"}">${active ? "Will be added" : "Skipped"}</span>
-            <span class="hw-choice-check hw-icon hw-icon-check"></span>
+            <span class="hw-workspace-state" data-l10n-id="hilal-welcome-workspace-state-${active ? "added" : "skipped"}">${active ? "Will be created" : "Skipped"}</span>
           </button>
         `;
       }).join("");
@@ -616,20 +566,20 @@
 
       return `
         <div class="hw-summary-row">
-          <span class="hw-summary-label"><span class="hw-icon hw-icon-search"></span><span data-l10n-id="hilal-welcome-summary-search">Search</span></span>
+          <span data-l10n-id="hilal-welcome-summary-search">Search</span>
           <strong>${engineName}</strong>
         </div>
         <div class="hw-summary-row">
-          <span class="hw-summary-label"><span class="hw-icon hw-icon-shield"></span><span data-l10n-id="hilal-welcome-summary-privacy">Privacy</span></span>
+          <span data-l10n-id="hilal-welcome-summary-privacy">Privacy</span>
           <strong>${this._escapeHTML(privacyLevel.label)}</strong>
         </div>
         <div class="hw-summary-row">
-          <span class="hw-summary-label"><span class="hw-icon hw-icon-tabs"></span><span data-l10n-id="hilal-welcome-summary-workspaces">Workspaces</span></span>
+          <span data-l10n-id="hilal-welcome-summary-workspaces">Spaces</span>
           <strong>${workspacesHTML}</strong>
         </div>
         <div class="hw-summary-row">
-          <span class="hw-summary-label"><span class="hw-icon hw-icon-check"></span><span data-l10n-id="hilal-welcome-summary-default-browser">Default browser</span></span>
-          <strong data-l10n-id="hilal-welcome-summary-default-${this._defaultBrowserSelected ? "set" : "no-change"}">${this._defaultBrowserSelected ? "Set as default" : "Do not change"}</strong>
+          <span data-l10n-id="hilal-welcome-summary-default-browser">Default browser</span>
+          <strong data-l10n-id="hilal-welcome-summary-default-${this._defaultBrowserSelected ? "set" : "no-change"}">${this._defaultBrowserSelected ? "Set as default" : "No change"}</strong>
         </div>
       `;
     }
