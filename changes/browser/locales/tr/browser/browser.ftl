@@ -5,6 +5,8 @@ hilal-welcome-step-count = Adım { $current }/{ $total }
 hilal-welcome-recommended = Önerilen
 
 hilal-welcome-brand-text = Hilal Tarayıcı
+hilal-welcome-intro-line-1 = Hilal'e Hoş Geldiniz
+hilal-welcome-intro-line-2 = Daha sakin bir internet
 
 hilal-welcome-step-label-moon = Hoş Geldiniz
 hilal-welcome-step-label-settings = Ayarlar
@@ -13,29 +15,29 @@ hilal-welcome-step-label-search = Arama
 hilal-welcome-step-label-tabs = Çalışma Alanları
 hilal-welcome-step-label-check = Hazır
 
-hilal-welcome-stage-0-kicker = Hilal'e Hoş Geldiniz
-hilal-welcome-stage-0-title = Tarayıcınızı temiz bir ritme göre ayarlayın.
-hilal-welcome-stage-0-subtitle = İlk açılışta gizlilik, arama ve çalışma alanlarını belirleyin.
+hilal-welcome-stage-0-kicker = Hoş geldiniz
+hilal-welcome-stage-0-title = Web için daha sakin bir başlangıç.
+hilal-welcome-stage-0-subtitle = Hilal; gizlilik, çalışma alanları ve arama seçimlerini tek, sakin bir akışta açar.
 
-hilal-welcome-stage-1-kicker = Temel Ayarlar
-hilal-welcome-stage-1-title = Verilerinizi temiz bir adımda içe aktarın.
-hilal-welcome-stage-1-subtitle = Varsayılan tarayıcı ayarlarınızı seçin; yer imlerinizi ve parolalarınızı kolayca içe aktarın.
+hilal-welcome-stage-1-kicker = İzlerinizi getirin
+hilal-welcome-stage-1-title = Yeni başlangıç, aynı yer imleri.
+hilal-welcome-stage-1-subtitle = Yer imleri, geçmiş ve parolaları tek adımda taşıyın; ardından Hilal'in varsayılan tarayıcınız olup olmayacağına karar verin.
 
 hilal-welcome-stage-2-kicker = Gizlilik Seviyesi
-hilal-welcome-stage-2-title = Koruma seviyenizi net bir şekilde seçin.
-hilal-welcome-stage-2-subtitle = uBlock Origin varsayılan olarak kuruludur. Üzerine hangi Hilal sıkılaştırma profilinin uygulanacağını seçin.
+hilal-welcome-stage-2-title = Sıkılaştırma seviyesini seçin.
+hilal-welcome-stage-2-subtitle = uBlock Origin zaten kurulu gelir. Ne kadar site uyumluluğu korumak istediğinize göre Hilal gizlilik profilini seçin.
 
 hilal-welcome-stage-3-kicker = Arama
-hilal-welcome-stage-3-title = Arama motorunuzun sizi takip etmesine izin vermeyin.
-hilal-welcome-stage-3-subtitle = Varsayılan arama deneyiminizi seçin. Bu kararınızı daha sonra ayarlardan değiştirebilirsiniz.
+hilal-welcome-stage-3-title = Varsayılan aramanızı seçin.
+hilal-welcome-stage-3-subtitle = Hilal'in adres çubuğunda hangi arama motorunu kullanacağını seçin. Bunu daha sonra ayarlardan değiştirebilirsiniz.
 
 hilal-welcome-stage-4-kicker = Çalışma Alanları
-hilal-welcome-stage-4-title = İş akışlarınızı ayrı tutun.
-hilal-welcome-stage-4-subtitle = Kişisel, iş ve sosyal sekmelerinizi ayırmak için ilk izole alanları oluşturun.
+hilal-welcome-stage-4-title = Akışları ilk günden ayırın.
+hilal-welcome-stage-4-subtitle = Kişisel, iş ve sosyal gezinmenin aynı sekme yığınına dönüşmemesi için birkaç başlangıç alanı oluşturun.
 
-hilal-welcome-stage-5-kicker = Son Kontrol
-hilal-welcome-stage-5-title = Her şey hazır.
-hilal-welcome-stage-5-subtitle = Seçimleriniz uygulanacak ve Hilal sakin, boş bir pencereyle açılacak.
+hilal-welcome-stage-5-kicker = Hazır
+hilal-welcome-stage-5-title = Her şey yerinde.
+hilal-welcome-stage-5-subtitle = Hilal seçimlerinizi uygulayacak ve temiz bir gezinme penceresine açılacak.
 
 hilal-welcome-home-preview-image-alt =
     .alt = Hilal Tarayıcı ana sayfa önizlemesi
@@ -45,7 +47,7 @@ hilal-welcome-feature-workspaces = Çalışma alanları
 hilal-welcome-feature-clean = Temiz arayüz
 
 hilal-welcome-default-browser-label = Varsayılan tarayıcı
-hilal-welcome-default-browser-desc = Make Hilal Browser your default browser for system links.
+hilal-welcome-default-browser-desc = Sistem bağlantıları için Hilal Tarayıcı'yı varsayılan yap.
 hilal-welcome-import-label = Yer imleri ve parolalar
 hilal-welcome-import-desc = Diğer tarayıcılardan mevcut yer imlerinizi, geçmişinizi ve parolalarınızı içe aktarın.
 hilal-welcome-import-button = İçe Aktar
@@ -89,4 +91,4 @@ hilal-welcome-privacy-strict-detail = Görüntülü aramalar ve bazı giriş yap
 hilal-welcome-privacy-extreme-label = Maksimum
 hilal-welcome-privacy-extreme-badge = Tor Değil
 hilal-welcome-privacy-extreme-desc = Sıkı seviyenin üzerine JavaScript kapatma, kamera/mikrofon/konum engelleme ve kapanışta tarama geçmişi temizleme ekler.
-hilal-welcome-privacy-extreme-detail = Does not hide your IP address; many modern sites may not work as expected.
+hilal-welcome-privacy-extreme-detail = IP adresinizi gizlemez; birçok modern site beklendiği gibi çalışmayabilir.
