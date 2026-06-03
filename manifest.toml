@@ -39,8 +39,16 @@ path   = "third_party/libwebrtc/disable-goog-cc-scream-windows.patch"
 reason = "Disable goog-cc-scream on Windows"
 
 [[patches]]
+path   = "browser/modules/HilalBangs.sys.mjs"
+reason = "Hilal search bangs utility module"
+
+[[patches]]
 path   = "browser/components/urlbar/bangs.patch"
 reason = "Hilal Bangs implementation"
+
+[[patches]]
+path   = "browser/app/distribution/extensions"
+reason = "Bundled distribution extensions (langpacks)"
 
 [[patches]]
 path   = "browser/ublock.patch"
@@ -55,6 +63,10 @@ path   = "browser/app/fix-macos-openrsync-dylib-copy.patch"
 reason = "Fix macOS openrsync dylib copy path"
 
 [[patches]]
+path   = "browser/themes/shared"
+reason = "Hilal custom UI styling and overrides"
+
+[[patches]]
 path   = "browser/ui-fix.patch"
 reason = "Hilal custom UI style fixes and overrides"
 
@@ -65,6 +77,10 @@ reason = "Hilal system locale default preferences"
 [[patches]]
 path   = "browser/components/preferences/privacy-levels.patch"
 reason = "Hilal privacy level controls in settings"
+
+[[patches]]
+path   = "browser/app/distribution/policies.json"
+reason = "Hilal browser distribution policy configuration"
 
 [[patches]]
 path   = "browser/app/distribution/update-policy.patch"
