@@ -197,6 +197,12 @@ fn apply(repo_root: &Path, engine_path: &Path, force: bool, dry_run: bool) -> Re
         bail!("engine/ directory not found. Please run 'hil setup' first.");
     }
     
+    let state_file = engine_path.join(".hilal-applied");
+    if state_file.exists() && !force {
+        println!("[hil] Patches are already applied. Use --force to re-apply.");
+        return Ok(());
+    }
+    
     // Set local git config for committing if not already set
     let _ = run_cmd(&["git", "config", "user.name", "Hilal Tool"], engine_path);
     let _ = run_cmd(&["git", "config", "user.email", "hil-tool@hilal.browser"], engine_path);
@@ -210,9 +216,8 @@ fn apply(repo_root: &Path, engine_path: &Path, force: bool, dry_run: bool) -> Re
         println!("[hil] Force reset: resetting to upstream baseline...");
         run_cmd(&["git", "reset", "--hard", "upstream-base"], engine_path)?;
         run_cmd(&["git", "clean", "-fd"], engine_path)?;
-        let state_file = engine_path.join(".hilal-applied");
         if state_file.exists() {
-            fs::remove_file(state_file)?;
+            fs::remove_file(&state_file)?;
         }
     }
     
@@ -290,6 +295,9 @@ fn apply(repo_root: &Path, engine_path: &Path, force: bool, dry_run: bool) -> Re
         
         // Merge Turkish translations
         merge_locales(repo_root, engine_path)?;
+        
+        // Mark patches as applied
+        fs::write(&state_file, "applied")?;
     }
     
     println!("[hil] Patches/Overlays: {} applied, {} overlays synced.", applied, copied);
