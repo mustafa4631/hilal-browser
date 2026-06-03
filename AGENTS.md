@@ -6,67 +6,65 @@ This repository is a **patch and overlay layer** on top of upstream Firefox, not
 
 There are two distinct trees:
 
-1. **`hilal-browser/`** (this repo) — the source of truth. Small, text-only, version-controlled. Holds patches, branding assets, scripts, and docs.
-2. **`hilal-browser/firefox/`** — the full Firefox source checkout. **Gitignored** from this repo. It has its own git history pointing at `mozilla-firefox/firefox`.
+1. **`hilal-browser/`** (this repo) — the source of truth. Small, text-only, version-controlled. Holds the declarative configs, patches, scripts, and docs.
+2. **`hilal-browser/engine/`** — the full Firefox source checkout. **Gitignored** from this repo. It has its own git history pointing at `mozilla-firefox/firefox`.
 
 ```
 hilal-browser/
-├── patches/          # Numbered unified-diff patches applied in series order
-├── patches/series     # Order of patch application
-├── branding/hilal/    # Branding assets (PNG, ICO, etc.) rsync'd into Firefox
-├── prefs/             # Preference/config overlays (mirrored path into Firefox)
-├── scripts/           # Workflow helpers (apply, refresh, build, sync)
-├── docs/              # Workflow and build documentation
-└── firefox/           # (gitignored) full Firefox checkout
+├── changes/          # Unified patches (*.patch) and overlays mirroring the Firefox source layout
+├── manifest.toml     # Centralized, declarative build manifest mapping all patches and overlays
+├── upstream.lock     # Pinned upstream Firefox commit hash and metadata
+├── scripts/          # Workflow wrappers and platform build scripts
+├── bin/hil           # Compiled Rust patch manager utility
+└── engine/           # (gitignored) full Firefox checkout
 ```
 
 ## Editing Source Code
 
-**Always edit inside `firefox/`**, then bring changes back into this repo.
+**Always edit inside `engine/`**, then bring changes back into this repo.
 
 ```bash
-# 1. Edit files inside firefox/ directly
-# 2. Build and test inside firefox/
+# 1. Edit files inside engine/ directly
+# 2. Build and test inside engine/
 # 3. When ready, regenerate patches:
-scripts/refresh.sh
-# 4. Review and commit the resulting changes in patches/ (and branding/ or prefs/ if changed)
+./bin/hil refresh
+# 4. Review and commit the resulting changes in changes/
 ```
 
-## The Five Core Operations
+## The Core Operations
 
 | Goal | Command |
 |------|---------|
-| Clone Firefox into `./firefox` | `scripts/setup-firefox.sh` |
-| Apply all Hilal patches + overlays onto Firefox | `scripts/apply.sh` |
-| Regenerate patches from edits in `./firefox` | `scripts/refresh.sh` |
-| Pull upstream Firefox and rebase Hilal on top | `scripts/sync-upstream.sh` |
+| Setup workspace (clone/checkout) | `./bin/hil setup` |
+| Apply all patches + overlays | `./bin/hil apply` |
+| Reset & force-apply patches | `./bin/hil apply --force` |
+| Regenerate patches from edits | `./bin/hil refresh` |
+| Show current workspace status | `./bin/hil status` |
+| Verify upstream checksum | `./bin/hil verify` |
 | Build on macOS | `scripts/build-macos.sh` |
-
-All scripts accept `-h` for usage.
 
 ## Patch Workflow
 
-- Patches are **small, focused, and one-purpose**. One feature per patch, one bugfix per patch.
-- Patch filenames: `<NNNN>-<kebab-case-summary>.patch`
-- `patches/series` controls application order. Update it when adding/removing patches.
-- Use `scripts/refresh.sh --from-commits <range>` to export one patch per commit when working with multiple commits in the Firefox tree.
+- Patches and overlays are declared in `manifest.toml` and applied in the exact sequence specified.
+- Patches are located under `changes/` relative to their target path (e.g. `changes/browser/base/workspaces.patch`).
+- Commit messages and headers at the top of patch files are automatically preserved when running `./bin/hil refresh`.
 
 ## Branding & Prefs Workflow
 
-Branding and prefs are **overlays**, not patches:
+Branding and preferences are **overlays**, not patches:
 
-- Edit files in `branding/hilal/` or `prefs/` directly, OR
-- Edit them inside `firefox/` and run `scripts/refresh.sh` to pull changes back.
-- `scripts/apply.sh` syncs overlays into the Firefox tree.
+- Edit files in `changes/` directly, OR
+- Edit them inside `engine/` and run `./bin/hil refresh` to pull changes back.
+- `./bin/hil apply` syncs overlays into the `engine/` tree.
 
 ## Build & Test
 
 - Build: `scripts/build-macos.sh`
 - Front-end only (faster): `scripts/build-macos.sh faster`
 - C++/Rust only: `scripts/build-macos.sh binaries`
-- Run: `(cd firefox && ./mach run)`
-- Tests: `(cd firefox && ./mach test --auto)`
-- Format modified files: `(cd firefox && ./mach format)`
+- Run: `(cd engine && ./mach run)`
+- Tests: `(cd engine && ./mach test --auto)`
+- Format modified files: `(cd engine && ./mach format)`
 
 ## Code Style
 
@@ -77,9 +75,9 @@ Branding and prefs are **overlays**, not patches:
 
 ## Commit Rules
 
-- Commit in **this repo**, not in `firefox/`. The `firefox/` directory is gitignored.
+- Commit in **this repo**, not in `engine/`. The `engine/` directory is gitignored.
 - Commit one logical change per commit with a short, descriptive subject line.
-- Never commit the `firefox/` directory or build artifacts.
+- Never commit the `engine/` directory or build artifacts.
 - Review regenerated patches with `git diff` before committing.
 - Do **not** append "Generated with Devin" or automated "Co-Authored-By" trailers to commits.
 
@@ -87,15 +85,12 @@ Branding and prefs are **overlays**, not patches:
 
 Usually means upstream Firefox changed the touched code:
 
-1. `scripts/apply.sh --force` to reset and retry
-2. Or `cd firefox && git apply --3way patches/<file>` for conflict markers, fix by hand, then `scripts/refresh.sh`
-3. Or drop the patch if upstream incorporated the change
-
-See `docs/WORKFLOW.md` for full conflict resolution guidance.
+1. Run `./bin/hil apply --force` to reset and retry.
+2. Or run `git apply --3way changes/<path>.patch` inside the `engine/` folder to resolve conflict markers, fix by hand, commit/amend the commit in `engine/`, and then run `./bin/hil refresh`.
 
 ## Searching the Firefox Tree
 
-The `firefox/` directory is a massive repository. Use `searchfox-cli` for efficient cross-reference searches instead of blind `rg` or `grep`:
+The `engine/` directory is a massive repository. Use `searchfox-cli` for efficient cross-reference searches instead of blind `rg` or `grep`:
 
 ```bash
 searchfox-cli --define 'SomeClass::SomeMethod'
@@ -109,4 +104,3 @@ Only use local `rg`/`grep` for searching files that have definitely changed loca
 
 - Never submit patches to Phabricator or push to upstream without explicit user approval.
 - Do not run slow commands like `./mach test` piped through `tail`/`grep`/`head`. Redirect to a temp file and read selectively.
-- The existing `firefox/AGENTS.md` and `firefox/CLAUDE.md` are for working **inside** the Firefox tree itself. These root-level files govern the Hilal overlay workflow.

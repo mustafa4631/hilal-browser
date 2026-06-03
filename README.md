@@ -1,7 +1,7 @@
 # Hilal Browser
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/VastSea0/hilal-browser/main/branding/hilal/default128.png" alt="Hilal Browser Logo" width="128" height="128" />
+  <img src="https://raw.githubusercontent.com/VastSea0/hilal-browser/main/changes/browser/branding/hilal/default128.png" alt="Hilal Browser Logo" width="128" height="128" />
 </p>
 
 <p align="center">
@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <img src="prefs/browser/base/content/hilal/black-white.png" alt="Hilal Browser Interface Preview" width="800" />
+  <img src="changes/browser/base/content/hilal/black-white.png" alt="Hilal Browser Interface Preview" width="800" />
 </p>
 
 ---
@@ -43,12 +43,13 @@ This repository is **not** a fork of the Firefox source code — it is a small *
 
 Everything Hilal-specific lives in this repository:
 
-| Folder | Purpose |
+| Folder / File | Purpose |
 | --- | --- |
-| `patches/` | Numbered, focused `.patch` files (unified diffs) applied to Firefox in `series` order. |
-| `branding/` | Branding overlays. Subdirectories are copied to `browser/branding/<name>/` in Firefox. |
-| `prefs/` | Optional preference / configuration overlays mirroring the Firefox directory structure. |
-| `scripts/` | Workflow automation scripts for setup, apply, refresh, upstream sync, and builds. |
+| `changes/` | Unified folder structure containing all patches (`*.patch`) and overlays (branding, CSS, assets) mirroring the Firefox source tree layout. |
+| `manifest.toml` | Declarative configuration mapping the exact application sequence of patches and overlays. |
+| `upstream.lock` | Strict lock file tracking the pinned upstream version, commit hash, and tarball checksums. |
+| `bin/hil` | Zero-dependency native patch manager utility compiled in Rust. |
+| `scripts/` | Workflow platform build and sync helpers. |
 | `docs/` | Workflow and build documentation. |
 
 ---
@@ -63,68 +64,46 @@ Everything Hilal-specific lives in this repository:
 git clone https://github.com/VastSea0/hilal-browser.git
 cd hilal-browser
 
-# 3. Clone Firefox into ./firefox (gitignored) and checkout FIREFOX_COMMIT
-scripts/setup-firefox.sh
+# 3. Setup workspace (clones Firefox into gitignored engine/ and checks out pinned commit)
+./bin/hil setup
 
-# 4. Apply all Hilal patches and overlays
-scripts/apply.sh
+# 4. Apply all patches and overlays sequentially
+./bin/hil apply
 
-# 5. Build (delegates to ./mach build inside ./firefox)
+# 5. Build (delegates to ./mach build inside engine/)
 scripts/build-macos.sh
 
 # 6. Run the browser
-(cd firefox && ./mach run)
+(cd engine && ./mach run)
 ```
 
-The Firefox source tree under `./firefox/` is **gitignored** inside this repository to prevent accidental commits of upstream files.
+The Firefox source tree under `./engine/` is **gitignored** inside this repository to prevent accidental commits of upstream files.
 
 ---
 
-## The Five Core Operations
+## Core Operations
 
 | Goal | Command |
 | --- | --- |
-| Get the pinned Firefox checkout next to this repo | `scripts/setup-firefox.sh` |
-| Apply every Hilal patch + overlay onto Firefox | `scripts/apply.sh` |
-| Regenerate patches from changes you made in `./firefox` | `scripts/refresh.sh` |
-| Pull upstream Firefox and rebase Hilal on top | `scripts/sync-upstream.sh` |
+| Setup the pinned Firefox checkout | `./bin/hil setup` |
+| Apply all patches + overlays | `./bin/hil apply` |
+| Reset and force-reapply patches | `./bin/hil apply --force` |
+| Regenerate patches from changes made in `./engine` | `./bin/hil refresh` |
+| Show current workspace status | `./bin/hil status` |
+| Verify upstream tarball checksum | `./bin/hil verify` |
 | Build on macOS | `scripts/build-macos.sh` |
-| Build/test the Flatpak package | `scripts/build-flatpak.sh` |
-
-All scripts accept `-h` for usage. See `docs/WORKFLOW.md` for the full developer flow.
 
 ---
 
 ## Layering Mechanics
 
-### Patches
-`patches/series` lists `.patch` files in the order they should be
-applied. Each file is a plain unified diff (compatible with `git apply`
-and `patch -p1`). `scripts/apply.sh` walks the series, skipping any
-patch that's already in the tree.
+### Patches & Overlays (`changes/`)
+All customization files are unified under the `changes/` directory. 
+- **Patches**: Diff files ending in `.patch` representing source-code edits. Applied to the code tree via `git apply`.
+- **Overlays**: Asset directories (like `changes/browser/branding/hilal`) or config files that are synced directly to the matching path in the source tree.
 
-Keep patches **small, focused, and one-purpose**. One feature per
-patch, one bugfix per patch — same conventions that make a clean
-Phabricator review.
-
-### Branding & prefs overlays
-Binary assets (icons, splash screens, etc.) make terrible patches.
-Instead, anything under `branding/<name>/` is `rsync`'d directly into
-`browser/branding/<name>/`. Anything under `prefs/` is copied to the
-matching path in the Firefox tree. This keeps `patches/` text-only and
-reviewable.
-
-### Source tree layout
-```
-hilal-browser/              <- this repo
-├── branding/hilal/         <- assets, mirrored into firefox/browser/branding/hilal/
-├── patches/series         <- order of patch application
-├── patches/*.patch        <- focused source-code patches
-├── prefs/                 <- optional pref / config overlays
-├── scripts/               <- workflow helpers
-├── docs/                  <- detailed docs
-└── firefox/               <- (gitignored) full Firefox checkout
-```
+### Build Manifest (`manifest.toml`)
+The application order is strictly governed by `manifest.toml`. The `[patches]` block defines the exact order in which patch diffs are applied and overlays are copied. The Rust `hil` tool commits each step sequentially in the local `engine/` Git history. This allows `./bin/hil refresh` to automatically maps edits back to individual patch files while cleanly preserving any description headers.
 
 ---
 
@@ -142,8 +121,4 @@ hilal-browser/              <- this repo
 
 ## License
 
-The Hilal branding assets in `branding/hilal/` are © Hilal Browser
-contributors. The build glue, scripts, and patches in this repository
-are released under the
-[Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/) to
-match Firefox.
+The Hilal branding assets in `changes/browser/branding/hilal/` are © Hilal Browser contributors. The build glue, scripts, and patches in this repository are released under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/) to match Firefox.
