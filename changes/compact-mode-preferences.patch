@@ -4,7 +4,7 @@ diff --git a/browser/app/profile/firefox.js b/browser/app/profile/firefox.js
 @@ -3720,3 +3720,4 @@ pref("hilal.sidebar.footer.privacy", true);
  pref("hilal.sidebar.footer.settings", true);
  pref("hilal.sidebar.customItems", "[]");
- pref("hilal.compact.enabled", false);
+ pref("hilal.compact.enabled", true);
 +pref("hilal.compact.hide_toolbox", true);
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
 --- a/browser/components/preferences/main.js
