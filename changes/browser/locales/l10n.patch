@@ -15,10 +15,10 @@ diff --git a/browser/locales/en-US/browser/browser.ftl b/browser/locales/en-US/b
 +hilal-welcome-brand-text = Hilal Browser
 +
 +hilal-welcome-step-label-moon = Welcome
-+hilal-welcome-step-label-settings = Settings
++hilal-welcome-step-label-settings = Choices
 +hilal-welcome-step-label-shield = Privacy
 +hilal-welcome-step-label-search = Search
-+hilal-welcome-step-label-tabs = Workspaces
++hilal-welcome-step-label-tabs = Spaces
 +hilal-welcome-step-label-check = Ready
 +
 +hilal-welcome-stage-0-kicker = Welcome to Hilal
@@ -53,9 +53,9 @@ diff --git a/browser/locales/en-US/browser/browser.ftl b/browser/locales/en-US/b
 +hilal-welcome-feature-clean = Clean interface
 +
 +hilal-welcome-default-browser-label = Default browser
-+hilal-welcome-default-browser-desc = Make Hilal Browser your default browser for system links.
-+hilal-welcome-import-label = Bookmarks and passwords
-+hilal-welcome-import-desc = Import your existing bookmarks, history, and passwords from another browser.
++hilal-welcome-default-browser-desc = Use Hilal when the system opens web links.
++hilal-welcome-import-label = Browser data
++hilal-welcome-import-desc = Bring bookmarks, history, and passwords from another browser.
 +hilal-welcome-import-button = Import
 +hilal-welcome-imported-button = Imported
 +
@@ -66,36 +66,36 @@ diff --git a/browser/locales/en-US/browser/browser.ftl b/browser/locales/en-US/b
 +hilal-welcome-workspace-label-work = Work
 +hilal-welcome-workspace-label-social = Social
 +
-+hilal-welcome-workspace-state-added = Will be added
++hilal-welcome-workspace-state-added = Will be created
 +hilal-welcome-workspace-state-skipped = Skipped
 +
 +hilal-welcome-summary-search = Search
 +hilal-welcome-summary-privacy = Privacy
-+hilal-welcome-summary-workspaces = Workspaces
++hilal-welcome-summary-workspaces = Spaces
 +hilal-welcome-summary-default-browser = Default browser
 +hilal-welcome-summary-none = None
 +hilal-welcome-summary-default-set = Set as default
-+hilal-welcome-summary-default-no-change = Do not change
++hilal-welcome-summary-default-no-change = No change
 +
 +hilal-welcome-action-back = Back
 +hilal-welcome-action-continue = Continue
-+hilal-welcome-action-start = Start
-+hilal-welcome-action-start-browsing = Start browsing
++hilal-welcome-action-start = Set up
++hilal-welcome-action-start-browsing = Open Hilal
 +
 +## Hilal Welcome - Privacy Levels
 +
 +hilal-welcome-privacy-standard-label = Balanced
-+hilal-welcome-privacy-standard-badge = LibreWolf-like
++hilal-welcome-privacy-standard-badge = Everyday
 +hilal-welcome-privacy-standard-desc = RFP, strict tracking protection, HTTPS-only, URL cleanup, WebGL off, and cookie/cache cleanup on close.
 +hilal-welcome-privacy-standard-detail = WebRTC stays enabled for compatibility, with local leak surfaces reduced.
 +
 +hilal-welcome-privacy-strict-label = Strict
-+hilal-welcome-privacy-strict-badge = Less compatible
++hilal-welcome-privacy-strict-badge = Less exposed
 +hilal-welcome-privacy-strict-desc = Adds First Party Isolation on top of Balanced and disables WebRTC entirely.
 +hilal-welcome-privacy-strict-detail = Video calls and some sign-in flows may break.
 +
 +hilal-welcome-privacy-extreme-label = Maximum
-+hilal-welcome-privacy-extreme-badge = Not Tor
++hilal-welcome-privacy-extreme-badge = Local only
 +hilal-welcome-privacy-extreme-desc = Adds JavaScript, camera, microphone, location, and history blocking on top of Strict.
 +hilal-welcome-privacy-extreme-detail = Does not hide your IP address; many modern sites may not work as expected.
 diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser/locales/en-US/browser/preferences/preferences.ftl
