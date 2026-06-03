@@ -141,3 +141,7 @@ reason = "Workspace support for new tab container context"
 [[patches]]
 path   = "browser/components/customizableui/reset-toolbar-on-first-run.patch"
 reason = "Reset toolbar to defaults on first run of Hilal Browser"
+
+[[patches]]
+path   = "browser/components/tabbrowser/asynctabswitcher-robustness.patch"
+reason = "Fix AsyncTabSwitcher and Tabbrowser assertion failures and JS errors during tab switching"

@@ -1,0 +1,58 @@
+diff --git a/browser/components/tabbrowser/AsyncTabSwitcher.sys.mjs b/browser/components/tabbrowser/AsyncTabSwitcher.sys.mjs
+--- a/browser/components/tabbrowser/AsyncTabSwitcher.sys.mjs
++++ b/browser/components/tabbrowser/AsyncTabSwitcher.sys.mjs
+@@ -353,6 +353,9 @@ export class AsyncTabSwitcher {
+   // This function is called after all the main state changes to
+   // make sure we display the right tab.
+   updateDisplay() {
++    if (!this.requestedTab?.linkedBrowser) {
++      return;
++    }
+     let requestedTabState = this.getTabState(this.requestedTab);
+     let requestedBrowser = this.requestedTab.linkedBrowser;
+ 
+@@ -618,11 +621,15 @@ export class AsyncTabSwitcher {
+     this.assert(!this.loadTimer || this.loadingTab);
+     this.assert(!this.loadingTab || this.loadTimer);
+ 
++    if (!this.requestedTab) {
++      return;
++    }
++
+     // If we're switching to a non-remote tab, there's no need to wait
+     // for it to send layers to the compositor, as this will happen
+     // synchronously. Clearing this here means that in the next step,
+     // we can load the non-remote browser immediately.
+-    if (!this.requestedTab.linkedBrowser.isRemoteBrowser) {
++    if (this.requestedTab.linkedBrowser && !this.requestedTab.linkedBrowser.isRemoteBrowser) {
+       this.maybeClearLoadTimer("postActions");
+     }
+ 
+@@ -1101,9 +1108,7 @@ export class AsyncTabSwitcher {
+       this.setTimer(() => this.handleEvent(event, true), 0);
+       return;
+     }
+-    if (delayed && this.tabbrowser._switcher != this) {
+-      // if we delayed processing this event, we might be out of date, in which
+-      // case we drop the delayed events
++    if (this.tabbrowser._switcher !== this) {
+       return;
+     }
+     this._processing = true;
+diff --git a/browser/components/tabbrowser/content/tabbrowser.js b/browser/components/tabbrowser/content/tabbrowser.js
+--- a/browser/components/tabbrowser/content/tabbrowser.js
++++ b/browser/components/tabbrowser/content/tabbrowser.js
+@@ -8334,11 +8334,11 @@
+     }
+ 
+     on_activate() {
+-      this.selectedTab.updateLastSeenActive();
++      this.selectedTab?.updateLastSeenActive();
+     }
+ 
+     on_deactivate() {
+-      this.selectedTab.updateLastSeenActive();
++      this.selectedTab?.updateLastSeenActive();
+     }
+ 
+     on_change() {
