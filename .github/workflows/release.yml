@@ -33,6 +33,19 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.vars.outputs.tag }}
+
+      - name: Check release metadata
+        run: |
+          TAG="${{ steps.vars.outputs.tag }}"
+          VERSION="${TAG#v}"
+          node scripts/check-release-metadata.mjs \
+            --release-version "$VERSION" \
+            --release-tag "$TAG"
+
       - name: Check macOS signing secrets
         id: check_secrets
         run: |
@@ -74,6 +87,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.create-release.outputs.tag }}
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -168,6 +183,16 @@ jobs:
             --mar macos-arm64=dist/hilal-macos-arm64.complete.mar \
             --mar-url macos-arm64="https://github.com/vastsea0/hilal-browser/releases/download/$TAG/hilal-macos-arm64.complete.mar" \
             --output dist/hilal-update-manifest.json
+
+      - name: Check packaged release metadata
+        run: |
+          TAG="${{ needs.create-release.outputs.tag }}"
+          VERSION="${TAG#v}"
+          node scripts/check-release-metadata.mjs \
+            --release-version "$VERSION" \
+            --release-tag "$TAG" \
+            --check-dist \
+            --require-update-manifest
 
       - name: Generate Checksums
         run: |

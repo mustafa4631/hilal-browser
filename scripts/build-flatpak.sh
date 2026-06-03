@@ -104,23 +104,49 @@ find_manifest() {
 }
 
 display_version() {
-    local version_patch="$HILAL_REPO_ROOT/patches/0009-hilal-version.patch"
+    local version_patch="$HILAL_REPO_ROOT/changes/browser/config/version.patch"
     if [ -f "$version_patch" ]; then
-        awk '/^+[0-9]/{ sub(/^+/, ""); print; exit }' "$version_patch"
+        awk '/^\+[0-9]/{ sub(/^\+/, ""); print; exit }' "$version_patch"
+    elif [ -f "$HILAL_REPO_ROOT/manifest.toml" ]; then
+        awk '
+          /^\[browser\]/ { in_browser=1; next }
+          /^\[/ { in_browser=0 }
+          in_browser && /^[[:space:]]*version[[:space:]]*=/ {
+            gsub(/"/, "", $3)
+            print $3
+            exit
+          }
+        ' "$HILAL_REPO_ROOT/manifest.toml"
     else
         get_git_tag
     fi
 }
 
 manifest_hilal_tag() {
-    local manifest_path
+    local candidate manifest_path tag
     manifest_path=$(find_manifest)
-    if [ -n "$manifest_path" ] && [ -f "$manifest_path" ]; then
-        # Search for tag value inside JSON structure
-        grep -oP '"tag":\s*"\K[^"]+' "$manifest_path" | head -1 || echo ""
-    else
-        echo ""
-    fi
+    for candidate in \
+        "$manifest_path" \
+        "$HILAL_REPO_ROOT/$APP_ID.yml" \
+        "$HILAL_REPO_ROOT/$APP_ID.yaml" \
+        "$HILAL_REPO_ROOT/flatpak/$APP_ID.yml" \
+        "$HILAL_REPO_ROOT/flatpak/$APP_ID.yaml"; do
+        [ -n "$candidate" ] && [ -f "$candidate" ] || continue
+        tag=$(awk -F ':' '
+          /^[[:space:]]*"tag"[[:space:]]*:/ || /^[[:space:]]*tag[[:space:]]*:/ {
+            value=$2
+            gsub(/^[[:space:]"\047]+/, "", value)
+            gsub(/[",#[:space:]].*$/, "", value)
+            print value
+            exit
+          }
+        ' "$candidate")
+        if [ -n "$tag" ]; then
+            printf '%s\n' "$tag"
+            return 0
+        fi
+    done
+    echo ""
 }
 
 flatpak_lint() {

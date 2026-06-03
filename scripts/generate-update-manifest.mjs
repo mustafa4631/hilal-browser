@@ -174,7 +174,8 @@ function stripTagPrefix(version) {
 }
 
 function readFirefoxVersion() {
-  const file = resolve("firefox/browser/config/version.txt");
+  const sourceRoot = process.env.HILAL_FIREFOX_SRC || "engine";
+  const file = resolve(sourceRoot, "browser/config/version.txt");
   if (!existsSync(file)) {
     return "";
   }

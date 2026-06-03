@@ -6,7 +6,7 @@ use serde::Deserialize;
 use anyhow::{Result, Context, bail};
 
 #[derive(Parser)]
-#[command(name = "hil", version = "0.3.0", about = "Hilal Browser Patch Manager")]
+#[command(name = "hil", version, about = "Hilal Browser Patch Manager")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -36,7 +36,17 @@ enum Commands {
 
 #[derive(Deserialize)]
 struct Manifest {
+    #[allow(dead_code)]
+    browser: Option<Browser>,
     patches: Vec<PatchEntry>,
+}
+
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct Browser {
+    name: String,
+    codename: String,
+    version: String,
 }
 
 #[derive(Deserialize)]
@@ -480,6 +490,42 @@ fn append_hilal_content(existing: &str, custom: &str) -> String {
         cleaned,
         custom.trim()
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn manifest_parses_browser_metadata_and_patch_paths() {
+        let manifest: Manifest = toml::from_str(
+            r#"
+[browser]
+name = "Hilal Browser"
+codename = "hilal"
+version = "0.3.0"
+
+[[patches]]
+path = "browser/example.patch"
+"#,
+        )
+        .expect("manifest should parse");
+
+        let browser = manifest.browser.expect("browser metadata should exist");
+        assert_eq!(browser.version, "0.3.0");
+        assert_eq!(manifest.patches.len(), 1);
+        assert_eq!(manifest.patches[0].path, "browser/example.patch");
+    }
+
+    #[test]
+    fn append_hilal_content_replaces_existing_hilal_block() {
+        let existing = "base\n# --- Hilal custom localization begin ---\nold\n# --- Hilal custom localization end ---\n";
+        let patched = append_hilal_content(existing, "new");
+
+        assert!(patched.contains("base"));
+        assert!(patched.contains("new"));
+        assert!(!patched.contains("old"));
+    }
 }
 
 fn refresh(repo_root: &Path, engine_path: &Path) -> Result<()> {

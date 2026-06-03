@@ -23,6 +23,9 @@ jobs:
       - name: Checkout Hilal Browser
         uses: actions/checkout@v4
 
+      - name: Check release metadata
+        run: node scripts/check-release-metadata.mjs
+
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -33,6 +36,9 @@ jobs:
             ~/.cargo/git/db/
             hil/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('hil/Cargo.toml') }}
+
+      - name: Test hil tool
+        run: cargo test --manifest-path hil/Cargo.toml
 
       - name: Compile hil tool
         run: |
