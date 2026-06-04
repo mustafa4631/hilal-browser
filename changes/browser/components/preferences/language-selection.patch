@@ -66,32 +66,31 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
 +          languageSelect.appendChild(option);
 +        }
 +
-+        let currentPref = "";
-+        try {
-+          currentPref = Services.prefs.getCharPref("intl.locale.requested");
-+        } catch (e) {
-+          // Empty or doesn't exist
++        const requestedLocales = Services.locale.requestedLocales || [];
++        const currentPrimary = requestedLocales[0] || "";
++        if (currentPrimary && !available.includes(currentPrimary)) {
++          const option = document.createElement("option");
++          option.value = currentPrimary;
++          option.textContent = currentPrimary;
++          languageSelect.appendChild(option);
 +        }
-+        languageSelect.value = currentPref;
++        languageSelect.value = currentPrimary;
 +      };
 +
 +      initLanguageUI();
 +
 +      languageApplyBtn.addEventListener("command", () => {
 +        const selected = languageSelect.value;
-+        let currentPref = "";
-+        try {
-+          currentPref = Services.prefs.getCharPref("intl.locale.requested");
-+        } catch (e) {
-+          // Empty
-+        }
++        const requestedLocales = Services.locale.requestedLocales || [];
++        const currentPrimary = requestedLocales[0] || "";
 +
-+        if (selected === currentPref) {
++        if (selected === currentPrimary) {
 +          // No change, no restart needed
 +          return;
 +        }
-+
-+        Services.prefs.setCharPref("intl.locale.requested", selected);
++        const nextLocales = selected
++          ? Array.from(new Set([selected, ...requestedLocales]).values())
++          : [];
 +
 +        const currentLocale = Services.locale.appLocaleAsBCP47;
 +        const title = currentLocale.startsWith("tr") ? "Yeniden Başlatma Gerekli" : "Restart Required";
@@ -100,6 +99,7 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
 +          : "The browser needs to be restarted to apply language changes. Restart now?";
 +
 +        if (Services.prompt.confirm(window, title, message)) {
++          Services.locale.requestedLocales = nextLocales;
 +          let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(
 +            Ci.nsISupportsPRBool
 +          );

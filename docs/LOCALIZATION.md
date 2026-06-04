@@ -65,8 +65,7 @@ To integrate a new language pack (e.g., Turkish `tr`):
 ## User Language Selection Settings
 
 The interface language can be set explicitly by the user in **Settings → Hilal Preferences → Language Selection**:
-1. Choosing **System Language (Default)** sets `intl.locale.requested` to `""`, falling back to the OS system language negotiation.
-2. Selecting a specific language sets `intl.locale.requested` to that locale code (e.g., `"tr"`).
+1. Choosing **System Language (Default)** clears `Services.locale.requestedLocales`, falling back to the OS system language negotiation.
+2. Selecting a specific language updates `Services.locale.requestedLocales` to that locale code (e.g., `"tr"`) while preserving existing fallback locales.
 3. The available options in the dropdown are fetched dynamically from the bundled language packs, with a static fallback to `["en-US", "tr"]` if dynamic detection fails.
 4. When a new language is applied, the user is prompted to restart the browser to apply the settings.
-
