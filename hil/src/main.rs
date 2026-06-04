@@ -1,6 +1,7 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use serde::Deserialize;
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -30,6 +31,8 @@ enum Commands {
     Refresh,
     #[command(about = "Show current workspace status")]
     Status,
+    #[command(about = "Validate repository metadata without requiring engine/")]
+    Validate,
     #[command(about = "Verify upstream tarball checksum")]
     Verify,
 }
@@ -81,6 +84,9 @@ fn main() -> Result<()> {
         Commands::Status => {
             status(&repo_root, &engine_path)?;
         }
+        Commands::Validate => {
+            validate(&repo_root)?;
+        }
         Commands::Verify => {
             verify(&repo_root)?;
         }
@@ -107,6 +113,31 @@ fn read_manifest(repo_root: &Path) -> Result<Manifest> {
     let content = fs::read_to_string(manifest_path)?;
     let manifest: Manifest = toml::from_str(&content).context("Failed to parse manifest.toml")?;
     Ok(manifest)
+}
+
+fn validate(repo_root: &Path) -> Result<()> {
+    let _lock = read_upstream_lock(repo_root)?;
+    let manifest = read_manifest(repo_root)?;
+    let mut seen = HashSet::new();
+
+    for entry in &manifest.patches {
+        if !seen.insert(&entry.path) {
+            bail!("Duplicate manifest path: {}", entry.path);
+        }
+        let path = repo_root.join("changes").join(&entry.path);
+        if !path.exists() {
+            bail!(
+                "Path declared in manifest does not exist: changes/{}",
+                entry.path
+            );
+        }
+    }
+
+    println!(
+        "[hil] Repository metadata is valid ({} manifest entries).",
+        manifest.patches.len()
+    );
+    Ok(())
 }
 
 fn run_cmd(args: &[&str], cwd: &Path) -> Result<String> {

@@ -44,6 +44,9 @@ jobs:
           cp hil/target/release/hil bin/hil
           strip bin/hil
 
+      - name: Validate repository manifest
+        run: ./bin/hil validate
+
       - name: Check repo guardrails
         run: node scripts/check-release-metadata.mjs --hil-bin ./bin/hil
 

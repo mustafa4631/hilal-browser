@@ -174,14 +174,16 @@ function checkTomlParses(file) {
     "python3",
     [
       "-c",
-      "import sys, tomllib; tomllib.load(open(sys.argv[1], 'rb'))",
+      "import sys\ntry:\n import tomllib\nexcept ModuleNotFoundError:\n sys.exit(2)\ntomllib.load(open(sys.argv[1], 'rb'))",
       abs(file),
     ],
     { encoding: "utf8" }
   );
 
   if (result.error) {
-    errors.push(`Cannot parse ${file}: python3 with tomllib is required.`);
+    warnings.push(`Skipped TOML parser check for ${file}: python3 is not available.`);
+  } else if (result.status === 2) {
+    warnings.push(`Skipped TOML parser check for ${file}: python3 tomllib is not available.`);
   } else if (result.status !== 0) {
     errors.push(`${file} is not valid TOML: ${result.stderr.trim()}`);
   }

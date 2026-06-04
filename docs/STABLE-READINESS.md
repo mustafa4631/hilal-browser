@@ -13,12 +13,13 @@ request:
 cargo build --release --manifest-path hil/Cargo.toml
 mkdir -p bin
 cp hil/target/release/hil bin/hil
+./bin/hil validate
 node scripts/check-release-metadata.mjs --hil-bin ./bin/hil
 ```
 
 They validate:
 
-- `manifest.toml` and `hil/Cargo.toml` parse as TOML.
+- `manifest.toml`, `upstream.lock`, and `hil/Cargo.toml` parse correctly.
 - Every `manifest.toml` path exists under `changes/`.
 - `hil --version` matches `hil/Cargo.toml`.
 - Release metadata can be compared against a single expected version.

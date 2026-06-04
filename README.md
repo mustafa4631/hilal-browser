@@ -90,6 +90,7 @@ The Firefox source tree under `./engine/` is **gitignored** inside this reposito
 | Reset and force-reapply patches | `./bin/hil apply --force` |
 | Regenerate patches from changes made in `./engine` | `./bin/hil refresh` |
 | Show current workspace status | `./bin/hil status` |
+| Validate repository metadata without `engine/` | `./bin/hil validate` |
 | Verify upstream tarball checksum | `./bin/hil verify` |
 | Build on macOS | `scripts/build-macos.sh` |
 
