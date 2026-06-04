@@ -335,7 +335,13 @@ jobs:
       - name: Install MozillaBuild
         shell: pwsh
         run: |
-          choco install -y mozilla-build --version 4.1.1
+          $url = "https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-4.1.1.exe"
+          $out = "$env:TEMP\MozillaBuildSetup.exe"
+          Write-Host "Downloading MozillaBuild..."
+          Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
+          Write-Host "Installing MozillaBuild silently..."
+          Start-Process -FilePath $out -ArgumentList "/S" -Wait
+          Remove-Item $out -ErrorAction SilentlyContinue
           if (Test-Path "C:\mozilla-build") {
             Write-Host "MozillaBuild installed successfully."
           } else {
