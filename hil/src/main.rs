@@ -172,7 +172,7 @@ fn setup(repo_root: &Path, engine_path: &Path) -> Result<()> {
         }
     }
 
-    // Fall back to cloning using Git
+    // Clone the pinned upstream checkout into engine/.
     setup_git(&lock.commit, engine_path, repo_root)?;
     Ok(())
 }
