@@ -22,10 +22,17 @@ They validate:
 - `manifest.toml`, `upstream.lock`, and `hil/Cargo.toml` parse correctly.
 - Every `manifest.toml` path exists under `changes/`.
 - `hil --version` matches `hil/Cargo.toml`.
-- Release metadata can be compared against a single expected version.
+- Development metadata is internally readable. During active development,
+  `manifest.toml` may be ahead of the currently displayed public browser
+  version; strict release checks still require a single expected version.
 - Update manifest generation uses `HILAL_FIREFOX_SRC` or `engine/` for the
   Firefox app version and rejects Hilal display versions as app versions.
 - Active scripts do not fall back to a legacy `firefox/` checkout.
+
+Default guardrails intentionally ignore stale local `dist/` artifacts. Packaged
+DMGs, MARs, and update manifests are checked only by the strict release form
+below, because local development often carries old artifacts from the last
+published alpha.
 
 ## 2. Release Decision
 
@@ -105,3 +112,7 @@ Manual testing should stay small and release-focused:
 Stable release is blocked when any automated guardrail, packaged browser smoke,
 artifact name, update manifest, Flatpak metadata, or required human check
 disagrees with the release version.
+
+Using the currently pinned Firefox base is a project decision, not by itself a
+release blocker. Treat stability as a property of the applied Hilal patch stack,
+packaged smoke tests, update metadata, platform builds, and human browser checks.

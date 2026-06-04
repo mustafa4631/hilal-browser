@@ -51,7 +51,7 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
 +        const systemLabel = currentLocale.startsWith("tr")
 +          ? "Sistem Dili (Varsayılan)"
 +          : "System Language (Default)";
-+        
++
 +        const systemOption = document.createElement("option");
 +        systemOption.value = "";
 +        systemOption.textContent = systemLabel;
@@ -122,7 +122,7 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
 diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser/locales/en-US/browser/preferences/preferences.ftl
 --- a/browser/locales/en-US/browser/preferences/preferences.ftl
 +++ b/browser/locales/en-US/browser/preferences/preferences.ftl
-@@ -2864,3 +2864,11 @@ hilal-bangs-searchurl-label = Search URL:
+@@ -2864,3 +2864,10 @@ hilal-bangs-searchurl-label = Search URL:
  hilal-bangs-homeurl-label = Home URL (optional):
  hilal-bangs-default-label = (default)
  hilal-bangs-custom-label = (custom)
@@ -133,4 +133,3 @@ diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser
 +hilal-language-description = Select the interface language for the browser. The browser must be restarted for changes to take effect.
 +hilal-language-apply-button =
 +    .label = Apply and Restart
-+

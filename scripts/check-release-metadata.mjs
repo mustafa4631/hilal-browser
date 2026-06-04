@@ -8,6 +8,13 @@ const repoRoot = process.cwd();
 const options = parseArgs(process.argv.slice(2));
 const errors = [];
 const warnings = [];
+const notes = [];
+const shouldCheckDistMetadata = Boolean(
+  options.releaseVersion ||
+    options.checkDist ||
+    options.requireUpdateManifest ||
+    options.requiredPlatforms.length
+);
 
 const paths = {
   manifest: "manifest.toml",
@@ -26,7 +33,9 @@ const metadata = {
   displayVersion: readDisplayVersion(paths.displayPatch),
   flatpakSourceTag: readFlatpakSourceTag(paths.flatpakManifest),
   flatpakRelease: readFlatpakRelease(paths.flatpakMetainfo),
-  distUpdateManifest: readJsonIfExists(paths.updateManifest),
+  distUpdateManifest: shouldCheckDistMetadata
+    ? readJsonIfExists(paths.updateManifest)
+    : null,
 };
 
 checkTomlParses(paths.manifest);
@@ -54,12 +63,7 @@ if (metadata.displayVersion && metadata.flatpakRelease?.version) {
 }
 
 if (metadata.manifestVersion && metadata.displayVersion) {
-  compareOrWarn(
-    "manifest.toml browser.version",
-    metadata.manifestVersion,
-    "browser display version",
-    metadata.displayVersion
-  );
+  compareManifestAndDisplayVersions();
 }
 
 if (metadata.distUpdateManifest) {
@@ -100,6 +104,13 @@ if (warnings.length > 0) {
   console.log("\nWarnings:");
   for (const warning of warnings) {
     console.log(`- ${warning}`);
+  }
+}
+
+if (notes.length > 0) {
+  console.log("\nNotes:");
+  for (const note of notes) {
+    console.log(`- ${note}`);
   }
 }
 
@@ -156,9 +167,10 @@ function usage(code) {
   scripts/check-release-metadata.mjs --hil-bin ./bin/hil
   scripts/check-release-metadata.mjs --release-version 0.3.0 --release-tag v0.3.0 --check-dist --require-update-manifest --require-platform macos-arm64
 
-Default mode validates fast repo guardrails. Release mode additionally requires
-manifest, browser display version, Flatpak metadata, update manifest, and
-optional dist artifact names to agree with one release version.`);
+Default mode validates fast repo guardrails and allows normal next-version
+development drift. Release mode additionally requires manifest, browser display
+version, Flatpak metadata, update manifest, and optional dist artifact names to
+agree with one release version.`);
   process.exit(code);
 }
 
@@ -186,9 +198,9 @@ function checkTomlParses(file) {
   );
 
   if (result.error) {
-    warnings.push(`Skipped TOML parser check for ${file}: python3 is not available.`);
+    notes.push(`Skipped TOML parser check for ${file}: python3 is not available.`);
   } else if (result.status === 2) {
-    warnings.push(`Skipped TOML parser check for ${file}: python3 tomllib is not available.`);
+    notes.push(`Skipped TOML parser check for ${file}: python3 tomllib is not available.`);
   } else if (result.status !== 0) {
     errors.push(`${file} is not valid TOML: ${result.stderr.trim()}`);
   }
@@ -409,6 +421,29 @@ function compareOrWarn(leftLabel, left, rightLabel, right) {
   }
 }
 
+function compareManifestAndDisplayVersions() {
+  if (metadata.manifestVersion === metadata.displayVersion) {
+    return;
+  }
+
+  if (
+    !options.releaseVersion &&
+    isVersionAhead(metadata.manifestVersion, metadata.displayVersion)
+  ) {
+    notes.push(
+      `manifest.toml browser.version (${metadata.manifestVersion}) is ahead of the current browser display version (${metadata.displayVersion}) for active development. Strict release checks still require them to match.`
+    );
+    return;
+  }
+
+  compareOrWarn(
+    "manifest.toml browser.version",
+    metadata.manifestVersion,
+    "browser display version",
+    metadata.displayVersion
+  );
+}
+
 function checkStrictRelease(version, releaseTag) {
   const expectedTag = releaseTag || `v${version}`;
 
@@ -574,6 +609,31 @@ function isPrerelease(version) {
   return /(?:alpha|beta|rc|nightly|dev)/i.test(version);
 }
 
+function isVersionAhead(candidate, current) {
+  const candidateParts = parseReleaseVersion(candidate);
+  const currentParts = parseReleaseVersion(current);
+  if (!candidateParts || !currentParts) {
+    return false;
+  }
+  for (let index = 0; index < candidateParts.length; index += 1) {
+    if (candidateParts[index] > currentParts[index]) {
+      return true;
+    }
+    if (candidateParts[index] < currentParts[index]) {
+      return false;
+    }
+  }
+  return false;
+}
+
+function parseReleaseVersion(version) {
+  const match = String(version || "").match(/^(\d+)\.(\d+)\.(\d+)/);
+  if (!match) {
+    return null;
+  }
+  return match.slice(1).map(Number);
+}
+
 function isFirefoxAppVersion(version) {
   const value = String(version || "");
   const major = Number(value.match(/^(\d+)/)?.[1] || 0);
@@ -594,7 +654,9 @@ function printSummary() {
     ],
     [
       "dist update manifest",
-      metadata.distUpdateManifest
+      !shouldCheckDistMetadata
+        ? "not checked in default guardrail mode"
+        : metadata.distUpdateManifest
         ? `${metadata.distUpdateManifest.version} display=${metadata.distUpdateManifest.displayVersion} app=${metadata.distUpdateManifest.appVersion}`
         : "not present",
     ],

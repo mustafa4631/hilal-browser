@@ -193,4 +193,3 @@ pref("hilal.workspaces.remember_host_mapping", false);
 
 // First-run toolbar initialization
 pref("hilal.toolbar.initialized", false);
-

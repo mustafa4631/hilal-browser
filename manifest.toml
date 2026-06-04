@@ -123,7 +123,7 @@ path   = "browser/components/preferences/sidebar-settings-wiring.patch"
 reason = "Sidebar settings checkbox wiring in preferences"
 
 [[patches]]
-path   = "toolkit/mozapps/update/updater/secure-update-signatures.patch"
+path   = "toolkit/mozapps/update/secure-update-signatures.patch"
 reason = "Signature validation for update files"
 
 [[patches]]
