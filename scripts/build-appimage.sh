@@ -181,7 +181,7 @@ fi
 # Icon copying setup
 ICON_SRC=""
 for size in 128 64 48 32 16; do
-  candidate="$HILAL_REPO_ROOT/branding/hilal/default${size}.png"
+  candidate="$HILAL_REPO_ROOT/changes/browser/branding/hilal/default${size}.png"
   if [ -f "$candidate" ]; then
     ICON_SRC="$candidate"
     break
@@ -194,9 +194,9 @@ if [ -n "$ICON_SRC" ]; then
   mkdir -p "$APPDIR/usr/share/icons/hicolor/128x128/apps"
   cp "$ICON_SRC" "$APPDIR/usr/share/icons/hicolor/128x128/apps/$APP_ID.png"
 else
-  if [ -f "$HILAL_REPO_ROOT/branding/hilal/default.png" ]; then
-    cp "$HILAL_REPO_ROOT/branding/hilal/default.png" "$APPDIR/$APP_NAME.png"
-    cp "$HILAL_REPO_ROOT/branding/hilal/default.png" "$APPDIR/$APP_ID.png"
+  if [ -f "$HILAL_REPO_ROOT/changes/browser/branding/hilal/default.png" ]; then
+    cp "$HILAL_REPO_ROOT/changes/browser/branding/hilal/default.png" "$APPDIR/$APP_NAME.png"
+    cp "$HILAL_REPO_ROOT/changes/browser/branding/hilal/default.png" "$APPDIR/$APP_ID.png"
   else
     echo -e "${YELLOW}[Info]${NC} Icon file not found. Default icon placeholder will be used."
   fi
