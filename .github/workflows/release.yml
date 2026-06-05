@@ -316,7 +316,7 @@ jobs:
           SCCACHE_DIR: ${{ github.workspace }}/.sccache
         run: |
           echo "ac_add_options --with-compiler-wrapper=sccache" >> engine/mozconfig
-          scripts/build-linux.sh appimage-build
+          scripts/build-linux.sh build appimage-build
 
       - name: Upload Linux Assets
         uses: softprops/action-gh-release@v2
