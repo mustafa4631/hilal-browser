@@ -1,7 +1,7 @@
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
 --- a/browser/components/preferences/main.js
 +++ b/browser/components/preferences/main.js
-@@ -2207,6 +2207,117 @@ var gHilalPane = {
+@@ -2207,6 +2207,104 @@ var gHilalPane = {
      }
  
      refreshBangsList();
