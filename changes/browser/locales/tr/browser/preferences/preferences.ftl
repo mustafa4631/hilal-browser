@@ -114,3 +114,11 @@ hilal-language-description = Tarayıcının arayüz dilini seçin. Değişiklikl
 hilal-language-apply-button =
     .label = Uygula ve Yeniden Başlat
 
+## Keyboard Shortcuts
+
+hilal-shortcuts-header = Klavye Kısayolları
+hilal-shortcuts-description = Hilal eylemleri ve yerleşik tarayıcı işlevleri için klavye kısayollarını özelleştirin.
+hilal-shortcuts-reset =
+    .label = Varsayılana Dön
+
+

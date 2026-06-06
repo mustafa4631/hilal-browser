@@ -1,5 +1,21 @@
+diff --git a/browser/base/content/browser-sets.inc.xhtml b/browser/base/content/browser-sets.inc.xhtml
+--- a/browser/base/content/browser-sets.inc.xhtml
++++ b/browser/base/content/browser-sets.inc.xhtml
+@@ -419,4 +419,13 @@
+          modifiers="accel,alt"
+          internal="true"/>
+ #endif
++
++    <!-- Hilal Custom Shortcuts -->
++    <key id="key_hilalNewWorkspace" key="W" modifiers="accel,shift"/>
++    <key id="key_hilalNextWorkspace" key="]" modifiers="accel,shift"/>
++    <key id="key_hilalPrevWorkspace" key="[" modifiers="accel,shift"/>
++    <key id="key_hilalToggleWorkspaces" key="E" modifiers="accel,shift"/>
++    <key id="key_hilalToggleCompactMode" key="M" modifiers="accel,shift"/>
++    <key id="key_toggleCompactHideToolbar" key="T" modifiers="accel,shift"/>
+   </keyset>
++
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
-index 8fb4544f0153..df6fd2709f46 100644
 --- a/browser/components/preferences/main.js
 +++ b/browser/components/preferences/main.js
 @@ -2534,9 +2534,174 @@ var gHilalPane = {
@@ -177,3 +193,18 @@ index 8fb4544f0153..df6fd2709f46 100644
  var {
    InternalHandlerInfoWrapper,
    getFileDisplayName,
+diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser/locales/en-US/browser/preferences/preferences.ftl
+--- a/browser/locales/en-US/browser/preferences/preferences.ftl
++++ b/browser/locales/en-US/browser/preferences/preferences.ftl
+@@ -2876,3 +2876,11 @@ hilal-language-header = Language Selection
+ hilal-language-description = Select the interface language for the browser. The browser must be restarted for changes to take effect.
+ hilal-language-apply-button =
+     .label = Apply and Restart
++
++## Keyboard Shortcuts
++
++hilal-shortcuts-header = Keyboard Shortcuts
++hilal-shortcuts-description = Customize keyboard shortcuts for Hilal actions and native browser functions.
++hilal-shortcuts-reset =
++    .label = Restore Defaults
++
