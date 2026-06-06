@@ -296,11 +296,18 @@ fn apply(repo_root: &Path, engine_path: &Path, force: bool, dry_run: bool) -> Re
 
         if entry.path.ends_with(".patch") {
             // Check if already applied
-            let check = Command::new("git")
-                .args(&["apply", "--check", "--reverse", src.to_str().unwrap()])
-                .current_dir(engine_path)
-                .output()?;
-            if check.status.success() {
+            let mut already_applied = false;
+            if !force {
+                let check = Command::new("git")
+                    .args(&["apply", "--check", "--reverse", src.to_str().unwrap()])
+                    .current_dir(engine_path)
+                    .output()?;
+                if check.status.success() {
+                    already_applied = true;
+                }
+            }
+
+            if already_applied {
                 println!("[hil] Skip (already applied): {}", entry.path);
                 continue;
             }
@@ -321,7 +328,14 @@ fn apply(repo_root: &Path, engine_path: &Path, force: bool, dry_run: bool) -> Re
 
                 // Commit the patch change
                 if std::env::var("GITHUB_ACTIONS").is_err() {
-                    run_cmd(&["git", "add", "-A"], engine_path)?;
+                    let files = get_patch_files(&src)?;
+                    if !files.is_empty() {
+                        let mut args = vec!["git", "add"];
+                        for f in &files {
+                            args.push(f.as_str());
+                        }
+                        run_cmd(&args, engine_path)?;
+                    }
                     Command::new("git")
                         .args(&[
                             "commit",
@@ -349,7 +363,7 @@ fn apply(repo_root: &Path, engine_path: &Path, force: bool, dry_run: bool) -> Re
 
                 // Commit the overlay change
                 if std::env::var("GITHUB_ACTIONS").is_err() {
-                    run_cmd(&["git", "add", "-A"], engine_path)?;
+                    run_cmd(&["git", "add", &entry.path], engine_path)?;
                     Command::new("git")
                         .args(&[
                             "commit",
@@ -539,6 +553,26 @@ fn walk_dir(dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(result)
 }
 
+fn get_patch_files(patch_path: &Path) -> Result<Vec<String>> {
+    let content = fs::read_to_string(patch_path)?;
+    let mut files = Vec::new();
+    for line in content.lines() {
+        if line.starts_with("diff --git a/") {
+            if let Some(pos) = line[11..].find(" b/") {
+                let file_path = &line[pos + 14..];
+                let trimmed = file_path.trim();
+                let cleaned = if trimmed.starts_with('"') && trimmed.ends_with('"') {
+                    trimmed[1..trimmed.len() - 1].to_string()
+                } else {
+                    trimmed.to_string()
+                };
+                files.push(cleaned);
+            }
+        }
+    }
+    Ok(files)
+}
+
 fn strip_hilal_block(content: &str) -> String {
     let mut result = String::new();
     let mut in_block = false;
@@ -608,6 +642,16 @@ path = "browser/example.patch"
         assert!(patched.contains("base"));
         assert!(patched.contains("new"));
         assert!(!patched.contains("old"));
+    }
+
+    #[test]
+    fn get_patch_files_extracts_correct_paths() {
+        let temp_patch = Path::new("test_temp_patch.patch");
+        let content = "diff --git a/browser/confvars.sh b/browser/confvars.sh\n--- a/browser/confvars.sh\n+++ b/browser/confvars.sh\n";
+        fs::write(temp_patch, content).unwrap();
+        let files = get_patch_files(temp_patch).unwrap();
+        let _ = fs::remove_file(temp_patch);
+        assert_eq!(files, vec!["browser/confvars.sh"]);
     }
 }
 
