@@ -230,8 +230,12 @@
   <label><html:h2 data-l10n-id="hilal-shortcuts-header"/></label>
   <description class="description-deemphasized" data-l10n-id="hilal-shortcuts-description" />
   <hbox>
-        <button id="hilalShortcutsResetButton" data-l10n-id="hilal-shortcuts-reset" class="accessory-button"/>
+        <button id="hilalShortcutsRestoreDefaults" data-l10n-id="hilal-shortcuts-reset" class="accessory-button"/>
   </hbox>
-  <vbox id="hilalShortcutsWrapper" style="margin-top: 15px;"></vbox>
+  <vbox id="hilalShortcutsWrapper" style="margin-top: 15px;">
+    <html:table>
+      <html:tbody id="hilalShortcutsTbody"></html:tbody>
+    </html:table>
+  </vbox>
 </groupbox>
 </html:template>
