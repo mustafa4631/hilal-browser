@@ -533,7 +533,7 @@ export default function App() {
       id="root-container"
     >
       {/* 1. Floating Capsule Navigation Bar */}
-      <div className="sticky top-4 z-50 w-full px-4 pointer-events-none">
+      <div className="fixed top-4 left-0 right-0 z-50 w-full px-4 pointer-events-none">
         <nav
           className={`mx-auto flex pointer-events-auto items-center justify-between transition-all duration-500 ease-out border ${
             scrolled
