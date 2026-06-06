@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # scripts/merge-locales.py
-# Safely merges Hilal's custom translations into the official Firefox localization files.
+# Safely merges Hilal custom translations into official Firefox localization files.
 
-import os
 import re
 import sys
 from pathlib import Path
@@ -25,6 +24,14 @@ def write_text_if_changed(path, content):
     if path.exists() and read_text(path) == content:
         return False
     path.write_text(content, encoding="utf-8")
+    return True
+
+
+def write_bytes_if_changed(path, content):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.read_bytes() == content:
+        return False
+    path.write_bytes(content)
     return True
 
 
@@ -55,20 +62,47 @@ def append_hilal_content(existing_content, custom_content):
     )
 
 
-def merge_locales(repo_root, firefox_src):
-    custom_dir = repo_root / "changes/browser/locales/tr"
-    target_dir = firefox_src / "browser/locales/tr"
+def discover_locales(repo_root):
+    locale_root = repo_root / "changes/browser/locales"
+    if not locale_root.exists():
+        return []
+    return sorted(path.name for path in locale_root.iterdir() if path.is_dir())
+
+
+def validate_locale(locale):
+    if (
+        not locale
+        or "/" in locale
+        or "\\" in locale
+        or locale.startswith(".")
+        or ".." in locale
+    ):
+        raise ValueError(f"Invalid locale code: {locale}")
+
+
+def map_overlay_path(rel_path):
+    parts = list(rel_path.parts)
+    if parts and parts[0] == "browser":
+        parts.insert(1, "browser")
+    return Path(*parts)
+
+
+def merge_locale(repo_root, firefox_src, locale):
+    custom_dir = repo_root / "changes/browser/locales" / locale
+    target_dir = firefox_src / "browser/locales" / locale
 
     if not custom_dir.exists():
-        print("[hilal] No custom locales folder found in changes/browser/locales/tr")
-        return False
+        print(f"[hilal] No custom locale overlays found for {locale}; skipping.")
+        return True
 
     if not target_dir.exists():
         print(f"[hilal] Target locales directory does not exist yet: {target_dir}")
-        print("[hilal] Run scripts/setup-locales.sh first to initialize the locale files.")
+        print(
+            f"[hilal] Run scripts/setup-locales.sh {locale} first to initialize locale files."
+        )
         return False
 
-    print(f"[hilal] Merging custom translations into {target_dir}")
+    print(f"[hilal] Merging custom {locale} translations into {target_dir}")
 
     changed = False
     for custom_file in sorted(custom_dir.rglob("*")):
@@ -76,11 +110,7 @@ def merge_locales(repo_root, firefox_src):
             continue
 
         rel_path = custom_file.relative_to(custom_dir)
-        # Map Hilal's overlay structure to the expected Firefox l10n nested structure (browser -> browser/browser)
-        parts = list(rel_path.parts)
-        if parts and parts[0] == "browser":
-            parts.insert(1, "browser")
-        target_file = target_dir / Path(*parts)
+        target_file = target_dir / map_overlay_path(rel_path)
 
         if custom_file.suffix == ".ftl":
             existing = read_text(target_file) if target_file.exists() else ""
@@ -91,22 +121,37 @@ def merge_locales(repo_root, firefox_src):
                 print(f"  Merged Fluent: {rel_path}")
                 changed = True
         else:
-            # For non-fluent files, copy directly or append
-            custom_content = read_text(custom_file)
-            if write_text_if_changed(target_file, custom_content):
+            custom_content = custom_file.read_bytes()
+            if write_bytes_if_changed(target_file, custom_content):
                 print(f"  Copied Asset: {rel_path}")
                 changed = True
 
     if changed:
-        print("[hilal] Locale merge complete.")
+        print(f"[hilal] Locale merge complete for {locale}.")
     else:
-        print("[hilal] All locale files are already up-to-date.")
+        print(f"[hilal] All {locale} locale files are already up-to-date.")
     return True
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: merge-locales.py <repo_root> <firefox_src>")
+        print("Usage: merge-locales.py <repo_root> <firefox_src> [locale ...]")
         sys.exit(1)
 
-    merge_locales(Path(sys.argv[1]), Path(sys.argv[2]))
+    repo_root = Path(sys.argv[1])
+    firefox_src = Path(sys.argv[2])
+    locales = sys.argv[3:] or discover_locales(repo_root) or ["tr"]
+
+    ok = True
+    for locale in sorted(set(locales)):
+        try:
+            validate_locale(locale)
+        except ValueError as exc:
+            print(f"[hilal] {exc}", file=sys.stderr)
+            ok = False
+            continue
+
+        if not merge_locale(repo_root, firefox_src, locale):
+            ok = False
+
+    sys.exit(0 if ok else 1)

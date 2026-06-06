@@ -1,8 +1,8 @@
 # Localization Workflow
 
-Hilal follows the operating system language when a matching bundled locale is
-installed. If no installed locale matches the system language, Firefox's locale
-negotiation falls back to the packaged `en-US` locale.
+Hilal can bundle Firefox language packs plus Hilal-specific UI strings. The
+browser follows the operating system language when a matching bundled locale is
+installed. If no bundled locale matches, Firefox falls back to packaged `en-US`.
 
 The default is controlled by:
 
@@ -10,62 +10,106 @@ The default is controlled by:
 pref("intl.locale.requested", "");
 ```
 
-## Adding a New Language
+Users can also choose a specific language in Settings > Hilal Preferences >
+Language Selection. The selection is applied with Firefox's multilingual restart
+flow.
 
-To integrate a new language pack (e.g., Turkish `tr`):
+## Quick Start
 
-1. **Initialize the official Firefox locale files**:
-   Run the setup script to fetch the official translations from Mozilla's l10n repository and copy them into your local workspace:
+Set up one or more locales:
+
+```bash
+scripts/setup-locales.sh tr de fr
+```
+
+Or use an environment variable when repeating the same set:
+
+```bash
+HILAL_LOCALES="tr,de,fr" scripts/setup-locales.sh
+```
+
+The setup script fetches official Firefox translations from
+`mozilla-l10n/firefox-l10n`, copies them into `engine/browser/locales/<locale>/`,
+and merges any Hilal custom strings from `changes/browser/locales/<locale>/`.
+
+## Adding A Language
+
+1. Initialize the official locale files:
+
    ```bash
-   scripts/setup-locales.sh
+   scripts/setup-locales.sh de
    ```
-   This will initialize `engine/browser/locales/<locale>/` and run the locale merger script.
 
-2. **Add Hilal-specific Fluent translations**:
-   Add custom translation files under:
+2. Add Hilal-specific strings under:
+
    ```text
-   changes/browser/locales/<locale>/browser/
+   changes/browser/locales/de/browser/
    ```
-   This directory mirrors the localization layout in Firefox under `browser/localization/<locale>/browser/`. For example:
+
+   For a new translation, copy the current reference locale and translate only
+   the values:
+
+   ```bash
+   cp -R changes/browser/locales/tr changes/browser/locales/de
+   ```
+
+3. Check that the new locale has the same custom Fluent IDs as the reference:
+
+   ```bash
+   python3 scripts/check-locales.py --reference tr de
+   ```
+
+4. Merge the custom strings into the Firefox source tree:
+
+   ```bash
+   python3 scripts/merge-locales.py . engine de
+   ```
+
+   `scripts/setup-locales.sh de` also performs this merge after fetching the
+   official locale files.
+
+5. Build the language pack:
+
+   ```bash
+   scripts/build-langpacks.sh de
+   ```
+
+   This writes the final XPI to both:
+
    ```text
-   changes/browser/locales/tr/browser/browser.ftl
-   changes/browser/locales/tr/browser/sidebar.ftl
-   changes/browser/locales/tr/browser/preferences/preferences.ftl
+   engine/browser/app/distribution/extensions/langpack-de@firefox.mozilla.org.xpi
+   changes/browser/app/distribution/extensions/langpack-de@firefox.mozilla.org.xpi
    ```
 
-3. **Apply patches and merge translations**:
-   Run the patch manager to apply all workspace configurations:
-   ```bash
-   ./bin/hil apply
-   ```
-   The apply step copies the overlay files into the Firefox tree and then merges
-   the custom translation overrides directly using `hil`'s built-in locale merging.
-   The merging logic patches the Fluent `.ftl` files to append Hilal-specific
-   translations.
+6. Build or package the browser normally with the platform scripts.
 
-4. **Compile the language pack (`.xpi`)**:
-   Run the langpack compilation script to build the language pack and copy the generated `.xpi` file to the distribution extension directory:
-   ```bash
-   scripts/build-langpacks.sh
-   ```
-   This will compile the locale files inside `engine/` and place the finished package in `changes/browser/app/distribution/extensions/langpack-<locale>@firefox.mozilla.org.xpi` (which you should also commit to version control).
+## Useful Commands
 
-5. **Build the browser**:
-   Build or package the browser normally using the platform build scripts (e.g., `scripts/build-macos.sh`).
+Run all known custom locale folders:
+
+```bash
+scripts/setup-locales.sh
+python3 scripts/check-locales.py
+scripts/build-langpacks.sh
+```
+
+Run a specific set:
+
+```bash
+HILAL_LOCALES="tr,de,fr" scripts/setup-locales.sh
+HILAL_LOCALES="tr,de,fr" scripts/build-langpacks.sh
+```
+
+If `./bin/hil apply --force` warns that a target locale directory does not
+exist, run `scripts/setup-locales.sh <locale>` first. The Firefox l10n files are
+large and are intentionally not stored directly in this overlay repo.
 
 ## Notes
 
-- Brand strings are not translated. Each bundled langpack receives the Hilal
-  brand values from `changes/browser/branding/hilal/locales/en-US/`.
-- Keep Hilal-specific strings in matching files across locales where practical.
-- Missing translations can fall back to English, but complete locale overlays
-  avoid noisy Fluent missing-message logs.
-- `browser/app/distribution/moz.build` (patched by `changes/browser/ublock.patch`) includes bundled langpacks with a wildcard, so new language packs do not need a manual `moz.build` edit.
-
-## User Language Selection Settings
-
-The interface language can be set explicitly by the user in **Settings → Hilal Preferences → Language Selection**:
-1. Choosing **System Language (Default)** clears `Services.locale.requestedLocales`, falling back to the OS system language negotiation.
-2. Selecting a specific language updates `Services.locale.requestedLocales` to that locale code (e.g., `"tr"`) while preserving existing fallback locales.
-3. The available options in the dropdown are fetched dynamically from the bundled language packs, with a static fallback to `["en-US", "tr"]` if dynamic detection fails.
-4. When a new language is applied, the user is prompted to restart the browser to apply the settings.
+- The app name stays Hilal. Product branding lives under
+  `changes/browser/branding/hilal/locales/en-US/`.
+- Hilal custom strings should use matching files and message IDs across locales.
+- Missing Hilal custom translations may fall back to English or produce Fluent
+  missing-message logs, so run `scripts/check-locales.py` before release.
+- `browser/app/distribution/moz.build` includes bundled language packs with a
+  wildcard, so new langpack XPI files do not need a manual `moz.build` edit.
