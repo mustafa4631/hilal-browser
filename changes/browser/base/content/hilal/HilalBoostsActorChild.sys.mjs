@@ -11,6 +11,24 @@ export class HilalBoostsChild extends JSWindowActorChild {
     this._onKeyDown = this.onKeyDown.bind(this);
   }
 
+  actorCreated() {
+    if (this.browsingContext.parent === null) {
+      this.initBoost();
+    }
+  }
+
+  async initBoost() {
+    const domain = this.hostWithoutPort;
+    if (!domain) return;
+
+    try {
+      const boost = await this.sendQuery("HilalBoosts:GetBoostForDomain", { domain });
+      this.applyBoostToBackend(boost);
+    } catch (e) {
+      console.error("HilalBoostsChild: failed to init boost", e);
+    }
+  }
+
   receiveMessage(aMessage) {
     switch (aMessage.name) {
       case "HilalBoosts:StartZap":
@@ -18,6 +36,12 @@ export class HilalBoostsChild extends JSWindowActorChild {
         break;
       case "HilalBoosts:StopZap":
         this.stopZap();
+        break;
+      case "HilalBoosts:UpdateBoost":
+        this.applyBoostToBackend(aMessage.data);
+        break;
+      case "HilalBoosts:ClearBoost":
+        this.applyBoostToBackend(null);
         break;
     }
   }
@@ -340,5 +364,109 @@ export class HilalBoostsChild extends JSWindowActorChild {
       el = el.parentElement;
     }
     return parts.join(" > ");
+  }
+
+  get hostWithoutPort() {
+    try {
+      const host = this.browsingContext.topWindow?.location.host;
+      return host?.split(":")[0];
+    } catch (e) {}
+    return null;
+  }
+
+  applyBoostToBackend(boost) {
+    try {
+      const bcId = this.browsingContext.top.id;
+      if (boost && boost.enabled) {
+        let accentInt = 0;
+        if (boost.colorEnabled && boost.accentColor) {
+          accentInt = this.hexToColorInt(boost.accentColor, boost.colorIntensity, boost.colorBrightness);
+        }
+
+        const complementaryRotation = boost.colorEnabled
+          ? (boost.secondaryColor ? this.calculateRotationDelta(boost.accentColor, boost.secondaryColor) : 52)
+          : 0;
+
+        const inverted = boost.smartInvert ? 1 : 0;
+
+        const notifyStr = `${bcId}:${accentInt}:${complementaryRotation}:${inverted}`;
+        Services.obs.notifyObservers(null, "hilal-boost-updated", notifyStr);
+      } else {
+        Services.obs.notifyObservers(null, "hilal-boost-updated", `${bcId}:0:0:0`);
+      }
+    } catch (e) {
+      console.error("HilalBoostsChild: failed to apply boost to backend", e);
+    }
+  }
+
+  hexToColorInt(hexColor, intensity, brightness) {
+    const hsl = this.hexToHsl(hexColor);
+    const adjustedLightness = 0.1 + 0.9 * (brightness / 200);
+    const rgb = this.hslToRgb(hsl.h / 360, hsl.s / 100, adjustedLightness);
+    const contrast = Math.round(intensity * 2.55);
+    return ((contrast << 24) | (rgb[2] << 16) | (rgb[1] << 8) | rgb[0]) >>> 0;
+  }
+
+  calculateRotationDelta(accentHex, secondaryHex) {
+    const accentHsl = this.hexToHsl(accentHex);
+    const secondaryHsl = this.hexToHsl(secondaryHex);
+    let diff = (secondaryHsl.h - accentHsl.h + 360) % 360;
+    if (diff > 180) {
+      diff -= 360;
+    }
+    return diff;
+  }
+
+  hexToHsl(hex) {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const lightness = (max + min) / 2;
+    const delta = max - min;
+    let hue = 0;
+    let saturation = 0;
+
+    if (delta) {
+      saturation = delta / (1 - Math.abs(2 * lightness - 1));
+      if (max === r) {
+        hue = ((g - b) / delta) % 6;
+      } else if (max === g) {
+        hue = (b - r) / delta + 2;
+      } else {
+        hue = (r - g) / delta + 4;
+      }
+      hue *= 60;
+      if (hue < 0) hue += 360;
+    }
+
+    return { h: hue, s: saturation * 100, l: lightness * 100 };
+  }
+
+  hslToRgb(h, s, l) {
+    const { round } = Math;
+    let r, g, b;
+
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = this.hueToRgb(p, q, h + 1 / 3);
+      g = this.hueToRgb(p, q, h);
+      b = this.hueToRgb(p, q, h - 1 / 3);
+    }
+
+    return [round(r * 255), round(g * 255), round(b * 255)];
+  }
+
+  hueToRgb(p, q, t) {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
   }
 }

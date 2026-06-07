@@ -21,7 +21,7 @@ diff --git a/browser/base/content/browser.xhtml b/browser/base/content/browser.x
 diff --git a/browser/base/content/main-popupset.inc.xhtml b/browser/base/content/main-popupset.inc.xhtml
 --- a/browser/base/content/main-popupset.inc.xhtml
 +++ b/browser/base/content/main-popupset.inc.xhtml
-@@ -932,4 +932,144 @@
+@@ -932,4 +932,481 @@
      <menuitem id="select-translations-panel-about-translations-menuitem"
                data-l10n-id="translations-panel-settings-about2"/>
    </menupopup>
@@ -30,17 +30,185 @@ diff --git a/browser/base/content/main-popupset.inc.xhtml b/browser/base/content
 +         type="arrow"
 +         orient="vertical"
 +         noautofocus="true"
-+         hidden="true"
 +         flip="slide"
 +         position="bottomright topright"
 +         class="cui-widget-panel panel-no-padding"
-+         style="width: 320px; border-radius: 12px; background: color-mix(in srgb, var(--arrowpanel-background, #fff) 92%, transparent); backdrop-filter: blur(16px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);">
++         style="width: 360px; border-radius: 14px; background: color-mix(in srgb, var(--arrowpanel-background, #fff) 96%, transparent); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);">
 +    <html:style>
 +      #hilal-boosts-button[active="true"] {
 +        color: var(--urlbar-icon-active-color, #007aff) !important;
 +      }
++      #page-action-buttons > #hilal-boosts-button:not([hidden]) {
++        display: flex !important;
++        visibility: visible !important;
++        pointer-events: auto !important;
++        opacity: 1 !important;
++        margin-inline-end: 0 !important;
++        width: calc(var(--urlbar-min-height) - 2 * var(--urlbar-container-inset)) !important;
++        height: calc(var(--urlbar-min-height) - 2 * var(--urlbar-container-inset)) !important;
++        padding: var(--urlbar-icon-padding) !important;
++      }
 +      #hilal-boosts-panel {
 +        --arrowpanel-padding: 0px !important;
++        --hilal-boosts-accent: #7c5cff;
++        --hilal-boosts-secondary: #00d4ff;
++      }
++      .hilal-boosts-panel-header {
++        align-items: center;
++        justify-content: space-between;
++        padding: 13px 16px;
++        border-bottom: 1px solid var(--panel-separator-color, rgba(0,0,0,0.08));
++        background:
++          linear-gradient(135deg, color-mix(in srgb, var(--hilal-boosts-accent) 10%, transparent), color-mix(in srgb, var(--hilal-boosts-secondary) 8%, transparent)),
++          color-mix(in srgb, var(--arrowpanel-background, #fff) 98%, transparent);
++      }
++      .hilal-boosts-color-section {
++        gap: 10px;
++        padding: 12px;
++        border-radius: 12px;
++        border: 1px solid color-mix(in srgb, var(--hilal-boosts-accent) 22%, var(--panel-separator-color, rgba(0,0,0,0.1)));
++        background:
++          linear-gradient(145deg, color-mix(in srgb, var(--hilal-boosts-accent) 8%, transparent), color-mix(in srgb, var(--hilal-boosts-secondary) 7%, transparent)),
++          color-mix(in srgb, var(--arrowpanel-color, #000) 3%, transparent);
++      }
++      .hilal-boosts-color-picker-gradient {
++        position: relative;
++        overflow: hidden;
++        border-radius: 50%;
++        width: 170px;
++        height: 170px;
++        margin: 12px auto;
++        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
++        cursor: crosshair;
++        border: 1px solid var(--panel-separator-color, rgba(0,0,0,0.12));
++        background:
++          radial-gradient(circle at 50% 50%, rgba(255,255,255,1) 0%, rgba(255,255,255,0.15) 55%, transparent 100%),
++          conic-gradient(#ff0040, #ff9d00, #fff200, #59ff00, #00ff80, #00fff7, #0059ff, #6200ff, #cc00ff, #ff0090, #ff0040);
++      }
++      .hilal-boosts-color-picker-gradient::after {
++        content: "";
++        position: absolute;
++        inset: 0;
++        border-radius: inherit;
++        z-index: 2;
++        background: rgba(255, 255, 255, 0.08);
++        backdrop-filter: saturate(1.8) blur(1px);
++        pointer-events: none;
++      }
++      .hilal-boosts-color-picker-dot {
++        position: absolute;
++        z-index: 5;
++        width: 20px;
++        height: 20px;
++        border-radius: 50%;
++        border: 3px solid #ffffff;
++        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
++        transform: translate(-50%, -50%);
++        cursor: pointer;
++        pointer-events: auto;
++      }
++      #hilal-boosts-color-dot-primary {
++        width: 24px;
++        height: 24px;
++        border-width: 3px;
++        z-index: 6;
++      }
++      #hilal-boosts-color-dot-secondary {
++        width: 18px;
++        height: 18px;
++        border-width: 2.5px;
++        z-index: 5;
++      }
++      .hilal-boosts-color-picker-circle {
++        position: absolute;
++        z-index: 3;
++        transform: translate(-50%, -50%);
++        pointer-events: none;
++        left: 50%;
++        top: 50%;
++        border: 1px dashed rgba(255, 255, 255, 0.55);
++        border-radius: 50%;
++      }
++      .zen-boost-color-picker-arc-svg {
++        position: absolute;
++        top: 0;
++        left: 0;
++        pointer-events: none;
++        z-index: 3;
++      }
++      .arc-fill {
++        stroke-width: 0;
++      }
++      .hilal-boosts-gradient-row {
++        display: grid;
++        grid-template-columns: auto 1fr auto;
++        gap: 8px;
++        align-items: center;
++      }
++      #hilal-boosts-gradient-preview {
++        --hilal-boosts-accent: #7c5cff;
++        --hilal-boosts-secondary: #00d4ff;
++        height: 26px;
++        border-radius: 8px;
++        border: 1px solid color-mix(in srgb, var(--arrowpanel-color, #000) 12%, transparent);
++        background: linear-gradient(135deg, var(--hilal-boosts-accent), var(--hilal-boosts-secondary));
++        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22);
++      }
++      .hilal-boosts-color-swatch {
++        width: 32px;
++        height: 26px;
++        padding: 0;
++        border: 0;
++        background: transparent;
++        cursor: pointer;
++      }
++      .hilal-boosts-color-presets {
++        display: grid;
++        grid-template-columns: repeat(8, 1fr);
++        gap: 5px;
++      }
++      .hilal-boosts-color-preset {
++        appearance: none;
++        width: 100%;
++        aspect-ratio: 1;
++        min-width: 0;
++        border-radius: 999px;
++        border: 2px solid transparent;
++        background: linear-gradient(135deg, var(--hilal-preset-color), color-mix(in srgb, var(--hilal-preset-color) 35%, #00d4ff));
++        cursor: pointer;
++        box-shadow: 0 1px 3px rgba(0,0,0,0.18);
++      }
++      .hilal-boosts-color-preset[active] {
++        border-color: var(--arrowpanel-color, #000);
++        box-shadow: 0 0 0 2px color-mix(in srgb, var(--arrowpanel-background, #fff) 80%, transparent), 0 2px 6px rgba(0,0,0,0.24);
++      }
++      .hilal-boosts-zap-row {
++        justify-content: space-between;
++        align-items: center;
++        padding: 10px;
++        border-radius: 10px;
++        border: 1px solid color-mix(in srgb, #ff4757 22%, var(--panel-separator-color, rgba(0,0,0,0.08)));
++        background: linear-gradient(135deg, color-mix(in srgb, #ff4757 8%, transparent), color-mix(in srgb, var(--hilal-boosts-accent) 5%, transparent));
++      }
++      .hilal-boosts-zap-button {
++        appearance: none;
++        padding: 6px 16px;
++        border-radius: 8px;
++        border: none;
++        color: #fff;
++        background: linear-gradient(135deg, #ff4757, #ff6b81);
++        cursor: pointer;
++        font-size: 11px;
++        font-weight: 600;
++        box-shadow: 0 4px 12px rgba(255, 71, 87, 0.25);
++        transition: transform 0.15s, opacity 0.15s;
++      }
++      .hilal-boosts-zap-button:hover {
++        opacity: 0.9;
++        transform: translateY(-1px);
++      }
++      .hilal-boosts-zap-button:active {
++        transform: translateY(0);
 +      }
 +      .hilal-boosts-zap-item {
 +        display: flex;
@@ -82,21 +250,177 @@ diff --git a/browser/base/content/main-popupset.inc.xhtml b/browser/base/content
 +        text-align: center;
 +        padding: 8px 0;
 +      }
++
++      /* Premium macOS switch toggles */
++      #hilal-boosts-enable,
++      #hilal-boosts-color-enable,
++      #hilal-boosts-invert {
++        appearance: none !important;
++        width: 32px !important;
++        height: 18px !important;
++        background-color: var(--panel-separator-color, rgba(0,0,0,0.15)) !important;
++        border-radius: 9px !important;
++        position: relative !important;
++        cursor: pointer !important;
++        transition: background-color 0.2s !important;
++        border: none !important;
++        margin: 0 !important;
++        padding: 0 !important;
++      }
++      #hilal-boosts-enable:checked,
++      #hilal-boosts-color-enable:checked,
++      #hilal-boosts-invert:checked {
++        background-color: #007aff !important;
++      }
++      #hilal-boosts-enable::after,
++      #hilal-boosts-color-enable::after,
++      #hilal-boosts-invert::after {
++        content: "" !important;
++        position: absolute !important;
++        width: 14px !important;
++        height: 14px !important;
++        border-radius: 50% !important;
++        background-color: white !important;
++        top: 2px !important;
++        left: 2px !important;
++        transition: transform 0.2s !important;
++        box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
++      }
++      #hilal-boosts-enable:checked::after,
++      #hilal-boosts-color-enable:checked::after,
++      #hilal-boosts-invert:checked::after {
++        transform: translateX(14px) !important;
++      }
++
++      /* Premium thin range sliders */
++      #hilal-boosts-scale,
++      #hilal-boosts-color-intensity,
++      #hilal-boosts-color-brightness {
++        appearance: none !important;
++        background: var(--panel-separator-color, rgba(0,0,0,0.12)) !important;
++        height: 4px !important;
++        border-radius: 2px !important;
++        outline: none !important;
++        margin: 10px 0 !important;
++        width: 100% !important;
++        cursor: pointer !important;
++      }
++      #hilal-boosts-scale::-moz-range-thumb,
++      #hilal-boosts-color-intensity::-moz-range-thumb,
++      #hilal-boosts-color-brightness::-moz-range-thumb {
++        width: 14px !important;
++        height: 14px !important;
++        border-radius: 50% !important;
++        background: #007aff !important;
++        border: none !important;
++        cursor: pointer !important;
++        box-shadow: 0 1px 4px rgba(0,0,0,0.25) !important;
++        transition: transform 0.1s !important;
++      }
++      #hilal-boosts-scale::-moz-range-thumb:hover,
++      #hilal-boosts-color-intensity::-moz-range-thumb:hover,
++      #hilal-boosts-color-brightness::-moz-range-thumb:hover {
++        transform: scale(1.15) !important;
++      }
++
++      /* Premium select dropdowns */
++      #hilal-boosts-font,
++      #hilal-boosts-case {
++        appearance: none !important;
++        background-color: color-mix(in srgb, var(--arrowpanel-background, #fff) 96%, var(--arrowpanel-color, #000) 4%) !important;
++        border: 1px solid var(--panel-separator-color, rgba(0,0,0,0.12)) !important;
++        border-radius: 8px !important;
++        padding: 6px 28px 6px 10px !important;
++        color: var(--arrowpanel-color, #000) !important;
++        font-size: 12px !important;
++        cursor: pointer !important;
++        outline: none !important;
++        background-image: url("chrome://global/skin/icons/arrow-down.svg") !important;
++        background-repeat: no-repeat !important;
++        background-position: calc(100% - 10px) 50% !important;
++        background-size: 10px 10px !important;
++        -moz-context-properties: fill !important;
++        fill: var(--arrowpanel-color, #000) !important;
++        width: 100% !important;
++      }
++      #hilal-boosts-font:hover,
++      #hilal-boosts-case:hover {
++        background-color: color-mix(in srgb, var(--arrowpanel-background, #fff) 92%, var(--arrowpanel-color, #000) 8%) !important;
++      }
++
++      /* Custom CSS textarea */
++      #hilal-boosts-css {
++        background-color: color-mix(in srgb, var(--arrowpanel-background, #fff) 96%, var(--arrowpanel-color, #000) 4%) !important;
++        border: 1px solid var(--panel-separator-color, rgba(0,0,0,0.12)) !important;
++        border-radius: 8px !important;
++        color: var(--arrowpanel-color, #000) !important;
++        padding: 6px !important;
++        font-family: monospace !important;
++        font-size: 11px !important;
++        outline: none !important;
++        resize: vertical !important;
++      }
 +    </html:style>
-+    <box class="panel-header" style="align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--panel-separator-color, rgba(0,0,0,0.08));">
++    <box class="panel-header hilal-boosts-panel-header">
 +      <vbox flex="1" style="min-width: 0;">
 +        <hbox align="center" style="gap: 6px; align-items: center;">
 +          <html:span style="font-weight: 700; font-size: 13.5px; color: var(--arrowpanel-color, #000);">Site Customizer</html:span>
-+          <html:span style="font-size: 8px; font-weight: 800; text-transform: uppercase; background: #007aff; color: #fff; padding: 1px 4px; border-radius: 3px; letter-spacing: 0.5px; line-height: 1.2;">Beta</html:span>
++          <html:span style="font-size: 8px; font-weight: 800; text-transform: uppercase; background: linear-gradient(135deg, #7c5cff, #00d4ff); color: #fff; padding: 1px 4px; border-radius: 3px; letter-spacing: 0; line-height: 1.2;">Beta</html:span>
 +        </hbox>
 +        <html:span id="hilal-boosts-panel-title" style="font-size: 11px; color: var(--panel-description-color, #666); word-break: break-all; margin-top: 2px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: block;">example.com</html:span>
 +      </vbox>
 +      <hbox align="center" style="gap: 6px; align-items: center; margin-inline-start: 12px;">
 +        <html:span style="font-size: 11px; font-weight: 600; color: var(--arrowpanel-color, #000);">Active</html:span>
-+        <html:input type="checkbox" id="hilal-boosts-enable" onchange="gHilalBoosts.onPanelCommand(this);" style="cursor: pointer; width: 14px; height: 14px; margin: 0;"/>
++        <html:input type="checkbox" id="hilal-boosts-enable" style="cursor: pointer; width: 14px; height: 14px; margin: 0;"/>
 +      </hbox>
 +    </box>
-+    <vbox class="panel-subview-body" style="padding: 14px; gap: 12px; max-height: 440px; overflow-y: auto;">
++    <vbox class="panel-subview-body" style="padding: 14px; gap: 12px; max-height: 560px; overflow-y: auto;">
++
++      <vbox class="hilal-boosts-color-section">
++        <hbox style="justify-content: space-between; align-items: center; padding: 2px 0;">
++          <vbox flex="1">
++            <html:span style="font-size: 11.5px; font-weight: 600; color: var(--arrowpanel-color, #000);">Color Boost</html:span>
++            <html:span style="font-size: 10px; color: var(--panel-description-color, #777);">Gradient accent for this site</html:span>
++          </vbox>
++          <html:input type="checkbox" id="hilal-boosts-color-enable" style="cursor: pointer; width: 14px; height: 14px; margin: 0;"/>
++        </hbox>
++        <html:div id="hilal-boosts-color-picker" class="hilal-boosts-color-picker-gradient">
++          <html:div id="hilal-boosts-color-dot-primary" class="hilal-boosts-color-picker-dot"></html:div>
++          <html:div id="hilal-boosts-color-dot-secondary" class="hilal-boosts-color-picker-dot"></html:div>
++          <html:div class="hilal-boosts-color-picker-circle"></html:div>
++        </html:div>
++        <html:div class="hilal-boosts-color-presets">
++          <html:button type="button" class="hilal-boosts-color-preset" data-color="#7c5cff" title="Violet" style="--hilal-preset-color: #7c5cff;"></html:button>
++          <html:button type="button" class="hilal-boosts-color-preset" data-color="#2f80ed" title="Blue" style="--hilal-preset-color: #2f80ed;"></html:button>
++          <html:button type="button" class="hilal-boosts-color-preset" data-color="#00a8a8" title="Teal" style="--hilal-preset-color: #00a8a8;"></html:button>
++          <html:button type="button" class="hilal-boosts-color-preset" data-color="#27ae60" title="Green" style="--hilal-preset-color: #27ae60;"></html:button>
++          <html:button type="button" class="hilal-boosts-color-preset" data-color="#f2c94c" title="Gold" style="--hilal-preset-color: #f2c94c;"></html:button>
++          <html:button type="button" class="hilal-boosts-color-preset" data-color="#f2994a" title="Orange" style="--hilal-preset-color: #f2994a;"></html:button>
++          <html:button type="button" class="hilal-boosts-color-preset" data-color="#eb5757" title="Red" style="--hilal-preset-color: #eb5757;"></html:button>
++          <html:button type="button" class="hilal-boosts-color-preset" data-color="#ff3366" title="Pink" style="--hilal-preset-color: #ff3366;"></html:button>
++        </html:div>
++        <html:div class="hilal-boosts-gradient-row">
++          <html:input type="color" id="hilal-boosts-color" class="hilal-boosts-color-swatch" value="#7c5cff" title="Primary color"/>
++          <html:div id="hilal-boosts-gradient-preview"></html:div>
++          <html:input type="color" id="hilal-boosts-color-secondary" class="hilal-boosts-color-swatch" value="#00d4ff" title="Secondary color"/>
++        </html:div>
++        <hbox style="gap: 8px; align-items: center;">
++          <vbox flex="1" style="gap: 3px;">
++            <hbox style="justify-content: space-between; align-items: center;">
++              <html:span style="font-size: 10.5px; font-weight: 600; color: var(--arrowpanel-color, #000);">Intensity</html:span>
++              <html:span id="hilal-boosts-color-intensity-value" style="font-size: 10px; font-weight: 700; color: #007aff;">35%</html:span>
++            </hbox>
++            <html:input type="range" id="hilal-boosts-color-intensity" min="0" max="100" step="1" value="35" style="width: 100%; cursor: pointer; margin: 0;"/>
++          </vbox>
++        </hbox>
++        <vbox style="gap: 3px;">
++          <hbox style="justify-content: space-between; align-items: center;">
++            <html:span style="font-size: 10.5px; font-weight: 600; color: var(--arrowpanel-color, #000);">Brightness</html:span>
++            <html:span id="hilal-boosts-color-brightness-value" style="font-size: 10px; font-weight: 700; color: #007aff;">100%</html:span>
++          </hbox>
++          <html:input type="range" id="hilal-boosts-color-brightness" min="80" max="120" step="1" value="100" style="width: 100%; cursor: pointer; margin: 0;"/>
++        </vbox>
++      </vbox>
 +      
 +      <!-- Scale Adjuster -->
 +      <vbox style="gap: 4px;">
@@ -104,26 +428,39 @@ diff --git a/browser/base/content/main-popupset.inc.xhtml b/browser/base/content
 +          <html:span style="font-size: 11.5px; font-weight: 600; color: var(--arrowpanel-color, #000);">Font Scale</html:span>
 +          <html:span id="hilal-boosts-scale-value" style="font-size: 11px; font-weight: 700; color: #007aff;">100%</html:span>
 +        </hbox>
-+        <html:input type="range" id="hilal-boosts-scale" min="50" max="200" step="10" oninput="gHilalBoosts.onPanelCommand(this);" style="width: 100%; cursor: pointer; margin: 4px 0;"/>
++        <html:input type="range" id="hilal-boosts-scale" min="50" max="200" step="10" style="width: 100%; cursor: pointer; margin: 4px 0;"/>
 +      </vbox>
 +
 +      <!-- Font Family Override -->
 +      <vbox style="gap: 4px;">
 +        <html:span style="font-size: 11.5px; font-weight: 600; color: var(--arrowpanel-color, #000);">Font Family</html:span>
-+        <html:select id="hilal-boosts-font" onchange="gHilalBoosts.onPanelCommand(this);" style="width: 100%; padding: 4px; border-radius: 6px; border: 1px solid var(--panel-separator-color, rgba(0,0,0,0.12)); background: var(--arrowpanel-background, #fff); color: var(--arrowpanel-color, #000); font-size: 11.5px; outline: none; cursor: pointer;">
++        <html:select id="hilal-boosts-font" style="width: 100%; padding: 4px; border-radius: 6px; border: 1px solid var(--panel-separator-color, rgba(0,0,0,0.12)); background: var(--arrowpanel-background, #fff); color: var(--arrowpanel-color, #000); font-size: 11.5px; outline: none; cursor: pointer;">
 +          <html:option value="">Use Site Default</html:option>
 +          <html:option value="system-ui, -apple-system, sans-serif">System UI</html:option>
++          <html:option value="-apple-system, BlinkMacSystemFont, sans-serif">SF Pro</html:option>
++          <html:option value="Arial, Helvetica, sans-serif">Arial</html:option>
++          <html:option value="Helvetica Neue, Helvetica, Arial, sans-serif">Helvetica Neue</html:option>
++          <html:option value="Segoe UI, system-ui, sans-serif">Segoe UI</html:option>
 +          <html:option value="Inter, sans-serif">Inter</html:option>
 +          <html:option value="Roboto, sans-serif">Roboto</html:option>
++          <html:option value="Open Sans, sans-serif">Open Sans</html:option>
++          <html:option value="Lato, sans-serif">Lato</html:option>
++          <html:option value="Poppins, sans-serif">Poppins</html:option>
++          <html:option value="Montserrat, sans-serif">Montserrat</html:option>
++          <html:option value="Nunito, sans-serif">Nunito</html:option>
 +          <html:option value="Georgia, serif">Georgia</html:option>
-+          <html:option value="monospace">Monospace</html:option>
++          <html:option value="Times New Roman, Times, serif">Times New Roman</html:option>
++          <html:option value="Merriweather, Georgia, serif">Merriweather</html:option>
++          <html:option value="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace">System Mono</html:option>
++          <html:option value="JetBrains Mono, ui-monospace, monospace">JetBrains Mono</html:option>
++          <html:option value="Fira Code, ui-monospace, monospace">Fira Code</html:option>
 +        </html:select>
 +      </vbox>
 +
 +      <!-- Text Transform Case Override -->
 +      <vbox style="gap: 4px;">
 +        <html:span style="font-size: 11.5px; font-weight: 600; color: var(--arrowpanel-color, #000);">Text Transform</html:span>
-+        <html:select id="hilal-boosts-case" onchange="gHilalBoosts.onPanelCommand(this);" style="width: 100%; padding: 4px; border-radius: 6px; border: 1px solid var(--panel-separator-color, rgba(0,0,0,0.12)); background: var(--arrowpanel-background, #fff); color: var(--arrowpanel-color, #000); font-size: 11.5px; outline: none; cursor: pointer;">
++        <html:select id="hilal-boosts-case" style="width: 100%; padding: 4px; border-radius: 6px; border: 1px solid var(--panel-separator-color, rgba(0,0,0,0.12)); background: var(--arrowpanel-background, #fff); color: var(--arrowpanel-color, #000); font-size: 11.5px; outline: none; cursor: pointer;">
 +          <html:option value="none">No Override</html:option>
 +          <html:option value="uppercase">ALL UPPERCASE</html:option>
 +          <html:option value="lowercase">all lowercase</html:option>
@@ -137,16 +474,16 @@ diff --git a/browser/base/content/main-popupset.inc.xhtml b/browser/base/content
 +          <html:span style="font-size: 11.5px; font-weight: 600; color: var(--arrowpanel-color, #000);">Smart Invert</html:span>
 +          <html:span style="font-size: 10px; color: var(--panel-description-color, #777);">Force dark mode for page content</html:span>
 +        </vbox>
-+        <html:input type="checkbox" id="hilal-boosts-invert" onchange="gHilalBoosts.onPanelCommand(this);" style="cursor: pointer; width: 14px; height: 14px; margin: 0;"/>
++        <html:input type="checkbox" id="hilal-boosts-invert" style="cursor: pointer; width: 14px; height: 14px; margin: 0;"/>
 +      </hbox>
 +
 +      <!-- Interactive Element Blocker (Zapper) -->
-+      <hbox style="justify-content: space-between; align-items: center; padding: 4px 0;">
++      <hbox class="hilal-boosts-zap-row">
 +        <vbox flex="1">
 +          <html:span style="font-size: 11.5px; font-weight: 600; color: var(--arrowpanel-color, #000);">Element Blocker</html:span>
 +          <html:span style="font-size: 10px; color: var(--panel-description-color, #777);">Click elements on page to hide them</html:span>
 +        </vbox>
-+        <button id="hilal-boosts-zap-btn" style="padding: 4px 10px; border-radius: 6px; border: 1px solid #ff4757; color: #ff4757; background: transparent; cursor: pointer; font-size: 10.5px; font-weight: 600;" onclick="gHilalBoosts.startZapMode();">Zap Element</button>
++        <html:button id="hilal-boosts-zap-btn" class="hilal-boosts-zap-button" type="button">Zap Element</html:button>
 +      </hbox>
 +
 +      <!-- Active Zaps List -->
@@ -160,7 +497,7 @@ diff --git a/browser/base/content/main-popupset.inc.xhtml b/browser/base/content
 +      <!-- Custom CSS Code Editor -->
 +      <vbox style="gap: 4px;">
 +        <html:span style="font-size: 11.5px; font-weight: 600; color: var(--arrowpanel-color, #000);">Custom CSS</html:span>
-+        <html:textarea id="hilal-boosts-css" rows="3" placeholder="body { background: #000 !important; }" oninput="gHilalBoosts.onPanelCommand(this);" style="width: 100%; font-family: monospace; font-size: 10.5px; padding: 6px; border-radius: 6px; border: 1px solid var(--panel-separator-color, rgba(0,0,0,0.12)); background: var(--arrowpanel-background, #fff); color: var(--arrowpanel-color, #000); resize: vertical; box-sizing: border-box; outline: none;"/>
++        <html:textarea id="hilal-boosts-css" rows="3" placeholder="body { background: #000 !important; }" style="width: 100%; font-family: monospace; font-size: 10.5px; padding: 6px; border-radius: 6px; border: 1px solid var(--panel-separator-color, rgba(0,0,0,0.12)); background: var(--arrowpanel-background, #fff); color: var(--arrowpanel-color, #000); resize: vertical; box-sizing: border-box; outline: none;"/>
 +      </vbox>
 +
 +    </vbox>
@@ -177,7 +514,7 @@ diff --git a/browser/base/content/navigator-toolbox.inc.xhtml b/browser/base/con
 +                  class="urlbar-page-action"
 +                  role="button"
 +                  tooltiptext="Customize Site (Beta)"
-+                  onclick="gHilalBoosts.populatePanel(); document.getElementById('hilal-boosts-panel').openPopup(this, 'bottomright topright', 0, 0, false, false);">
++                  hidden="true">
 +              <image class="urlbar-icon" style="list-style-image: url('chrome://browser/skin/customize.svg');"/>
 +            </hbox>
            </hbox>
@@ -196,3 +533,925 @@ diff --git a/browser/base/jar.mn b/browser/base/jar.mn
          content/browser/global-scripts.js                   (content/global-scripts.js)
          content/browser/main-popupset.js                    (content/main-popupset.js)
  *       content/browser/pageinfo/pageInfo.xhtml             (content/pageinfo/pageInfo.xhtml)
+diff --git a/gfx/layers/AnimationInfo.cpp b/gfx/layers/AnimationInfo.cpp
+--- a/gfx/layers/AnimationInfo.cpp
++++ b/gfx/layers/AnimationInfo.cpp
+@@ -13,6 +13,7 @@
+ #include "mozilla/EffectSet.h"
+ #include "mozilla/MotionPathUtils.h"
+ #include "mozilla/PresShell.h"
++#include "mozilla/nsHilalBoostsBackend.h"
+ #include "mozilla/ScrollContainerFrame.h"
+ #include "nsIContent.h"
+ #include "nsLayoutUtils.h"
+@@ -331,6 +332,7 @@ static void SetAnimatable(NonCustomCSSPropertyId aProperty,
+                           nsIFrame* aFrame, TransformReferenceBox& aRefBox,
+                           layers::Animatable& aAnimatable) {
+   MOZ_ASSERT(aFrame);
++  hilal::AutoActiveFrame active(aFrame);
+ 
+   if (aAnimationValue.IsNull()) {
+     aAnimatable = null_t();
+diff --git a/gfx/layers/wr/WebRenderCommandBuilder.cpp b/gfx/layers/wr/WebRenderCommandBuilder.cpp
+--- a/gfx/layers/wr/WebRenderCommandBuilder.cpp
++++ b/gfx/layers/wr/WebRenderCommandBuilder.cpp
+@@ -3,6 +3,7 @@
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+ #include "WebRenderCommandBuilder.h"
++#include "mozilla/nsHilalBoostsBackend.h"
+ 
+ #include "mozilla/AutoRestore.h"
+ #include "mozilla/DebugOnly.h"
+@@ -1840,6 +1841,7 @@ void WebRenderCommandBuilder::CreateWebRenderCommands(
+     mozilla::wr::IpcResourceUpdateQueue& aResources,
+     const StackingContextHelper& aSc,
+     nsDisplayListBuilder* aDisplayListBuilder) {
++  hilal::AutoActiveFrame activeFrame(aItem->Frame());
+   mHitTestInfoManager.ProcessItem(aItem, aBuilder, aDisplayListBuilder);
+   if (aItem->GetType() == DisplayItemType::TYPE_COMPOSITOR_HITTEST_INFO) {
+     // The hit test information was processed above.
+diff --git a/image/AutoRestoreSVGState.h b/image/AutoRestoreSVGState.h
+--- a/image/AutoRestoreSVGState.h
++++ b/image/AutoRestoreSVGState.h
+@@ -47,6 +47,10 @@ class MOZ_STACK_CLASS AutoRestoreSVGState final {
+         }
+         return dom::PrefersColorSchemeOverride::None;
+       }());
++      pc->SetHilalBoostsOverride(
++          aSVGContext.GetHilalBoostsAccent(),
++          aSVGContext.GetHilalBoostsComplementaryRotation(),
++          aSVGContext.GetHilalBoostsInverted());
+     }
+ 
+     aSVGDocumentWrapper->mIsDrawing = true;
+diff --git a/layout/base/PresShell.cpp b/layout/base/PresShell.cpp
+--- a/layout/base/PresShell.cpp
++++ b/layout/base/PresShell.cpp
+@@ -137,6 +137,7 @@
+ #include "mozilla/layers/WebRenderUserData.h"
+ #include "mozilla/layout/ScrollAnchorContainer.h"
+ #include "nsAnimationManager.h"
++#include "mozilla/nsHilalBoostsBackend.h"
+ #include "nsAutoLayoutPhase.h"
+ #include "nsCOMArray.h"
+ #include "nsCOMPtr.h"
+@@ -5594,7 +5595,8 @@ nscolor PresShell::GetDefaultBackgroundColorToDraw() const {
+   if (!mPresContext) {
+     return NS_RGB(255, 255, 255);
+   }
+-  return mPresContext->DefaultBackgroundColor();
++  return hilal::nsHilalBoostsBackend::ResolveStyleColor(
++      mPresContext->DefaultBackgroundColor(), GetRootFrame());
+ }
+ 
+ void PresShell::UpdateCanvasBackground() {
+diff --git a/layout/base/nsPresContext.h b/layout/base/nsPresContext.h
+--- a/layout/base/nsPresContext.h
++++ b/layout/base/nsPresContext.h
+@@ -594,6 +594,17 @@ class nsPresContext : public nsISupports,
+    */
+   void SetColorSchemeOverride(mozilla::dom::PrefersColorSchemeOverride);
+ 
++  void SetHilalBoostsOverride(nscolor aAccent, float aRotation, bool aInverted) {
++    mHasHilalBoostsOverride = (aAccent != 0 || aInverted);
++    mHilalBoostsOverrideAccent = aAccent;
++    mHilalBoostsOverrideComplementaryRotation = aRotation;
++    mHilalBoostsOverrideInverted = aInverted;
++  }
++  bool HasHilalBoostsOverride() const { return mHasHilalBoostsOverride; }
++  nscolor HilalBoostsOverrideAccent() const { return mHilalBoostsOverrideAccent; }
++  float HilalBoostsOverrideComplementaryRotation() const { return mHilalBoostsOverrideComplementaryRotation; }
++  bool HilalBoostsOverrideInverted() const { return mHilalBoostsOverrideInverted; }
++
+   /**
+    * Return the device's screen size in inches, for font size
+    * inflation.
+@@ -1425,6 +1436,10 @@ class nsPresContext : public nsISupports,
+   FontVisibility mFontVisibility = FontVisibility::Unknown;
+   mozilla::dom::PrefersColorSchemeOverride mOverriddenOrEmbedderColorScheme;
+   mozilla::StyleForcedColors mForcedColors;
++  nscolor mHilalBoostsOverrideAccent = 0;
++  float mHilalBoostsOverrideComplementaryRotation = 0.0f;
++  bool mHasHilalBoostsOverride = false;
++  bool mHilalBoostsOverrideInverted = false;
+ 
+  protected:
+   virtual ~nsPresContext();
+diff --git a/layout/generic/nsIFrame.h b/layout/generic/nsIFrame.h
+--- a/layout/generic/nsIFrame.h
++++ b/layout/generic/nsIFrame.h
+@@ -128,6 +128,10 @@ class nsWindowSizes;
+ 
+ enum class AttrModType : uint8_t;  // Defined by nsIMutationObserver.h
+ 
++namespace hilal {
++  extern thread_local const ::nsIFrame* gActiveFrame;
++}
++
+ struct CharacterDataChangeInfo;
+ 
+ namespace mozilla {
+@@ -1010,7 +1014,11 @@ class nsIFrame : public nsQueryFrame {
+   /** Also forward GetVisitedDependentColor to the style */
+   template <typename T, typename S>
+   nscolor GetVisitedDependentColor(T S::* aField) {
+-    return mComputedStyle->GetVisitedDependentColor(aField);
++    const ::nsIFrame* prev = hilal::gActiveFrame;
++    hilal::gActiveFrame = this;
++    nscolor result = mComputedStyle->GetVisitedDependentColor(aField);
++    hilal::gActiveFrame = prev;
++    return result;
+   }
+ 
+   /**
+diff --git a/layout/painting/nsCSSRendering.cpp b/layout/painting/nsCSSRendering.cpp
+--- a/layout/painting/nsCSSRendering.cpp
++++ b/layout/painting/nsCSSRendering.cpp
+@@ -5,6 +5,7 @@
+ /* utility functions for drawing borders and backgrounds */
+ 
+ #include "nsCSSRendering.h"
++#include "mozilla/nsHilalBoostsBackend.h"
+ 
+ #include <algorithm>
+ #include <ctime>
+@@ -622,6 +623,7 @@ ImgDrawResult nsCSSRendering::PaintBorder(
+     nsPresContext* aPresContext, gfxContext& aRenderingContext,
+     nsIFrame* aForFrame, const nsRect& aDirtyRect, const nsRect& aBorderArea,
+     ComputedStyle* aStyle, PaintBorderFlags aFlags, Sides aSkipSides) {
++  hilal::AutoActiveFrame active(aForFrame);
+   AUTO_PROFILER_LABEL("nsCSSRendering::PaintBorder", GRAPHICS);
+ 
+   Maybe<nsStyleBorder> visitedBorder = GetBorderIfVisited(*aStyle);
+@@ -934,6 +936,7 @@ Maybe<nsCSSBorderRenderer>
+ nsCSSRendering::CreateBorderRendererForNonThemedOutline(
+     nsPresContext* aPresContext, DrawTarget* aDrawTarget, nsIFrame* aForFrame,
+     const nsRect& aDirtyRect, const nsRect& aInnerRect, ComputedStyle* aStyle) {
++  hilal::AutoActiveFrame active(aForFrame);
+   // Get our ComputedStyle's color struct.
+   const nsStyleOutline* ourOutline = aStyle->StyleOutline();
+   if (!ourOutline->ShouldPaintOutline()) {
+@@ -2375,6 +2378,7 @@ nscolor nsCSSRendering::DetermineBackgroundColor(nsPresContext* aPresContext,
+                                                  nsIFrame* aFrame,
+                                                  bool& aDrawBackgroundImage,
+                                                  bool& aDrawBackgroundColor) {
++  hilal::AutoActiveFrame active(aFrame);
+   auto shouldPaint = aFrame->ComputeShouldPaintBackground();
+   aDrawBackgroundImage = shouldPaint.mImage;
+   aDrawBackgroundColor = shouldPaint.mColor;
+diff --git a/layout/painting/nsDisplayList.cpp b/layout/painting/nsDisplayList.cpp
+--- a/layout/painting/nsDisplayList.cpp
++++ b/layout/painting/nsDisplayList.cpp
+@@ -9,6 +9,7 @@
+  */
+ 
+ #include "nsDisplayList.h"
++#include "nsHilalBoostsBackend.h"
+ 
+ #include <stdint.h>
+ 
+@@ -2204,6 +2205,8 @@ void nsDisplayList::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx,
+       continue;
+     }
+ 
++    hilal::AutoActiveFrame activeFrame(item->Frame());
++
+     nsRect visible = item->GetClippedBounds(aBuilder);
+     visible = visible.Intersect(item->GetPaintRect(aBuilder, aCtx));
+     if (visible.IsEmpty()) {
+diff --git a/layout/painting/nsImageRenderer.cpp b/layout/painting/nsImageRenderer.cpp
+--- a/layout/painting/nsImageRenderer.cpp
++++ b/layout/painting/nsImageRenderer.cpp
+@@ -31,6 +31,7 @@
+ #include "nsIFrame.h"
+ #include "nsLayoutUtils.h"
+ #include "nsStyleStructInlines.h"
++#include "mozilla/SVGImageContext.h"
+ 
+ using namespace mozilla;
+ using namespace mozilla::gfx;
+@@ -678,6 +679,8 @@ ImgDrawResult nsImageRenderer::BuildWebRenderDisplayItems(
+           nsPresContext::AppUnitsToIntCSSPixels(aDest.height)};
+ 
+       SVGImageContext svgContext(Some(destCSSSize));
++      SVGImageContext::MaybeStoreHilalBoosts(svgContext,
++                                            *mForFrame->PresContext());
+       Maybe<ImageIntRegion> region;
+ 
+       const int32_t appUnitsPerDevPixel = aPresContext->AppUnitsPerDevPixel();
+diff --git a/layout/style/StyleColor.cpp b/layout/style/StyleColor.cpp
+--- a/layout/style/StyleColor.cpp
++++ b/layout/style/StyleColor.cpp
+@@ -9,6 +9,7 @@
+ #include "mozilla/dom/BindingDeclarations.h"
+ #include "nsIFrame.h"
+ #include "nsStyleStruct.h"
++#include "nsHilalBoostsBackend.h"
+ 
+ namespace mozilla {
+ 
+@@ -51,6 +52,7 @@ nscolor StyleColor::CalcColor(const ComputedStyle& aStyle) const {
+ 
+ template <>
+ nscolor StyleColor::CalcColor(const nsIFrame* aFrame) const {
++  hilal::AutoActiveFrame active(aFrame);
+   return ResolveColor(aFrame->StyleText()->mColor).ToColor();
+ }
+ 
+@@ -101,11 +103,13 @@ nscolor StyleAbsoluteColor::ToColor() const {
+     }
+   }
+ 
+-  return NS_RGBA(
+-      nsStyleUtil::FloatToColorComponent(translatedColor.components._0),
+-      nsStyleUtil::FloatToColorComponent(translatedColor.components._1),
+-      nsStyleUtil::FloatToColorComponent(translatedColor.components._2),
+-      nsStyleUtil::FloatToColorComponent(translatedColor.alpha));
++  return hilal::nsHilalBoostsBackend::ResolveStyleColor(
++      NS_RGBA(
++          nsStyleUtil::FloatToColorComponent(translatedColor.components._0),
++          nsStyleUtil::FloatToColorComponent(translatedColor.components._1),
++          nsStyleUtil::FloatToColorComponent(translatedColor.components._2),
++          nsStyleUtil::FloatToColorComponent(translatedColor.alpha)),
++      nullptr);
+ }
+ 
+ }  // namespace mozilla
+diff --git a/layout/style/moz.build b/layout/style/moz.build
+--- a/layout/style/moz.build
++++ b/layout/style/moz.build
+@@ -99,6 +99,7 @@ EXPORTS.mozilla += [
+     "LayerAnimationInfo.h",
+     "MappedDeclarationsBuilder.h",
+     "MediaFeatureChange.h",
++    "nsHilalBoostsBackend.h",
+     "PostTraversalTask.h",
+     "PreferenceSheet.h",
+     "PreloadedStyleSheet.h",
+@@ -253,6 +254,7 @@ UNIFIED_SOURCES += [
+     "nsDOMCSSValueList.cpp",
+     "nsFontFaceLoader.cpp",
+     "nsFontFaceUtils.cpp",
++    "nsHilalBoostsBackend.cpp",
+     "nsICSSDeclaration.cpp",
+     "nsMediaFeatures.cpp",
+     "nsROCSSPrimitiveValue.cpp",
+diff --git a/layout/style/nsHilalBoostsBackend.cpp b/layout/style/nsHilalBoostsBackend.cpp
+new file mode 100644
+--- /dev/null
++++ b/layout/style/nsHilalBoostsBackend.cpp
+@@ -0,0 +1,422 @@
++/* This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this
++ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
++
++#include "nsHilalBoostsBackend.h"
++#include <cmath>
++#include <algorithm>
++#include <array>
++#include <cstdint>
++#include <cstring>
++#include <cinttypes>
++
++#include "nsPresContext.h"
++#include "nsIFrame.h"
++#include "nsIContent.h"
++#include "mozilla/ClearOnShutdown.h"
++#include "mozilla/StaticPtr.h"
++#include "mozilla/Services.h"
++#include "nsIObserverService.h"
++#include "nsIObserver.h"
++#include "mozilla/dom/Document.h"
++#include "mozilla/dom/BrowsingContext.h"
++#include "mozilla/dom/Element.h"
++#include "mozilla/PseudoStyleType.h"
++#include "nsStyleUtil.h"
++#include "nsStyleStruct.h"
++#include "nsXULAppAPI.h"
++
++#if defined(__clang__) || defined(__GNUC__)
++#  define HILAL_HOT_FUNCTION __attribute__((hot))
++#else
++#  define HILAL_HOT_FUNCTION
++#endif
++
++#define NS_GET_CONTRAST(_c) NS_GET_A(_c)
++
++namespace hilal {
++
++thread_local const nsIFrame* gActiveFrame = nullptr;
++
++static mozilla::StaticRefPtr<nsHilalBoostsBackend> sHilalBoostsBackend;
++
++NS_IMPL_ISUPPORTS(nsHilalBoostsBackend, nsIObserver)
++
++nsHilalBoostsBackend::nsHilalBoostsBackend() = default;
++
++void nsHilalBoostsBackend::Init() {
++  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
++  if (obs) {
++    obs->AddObserver(this, "hilal-boost-updated", false);
++    obs->AddObserver(this, "xpcom-shutdown", false);
++  }
++}
++
++auto nsHilalBoostsBackend::GetInstance() -> nsHilalBoostsBackend* {
++  if (!XRE_IsContentProcess()) {
++    return nullptr;
++  }
++  if (!sHilalBoostsBackend) {
++    sHilalBoostsBackend = new nsHilalBoostsBackend();
++    sHilalBoostsBackend->Init();
++    mozilla::ClearOnShutdown(&sHilalBoostsBackend);
++  }
++  return sHilalBoostsBackend.get();
++}
++
++NS_IMETHODIMP
++nsHilalBoostsBackend::Observe(nsISupports* aSubject, const char* aTopic,
++                              const char16_t* aData) {
++  if (strcmp(aTopic, "xpcom-shutdown") == 0) {
++    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
++    if (obs) {
++      obs->RemoveObserver(this, "hilal-boost-updated");
++      obs->RemoveObserver(this, "xpcom-shutdown");
++    }
++    return NS_OK;
++  }
++  if (strcmp(aTopic, "hilal-boost-updated") == 0) {
++    nsAutoString dataStr16(aData);
++    NS_ConvertUTF16toUTF8 dataStr(dataStr16);
++    unsigned long long tempBcId = 0;
++    unsigned int tempAccent = 0;
++    float tempRotation = 0.0f;
++    int tempInverted = 0;
++    if (sscanf(dataStr.get(), "%llu:%u:%f:%d", &tempBcId, &tempAccent, &tempRotation, &tempInverted) == 4) {
++      uint64_t bcId = tempBcId;
++      if (tempAccent == 0 && tempInverted == 0) {
++        mBoostsMap.Remove(bcId);
++      } else {
++        mBoostsMap.InsertOrUpdate(bcId, HilalBoostData{tempAccent, tempRotation, tempInverted != 0});
++      }
++    }
++  }
++  return NS_OK;
++}
++
++void nsHilalBoostsBackend::GetBoostForBrowsingContext(uint64_t aId, nscolor* aAccent,
++                                                      float* aRotation, bool* aInverted) {
++  HilalBoostData data;
++  if (mBoostsMap.Get(aId, &data)) {
++    *aAccent = data.accent;
++    *aRotation = data.complementaryRotation;
++    *aInverted = data.inverted;
++  } else {
++    *aAccent = 0;
++    *aRotation = 0.0f;
++    *aInverted = false;
++  }
++}
++
++namespace {
++
++static inline float srgbToLinear(float c) {
++  return c <= 0.04045f ? c * (1.0f / 12.92f)
++                       : std::pow((c + 0.055f) * (1.0f / 1.055f), 2.4f);
++}
++
++static inline float linearToSrgb(float c) {
++  c = std::max(0.0f, c);
++  return c <= 0.0031308f ? 12.92f * c
++                         : 1.055f * std::pow(c, 1.0f / 2.4f) - 0.055f;
++}
++
++static inline float fastCbrt(float x) {
++  if (x == 0.0f) return 0.0f;
++  float a = std::abs(x);
++  uint32_t i;
++  std::memcpy(&i, &a, sizeof(i));
++  i = i / 3 + 0x2a504a2e;
++  float y;
++  std::memcpy(&y, &i, sizeof(y));
++  y = (2.0f * y + a / (y * y)) * (1.0f / 3.0f);
++  y = (2.0f * y + a / (y * y)) * (1.0f / 3.0f);
++  return x < 0.0f ? -y : y;
++}
++
++static inline const std::array<float, 256>& SrgbLinearTable() {
++  static const std::array<float, 256> kTable = [] {
++    std::array<float, 256> table{};
++    for (int i = 0; i < 256; ++i) {
++      table[i] = srgbToLinear(i * (1.0f / 255.0f));
++    }
++    return table;
++  }();
++  return kTable;
++}
++
++static inline float srgbToLinear8(uint8_t aChannel) {
++  return SrgbLinearTable()[aChannel];
++}
++
++HILAL_HOT_FUNCTION
++inline static auto hilalPrecomputeAccent(nscolor aAccentColor) {
++  constexpr float inv255 = 1.0f / 255.0f;
++
++  const float lr = srgbToLinear8(NS_GET_R(aAccentColor));
++  const float lg = srgbToLinear8(NS_GET_G(aAccentColor));
++  const float lb = srgbToLinear8(NS_GET_B(aAccentColor));
++
++  const float l_ =
++      fastCbrt(0.4122214708f * lr + 0.5363325363f * lg + 0.0514459929f * lb);
++  const float m_ =
++      fastCbrt(0.2119034982f * lr + 0.6806995451f * lg + 0.1073969566f * lb);
++  const float s_ =
++      fastCbrt(0.0883024619f * lr + 0.2817188376f * lg + 0.6299787005f * lb);
++
++  return nsHilalAccentOklab{
++      .accentNS = aAccentColor,
++      .accL = 0.2104542553f * l_ + 0.7936177850f * m_ - 0.0040720468f * s_,
++      .accA = 1.9779984951f * l_ - 2.4285922050f * m_ + 0.4505937099f * s_,
++      .accB = 0.0259040371f * l_ + 0.7827717662f * m_ - 0.8086757660f * s_,
++      .contrastFactor = NS_GET_CONTRAST(aAccentColor) * inv255,
++  };
++}
++
++HILAL_HOT_FUNCTION
++inline static nsHilalAccentOklab hilalRotateAccent(const nsHilalAccentOklab& aBase,
++                                                   float aRotationDeg) {
++  constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
++  const float angle = aRotationDeg * kDegToRad;
++  const float cosR = std::cos(angle);
++  const float sinR = std::sin(angle);
++  return nsHilalAccentOklab{
++      .accentNS = aBase.accentNS,
++      .accL = aBase.accL,
++      .accA = aBase.accA * cosR - aBase.accB * sinR,
++      .accB = aBase.accA * sinR + aBase.accB * cosR,
++      .contrastFactor = aBase.contrastFactor,
++  };
++}
++
++struct AccentCacheEntry {
++  nscolor accentNS = 0;
++  float rotationDeg = 0.0f;
++  bool valid = false;
++  nsHilalAccentOklab accent{};
++  nsHilalAccentOklab complementary{};
++};
++
++static constexpr size_t kAccentCacheSize = 4;
++static AccentCacheEntry sAccentCache[kAccentCacheSize];
++static size_t sAccentCacheNext = 0;
++
++HILAL_HOT_FUNCTION
++static const AccentCacheEntry& GetCachedAccent(nscolor aAccentNS,
++                                               float aRotationDeg) {
++  for (const auto& entry : sAccentCache) {
++    if (entry.valid && entry.accentNS == aAccentNS &&
++        entry.rotationDeg == aRotationDeg) {
++      return entry;
++    }
++  }
++  AccentCacheEntry& slot = sAccentCache[sAccentCacheNext];
++  sAccentCacheNext = (sAccentCacheNext + 1) % kAccentCacheSize;
++  slot.accentNS = aAccentNS;
++  slot.rotationDeg = aRotationDeg;
++  slot.accent = hilalPrecomputeAccent(aAccentNS);
++  slot.complementary = hilalRotateAccent(slot.accent, aRotationDeg);
++  slot.valid = true;
++  return slot;
++}
++
++[[nodiscard]] HILAL_HOT_FUNCTION static inline nscolor hilalFilterColorChannel(
++    nscolor aOriginalColor, const nsHilalAccentOklab& aAccent,
++    const nsHilalAccentOklab& aComplementary) {
++  const uint8_t oL = NS_GET_A(aOriginalColor);
++  const uint8_t contrast = NS_GET_CONTRAST(aAccent.accentNS);
++  if (oL == 0) {
++    return aOriginalColor;
++  }
++
++  constexpr float inv255 = 1.0f / 255.0f;
++  const float blendFactor = contrast * inv255;
++
++  const float lr = srgbToLinear8(NS_GET_R(aOriginalColor));
++  const float lg = srgbToLinear8(NS_GET_G(aOriginalColor));
++  const float lb = srgbToLinear8(NS_GET_B(aOriginalColor));
++
++  const float l_ =
++      fastCbrt(0.4122214708f * lr + 0.5363325363f * lg + 0.0514459929f * lb);
++  const float m_ =
++      fastCbrt(0.2119034982f * lr + 0.6806995451f * lg + 0.1073969566f * lb);
++  const float s_ =
++      fastCbrt(0.0883024619f * lr + 0.2817188376f * lg + 0.6299787005f * lb);
++
++  const float origL =
++      0.2104542553f * l_ + 0.7936177850f * m_ - 0.0040720468f * s_;
++  const float origA =
++      1.9779984951f * l_ - 2.4285922050f * m_ + 0.4505937099f * s_;
++  const float origB =
++      0.0259040371f * l_ + 0.7827717662f * m_ - 0.8086757660f * s_;
++
++  constexpr float kPivot = 0.5f;
++  const float halfWidth = std::clamp(0.5f - blendFactor * 0.45f, 0.05f, 0.5f);
++  float t = std::clamp((origL - (kPivot - halfWidth)) / (2.0f * halfWidth),
++                       0.0f, 1.0f);
++  t = t * t * (3.0f - 2.0f * t);
++
++  const float selA = aAccent.accA + (aComplementary.accA - aAccent.accA) * t;
++  const float selB = aAccent.accB + (aComplementary.accB - aAccent.accB) * t;
++  const float selL = aAccent.accL + (aComplementary.accL - aAccent.accL) * t;
++  const float selContrastFactor =
++      aAccent.contrastFactor +
++      (aComplementary.contrastFactor - aAccent.contrastFactor) * t;
++
++  const float bA = origA + (selA - origA) * blendFactor;
++  const float bB = origB + (selB - origB) * blendFactor;
++
++  const float lumDelta = selL - origL;
++  const float fL = origL + lumDelta * (blendFactor * selContrastFactor * 0.5f);
++
++  const float rotAngle = (lumDelta > 0.0f ? -1.0f : 1.0f) * blendFactor *
++                         selContrastFactor * 0.25f;
++  const float cosR = std::cos(rotAngle);
++  const float sinR = std::sin(rotAngle);
++  const float fA = bA * cosR - bB * sinR;
++  const float fB = bA * sinR + bB * cosR;
++
++  const float fl_ = fL + 0.3963377774f * fA + 0.2158037573f * fB;
++  const float fm_ = fL - 0.1055613458f * fA - 0.0638541728f * fB;
++  const float fs_ = fL - 0.0894841775f * fA - 1.2914855480f * fB;
++
++  const float fl = fl_ * fl_ * fl_;
++  const float fm = fm_ * fm_ * fm_;
++  const float fs = fs_ * fs_ * fs_;
++
++  const float rF = 4.0767416621f * fl - 3.3077115913f * fm + 0.2309699292f * fs;
++  const float gF =
++      -1.2684380046f * fl + 2.6097574011f * fm - 0.3413193965f * fs;
++  const float bF =
++      -0.0041960863f * fl - 0.7034186147f * fm + 1.7076147010f * fs;
++
++  return NS_RGBA(static_cast<uint8_t>(std::clamp(
++                     linearToSrgb(rF) * 255.0f + 0.5f, 0.0f, 255.0f)),
++                 static_cast<uint8_t>(std::clamp(
++                     linearToSrgb(gF) * 255.0f + 0.5f, 0.0f, 255.0f)),
++                 static_cast<uint8_t>(std::clamp(
++                     linearToSrgb(bF) * 255.0f + 0.5f, 0.0f, 255.0f)),
++                 oL);
++}
++
++HILAL_HOT_FUNCTION
++inline static nscolor hilalInvertColorChannel(nscolor aColor) {
++  const auto r = NS_GET_R(aColor);
++  const auto g = NS_GET_G(aColor);
++  const auto b = NS_GET_B(aColor);
++  const auto a = NS_GET_A(aColor);
++  if (a == 0) {
++    return aColor;
++  }
++
++  const auto rInv = 255 - r;
++  const auto gInv = 255 - g;
++  const auto bInv = 255 - b;
++
++  const auto max = std::max({rInv, gInv, bInv});
++  const auto min = std::min({rInv, gInv, bInv});
++  const auto sum = max + min;
++
++  const auto rShifted = sum - rInv;
++  const auto gShifted = sum - gInv;
++  const auto bShifted = sum - bInv;
++
++  const auto luma = (rShifted * 54 + gShifted * 183 + bShifted * 19) >> 8;
++  if (luma > 127) {
++    return NS_RGBA(static_cast<uint8_t>(rShifted),
++                   static_cast<uint8_t>(gShifted),
++                   static_cast<uint8_t>(bShifted), a);
++  }
++
++  constexpr uint32_t channelFloor = 40;
++  const uint32_t range = 255 - channelFloor;
++  const auto lift = [channelFloor, range](uint8_t c) -> uint8_t {
++    return static_cast<uint8_t>(channelFloor + (c * range) / 255);
++  };
++  return NS_RGBA(lift(rShifted), lift(gShifted), lift(bShifted), a);
++}
++
++HILAL_HOT_FUNCTION
++inline static bool IsBoostExemptFrame(const nsIFrame* aFrame) {
++  if (!aFrame) {
++    return true;
++  }
++  const nsIContent* content = aFrame->GetContent();
++  if (!content || !content->IsInNativeAnonymousSubtree()) {
++    return false;
++  }
++  if (content->GetContainingShadow()) {
++    return false;
++  }
++  const nsIContent* root = content->GetClosestNativeAnonymousSubtreeRoot();
++  return !root || !root->IsElement() ||
++         !mozilla::PseudoStyle::IsPseudoElement(
++             root->AsElement()->GetPseudoElementType());
++}
++
++HILAL_HOT_FUNCTION
++inline static void GetHilalBoostsDataForFrame(const nsIFrame* aFrame,
++                                              nscolor* aData,
++                                              float* aComplementaryRotation,
++                                              bool* aIsInverted) {
++  *aData = 0;
++  *aComplementaryRotation = 0.0f;
++  *aIsInverted = false;
++
++  nsPresContext* presContext = aFrame->PresContext();
++  if (!presContext) {
++    return;
++  }
++  if (presContext->HasHilalBoostsOverride()) {
++    *aData = presContext->HilalBoostsOverrideAccent();
++    *aComplementaryRotation = presContext->HilalBoostsOverrideComplementaryRotation();
++    *aIsInverted = presContext->HilalBoostsOverrideInverted();
++    return;
++  }
++  const mozilla::dom::BrowsingContext* browsingContext = nullptr;
++  if (auto* document = presContext->Document()) {
++    browsingContext = document->GetBrowsingContext();
++  }
++  if (!browsingContext) {
++    return;
++  }
++  browsingContext = browsingContext->Top();
++  uint64_t bcId = browsingContext->Id();
++
++  nsHilalBoostsBackend* backend = nsHilalBoostsBackend::GetInstance();
++  if (backend) {
++    backend->GetBoostForBrowsingContext(bcId, aData, aComplementaryRotation,
++                                        aIsInverted);
++  }
++}
++
++}  // namespace
++
++[[nodiscard]] HILAL_HOT_FUNCTION auto nsHilalBoostsBackend::ResolveStyleColor(
++    nscolor aColor, const nsIFrame* aFrame) -> nscolor {
++  if (NS_GET_A(aColor) == 0) {
++    return aColor;
++  }
++  if (!aFrame) {
++    aFrame = gActiveFrame;
++  }
++  if (!GetInstance() || IsBoostExemptFrame(aFrame)) {
++    return aColor;
++  }
++  nscolor accentNS = 0;
++  float complementaryRotation = 0.0f;
++  bool invertColors = false;
++  GetHilalBoostsDataForFrame(aFrame, &accentNS, &complementaryRotation,
++                             &invertColors);
++  if (accentNS) {
++    const AccentCacheEntry& cached =
++        GetCachedAccent(accentNS, complementaryRotation);
++    aColor = hilalFilterColorChannel(aColor, cached.accent, cached.complementary);
++  }
++  if (invertColors) {
++    aColor = hilalInvertColorChannel(aColor);
++  }
++  return aColor;
++}
++
++}  // namespace hilal
+diff --git a/layout/style/nsHilalBoostsBackend.h b/layout/style/nsHilalBoostsBackend.h
+new file mode 100644
+--- /dev/null
++++ b/layout/style/nsHilalBoostsBackend.h
+@@ -0,0 +1,68 @@
++/* This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this
++ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
++
++#ifndef mozilla_HilalBoostsBackend_h_
++#define mozilla_HilalBoostsBackend_h_
++
++#include "nsColor.h"
++#include "nsIObserver.h"
++#include "nsCOMPtr.h"
++#include "nsTHashMap.h"
++
++class nsIFrame;
++
++namespace hilal {
++
++struct HilalBoostData {
++  nscolor accent = 0;
++  float complementaryRotation = 0.0f;
++  bool inverted = false;
++};
++
++struct nsHilalAccentOklab {
++  nscolor accentNS;
++  float accL, accA, accB;
++  float contrastFactor;
++};
++
++class nsHilalBoostsBackend final : public nsIObserver {
++ public:
++  NS_DECL_THREADSAFE_ISUPPORTS
++  NS_DECL_NSIOBSERVER
++
++  nsHilalBoostsBackend();
++
++  void Init();
++
++  static auto GetInstance() -> nsHilalBoostsBackend*;
++
++  static auto ResolveStyleColor(nscolor aColor, const nsIFrame* aFrame) -> nscolor;
++
++  void GetBoostForBrowsingContext(uint64_t aId, nscolor* aAccent,
++                                  float* aRotation, bool* aInverted);
++
++ private:
++  ~nsHilalBoostsBackend() = default;
++
++  nsTHashMap<uint64_t, HilalBoostData> mBoostsMap;
++};
++
++extern thread_local const nsIFrame* gActiveFrame;
++
++class AutoActiveFrame {
++ public:
++  explicit AutoActiveFrame(const nsIFrame* aFrame)
++      : mPrevFrame(gActiveFrame) {
++    gActiveFrame = aFrame;
++  }
++  ~AutoActiveFrame() {
++    gActiveFrame = mPrevFrame;
++  }
++ private:
++  const nsIFrame* mPrevFrame;
++};
++
++}  // namespace hilal
++
++#endif  // mozilla_HilalBoostsBackend_h_
+diff --git a/layout/svg/SVGImageContext.cpp b/layout/svg/SVGImageContext.cpp
+--- a/layout/svg/SVGImageContext.cpp
++++ b/layout/svg/SVGImageContext.cpp
+@@ -15,9 +15,30 @@
+ #include "nsISVGPaintContext.h"
+ #include "nsPresContext.h"
+ #include "nsStyleStruct.h"
++#include "mozilla/dom/BrowsingContext.h"
++#include "nsHilalBoostsBackend.h"
+ 
+ namespace mozilla {
+ 
++/* static */
++void SVGImageContext::MaybeStoreHilalBoosts(SVGImageContext& aContext,
++                                            const nsPresContext& aPresContext) {
++  if (dom::Document* doc = aPresContext.Document()) {
++    if (dom::BrowsingContext* bc = doc->GetBrowsingContext()) {
++      bc = bc->Top();
++      uint64_t bcId = bc->Id();
++      nscolor accent = 0;
++      float rotation = 0.0f;
++      bool inverted = false;
++      hilal::nsHilalBoostsBackend* backend = hilal::nsHilalBoostsBackend::GetInstance();
++      if (backend) {
++        backend->GetBoostForBrowsingContext(bcId, &accent, &rotation, &inverted);
++      }
++      aContext.SetHilalBoosts(accent, rotation, inverted);
++    }
++  }
++}
++
+ /* static */
+ void SVGImageContext::MaybeStoreContextPaint(SVGImageContext& aContext,
+                                              nsIFrame* aFromFrame,
+@@ -36,6 +57,8 @@ void SVGImageContext::MaybeStoreContextPaint(SVGImageContext& aContext,
+     return;
+   }
+ 
++  MaybeStoreHilalBoosts(aContext, aPresContext);
++
+   {
+     auto scheme = LookAndFeel::ColorSchemeForStyle(
+         *aPresContext.Document(), aStyle.StyleUI()->mColorScheme.bits,
+diff --git a/layout/svg/SVGImageContext.h b/layout/svg/SVGImageContext.h
+--- a/layout/svg/SVGImageContext.h
++++ b/layout/svg/SVGImageContext.h
+@@ -6,6 +6,7 @@
+ #define LAYOUT_SVG_SVGIMAGECONTEXT_H_
+ 
+ #include "Units.h"
++#include "nsColor.h"
+ #include "mozilla/Maybe.h"
+ #include "mozilla/SVGContextPaint.h"
+ #include "mozilla/SVGPreserveAspectRatio.h"
+@@ -25,7 +26,7 @@ class ComputedStyle;
+ // to the image's internal SVG document when it's drawn.
+ class SVGImageContext {
+  public:
+-  SVGImageContext() = default;
++   SVGImageContext() = default;
+ 
+   /**
+    * Currently it seems that the aViewportSize parameter ends up being used
+@@ -63,6 +64,9 @@ class SVGImageContext {
+                                      nsISVGPaintContext* aPaintContext,
+                                      imgIContainer* aImgContainer);
+ 
++  static void MaybeStoreHilalBoosts(SVGImageContext& aContext,
++                                    const nsPresContext& aPresContext);
++
+   const Maybe<CSSIntSize>& GetViewportSize() const { return mViewportSize; }
+ 
+   void SetViewportSize(const Maybe<CSSIntSize>& aSize) {
+@@ -75,6 +79,18 @@ class SVGImageContext {
+     mColorScheme = aScheme;
+   }
+ 
++  void SetHilalBoosts(nscolor aAccent, float aComplementaryRotation,
++                      bool aInverted) {
++    mHilalBoostsAccent = aAccent;
++    mHilalBoostsComplementaryRotation = aComplementaryRotation;
++    mHilalBoostsInverted = aInverted;
++  }
++  nscolor GetHilalBoostsAccent() const { return mHilalBoostsAccent; }
++  float GetHilalBoostsComplementaryRotation() const {
++    return mHilalBoostsComplementaryRotation;
++  }
++  bool GetHilalBoostsInverted() const { return mHilalBoostsInverted; }
++
+   const Maybe<SVGPreserveAspectRatio>& GetPreserveAspectRatio() const {
+     return mPreserveAspectRatio;
+   }
+@@ -107,7 +123,11 @@ class SVGImageContext {
+ 
+     return contextPaintIsEqual && mViewportSize == aOther.mViewportSize &&
+            mPreserveAspectRatio == aOther.mPreserveAspectRatio &&
+-           mColorScheme == aOther.mColorScheme;
++           mColorScheme == aOther.mColorScheme &&
++           mHilalBoostsAccent == aOther.mHilalBoostsAccent &&
++           mHilalBoostsComplementaryRotation ==
++               aOther.mHilalBoostsComplementaryRotation &&
++           mHilalBoostsInverted == aOther.mHilalBoostsInverted;
+   }
+ 
+   bool operator!=(const SVGImageContext&) const = default;
+@@ -119,7 +139,9 @@ class SVGImageContext {
+     }
+     return HashGeneric(hash, mViewportSize.map(HashSize).valueOr(0),
+                        mPreserveAspectRatio.map(HashPAR).valueOr(0),
+-                       mColorScheme.map(HashColorScheme).valueOr(0));
++                       mColorScheme.map(HashColorScheme).valueOr(0),
++                       mHilalBoostsAccent, mHilalBoostsComplementaryRotation,
++                       mHilalBoostsInverted);
+   }
+ 
+  private:
+@@ -138,6 +160,9 @@ class SVGImageContext {
+   Maybe<CSSIntSize> mViewportSize;
+   Maybe<SVGPreserveAspectRatio> mPreserveAspectRatio;
+   Maybe<ColorScheme> mColorScheme;
++  nscolor mHilalBoostsAccent = 0;
++  float mHilalBoostsComplementaryRotation = 0.0f;
++  bool mHilalBoostsInverted = false;
+ };
+ 
+ }  // namespace mozilla
+diff --git a/widget/Theme.cpp b/widget/Theme.cpp
+--- a/widget/Theme.cpp
++++ b/widget/Theme.cpp
+@@ -113,6 +113,20 @@ static StaticRefPtr<Theme> gRDMInstance;
+ 
+ }  // namespace
+ 
++namespace hilal {
++  extern thread_local const ::nsIFrame* gActiveFrame;
++}
++
++struct AutoThemeActiveFrame {
++  explicit AutoThemeActiveFrame(const nsIFrame* aFrame) : mPrev(hilal::gActiveFrame) {
++    hilal::gActiveFrame = aFrame;
++  }
++  ~AutoThemeActiveFrame() {
++    hilal::gActiveFrame = mPrev;
++  }
++  const nsIFrame* mPrev;
++};
++
+ #ifdef ANDROID
+ already_AddRefed<Theme> do_CreateNativeThemeDoNotUseDirectly() {
+   // Android doesn't have a native theme.
+@@ -1107,6 +1121,7 @@ bool Theme::DoDrawWidgetBackground(PaintBackendData& aPaintData,
+                                    StyleAppearance aAppearance,
+                                    const nsRect& aRect,
+                                    DrawOverflow aDrawOverflow) {
++  AutoThemeActiveFrame active(aFrame);
+   static_assert(std::is_same_v<PaintBackendData, DrawTarget> ||
+                 std::is_same_v<PaintBackendData, WebRenderBackendData>);
+ 

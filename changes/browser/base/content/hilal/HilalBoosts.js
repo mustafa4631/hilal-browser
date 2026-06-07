@@ -177,6 +177,20 @@
       this._applyStyles();
       this._updateUIState();
       this._pulseContentBorder();
+
+      try {
+        const browser = window.gBrowser.selectedBrowser;
+        const actor = browser?.browsingContext?.currentWindowGlobal?.getActor("HilalBoosts");
+        if (actor) {
+          if (data.enabled) {
+            actor.sendAsyncMessage("HilalBoosts:UpdateBoost", data);
+          } else {
+            actor.sendAsyncMessage("HilalBoosts:ClearBoost");
+          }
+        }
+      } catch (e) {
+        console.error("HilalBoosts: failed to send update to child actor", e);
+      }
     }
 
     _applyStyles() {
@@ -208,42 +222,7 @@
             css += `  body *:not(script, style) { text-transform: ${boost.textCase} !important; }\n`;
           }
 
-          // Dynamic GPU-accelerated page styling using CSS filters
-          let filters = [];
-          let inverseFilters = [];
-
-          if (boost.smartInvert) {
-            filters.push("invert(0.88)");
-            inverseFilters.unshift("invert(1)");
-          }
-
-          if (boost.colorEnabled && this._isHexColor(boost.accentColor)) {
-            const accentHsl = this._hexToHsl(boost.accentColor);
-            // Rotate hue relative to page's default blue accent (~215deg)
-            const rotation = Math.round(accentHsl.h - 215);
-            if (Math.abs(rotation) > 5) {
-              filters.push(`hue-rotate(${rotation}deg)`);
-              inverseFilters.unshift(`hue-rotate(${-rotation}deg)`);
-            }
-
-            const intensity = this._clampNumber(boost.colorIntensity, 0, 100, 35);
-            if (intensity !== 35) {
-              const saturationFactor = (1 + (intensity - 35) / 100).toFixed(2);
-              filters.push(`saturate(${saturationFactor})`);
-            }
-
-            const brightness = this._clampNumber(boost.colorBrightness, 80, 120, 100);
-            if (brightness !== 100) {
-              const brightnessFactor = (brightness / 100).toFixed(2);
-              filters.push(`brightness(${brightnessFactor})`);
-              inverseFilters.unshift(`brightness(${(100 / brightness).toFixed(2)})`);
-            }
-          }
-
-          if (filters.length > 0) {
-            css += `  html { filter: ${filters.join(" ")} !important; background: ${boost.smartInvert ? "#121214" : "#fff"} !important; }\n`;
-            css += `  img, video, iframe, canvas, embed, object, [style*="background-image"] { filter: ${inverseFilters.join(" ")} !important; }\n`;
-          }
+          // CSS filter chain logic removed in favor of layout-level colors resolving.
 
           // Additional local element overrides to blend form controls and selection
           if (boost.colorEnabled && this._isHexColor(boost.accentColor)) {

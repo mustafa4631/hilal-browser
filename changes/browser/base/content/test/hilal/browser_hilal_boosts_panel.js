@@ -75,8 +75,8 @@ add_task(async function test_boosts_button_opens_panel() {
         "Generated stylesheet should use the same sheet level as Zen-style boosts"
       );
       ok(
-        HilalBoostsShared.activeSheetCSS.includes("background-color"),
-        "Generated stylesheet should apply a quiet page background tint"
+        HilalBoostsShared.activeSheetCSS.includes("accent-color"),
+        "Generated stylesheet should apply accent-color override"
       );
       ok(
         !HilalBoostsShared.activeSheetCSS.includes("filter:"),
