@@ -15,6 +15,7 @@
   const PINNED_KEY = "hilalWorkspacePinned";
   const HIDDEN_BY = "hilal-workspace";
   const TAB_DROP_TYPE = "application/x-moz-tabbrowser-tab";
+  const WS_DROP_TYPE = "application/x-hilal-workspace";
   const DEFAULT_WORKSPACE_ID = "default";
   const DEFAULT_WORKSPACE_NAME = "Default";
   const DEFAULT_EMOJI = "\u{1F5C2}";
@@ -1342,6 +1343,33 @@
       this._updateUI();
     }
 
+    reorderWorkspaces(sourceId, targetId) {
+      const sourceIndex = this._workspaces.findIndex(w => w.id === sourceId);
+      const targetIndex = this._workspaces.findIndex(w => w.id === targetId);
+      if (sourceIndex === -1 || targetIndex === -1) {
+        return;
+      }
+      const [moved] = this._workspaces.splice(sourceIndex, 1);
+      this._workspaces.splice(targetIndex, 0, moved);
+      this._saveData();
+      this._updateUI();
+    }
+
+    moveWorkspaceByIndex(index, direction) {
+      if (index === -1) {
+        return;
+      }
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= this._workspaces.length) {
+        return;
+      }
+      const temp = this._workspaces[index];
+      this._workspaces[index] = this._workspaces[targetIndex];
+      this._workspaces[targetIndex] = temp;
+      this._saveData();
+      this._updateUI();
+    }
+
     async remove(id) {
       if (this._workspaces.length <= 1) {
         return;
@@ -1764,6 +1792,16 @@
 
       popup.appendChild(document.createXULElement("menuseparator"));
 
+      const wsIndex = this._workspaces.findIndex(w => w.id === workspace.id);
+      addMenuItem("Move Up", () => this.moveWorkspaceByIndex(wsIndex, -1), {
+        disabled: wsIndex === 0,
+      });
+      addMenuItem("Move Down", () => this.moveWorkspaceByIndex(wsIndex, 1), {
+        disabled: wsIndex === this._workspaces.length - 1,
+      });
+
+      popup.appendChild(document.createXULElement("menuseparator"));
+
       addMenuItem("Edit", () => this._showRenameDialog(workspace));
 
       addMenuItem(
@@ -2155,8 +2193,21 @@
           event.preventDefault();
           this._showWorkspaceMenu(workspace, button, event);
         });
+        button.setAttribute("draggable", "true");
+        button.addEventListener("dragstart", event => {
+          event.dataTransfer.setData(WS_DROP_TYPE, workspace.id);
+          event.dataTransfer.effectAllowed = "move";
+          button.style.opacity = "0.5";
+        });
+        button.addEventListener("dragend", () => {
+          button.style.opacity = "";
+        });
         button.addEventListener("dragover", event => {
           if (event.dataTransfer.types.includes(TAB_DROP_TYPE)) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            button.classList.add("hilal-ws-drop-target");
+          } else if (event.dataTransfer.types.includes(WS_DROP_TYPE)) {
             event.preventDefault();
             event.dataTransfer.dropEffect = "move";
             button.classList.add("hilal-ws-drop-target");
@@ -2167,10 +2218,18 @@
         });
         button.addEventListener("drop", event => {
           button.classList.remove("hilal-ws-drop-target");
-          const draggedTab = event.dataTransfer.mozGetDataAt(TAB_DROP_TYPE, 0);
-          if (draggedTab && gBrowser.isTab(draggedTab)) {
-            event.preventDefault();
-            this._moveTabToWorkspace(draggedTab, workspace.id);
+          if (event.dataTransfer.types.includes(TAB_DROP_TYPE)) {
+            const draggedTab = event.dataTransfer.mozGetDataAt(TAB_DROP_TYPE, 0);
+            if (draggedTab && gBrowser.isTab(draggedTab)) {
+              event.preventDefault();
+              this._moveTabToWorkspace(draggedTab, workspace.id);
+            }
+          } else if (event.dataTransfer.types.includes(WS_DROP_TYPE)) {
+            const draggedWsId = event.dataTransfer.getData(WS_DROP_TYPE);
+            if (draggedWsId && draggedWsId !== workspace.id) {
+              event.preventDefault();
+              this.reorderWorkspaces(draggedWsId, workspace.id);
+            }
           }
         });
 

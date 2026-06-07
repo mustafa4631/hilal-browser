@@ -72,3 +72,50 @@ add_task(async function test_workspace_creation_and_switch() {
   window.gHilalWorkspaces._workspaces = window.gHilalWorkspaces._workspaces.filter(ws => ws.id !== newWorkspaceId);
   window.gHilalWorkspaces._saveData();
 });
+
+add_task(async function test_workspace_reordering() {
+  let initialWorkspaces = [...window.gHilalWorkspaces._workspaces];
+  
+  let ws1Id = "test-ws-1-" + Date.now();
+  let ws2Id = "test-ws-2-" + Date.now();
+  
+  window.gHilalWorkspaces._workspaces.push({
+    id: ws1Id,
+    name: "Workspace 1",
+    emoji: "1",
+    color: "blue",
+    containerId: 0,
+  });
+  window.gHilalWorkspaces._workspaces.push({
+    id: ws2Id,
+    name: "Workspace 2",
+    emoji: "2",
+    color: "green",
+    containerId: 0,
+  });
+  window.gHilalWorkspaces._saveData();
+  
+  let ws1IndexBefore = window.gHilalWorkspaces._workspaces.findIndex(w => w.id === ws1Id);
+  let ws2IndexBefore = window.gHilalWorkspaces._workspaces.findIndex(w => w.id === ws2Id);
+  
+  ok(ws1IndexBefore !== -1 && ws2IndexBefore !== -1, "Test workspaces should exist");
+  
+  // Test reorderWorkspaces
+  window.gHilalWorkspaces.reorderWorkspaces(ws1Id, ws2Id);
+  
+  let ws1IndexAfter = window.gHilalWorkspaces._workspaces.findIndex(w => w.id === ws1Id);
+  let ws2IndexAfter = window.gHilalWorkspaces._workspaces.findIndex(w => w.id === ws2Id);
+  
+  is(ws1IndexAfter, ws2IndexBefore, "Workspace 1 should be moved to Workspace 2's position");
+  
+  // Test moveWorkspaceByIndex (Move Up)
+  let indexToMove = window.gHilalWorkspaces._workspaces.findIndex(w => w.id === ws2Id);
+  window.gHilalWorkspaces.moveWorkspaceByIndex(indexToMove, -1);
+  
+  let indexAfterMoveUp = window.gHilalWorkspaces._workspaces.findIndex(w => w.id === ws2Id);
+  is(indexAfterMoveUp, indexToMove - 1, "Workspace 2 should have moved up by one position");
+  
+  // Restore initial state
+  window.gHilalWorkspaces._workspaces = initialWorkspaces;
+  window.gHilalWorkspaces._saveData();
+});
