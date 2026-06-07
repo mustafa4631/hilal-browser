@@ -25,6 +25,16 @@ export class HilalBoostsParent extends JSWindowActorParent {
         }
         break;
       }
+      case "HilalBoosts:ThemeColorExtracted": {
+        const window = this.browsingContext.top.embedderElement?.ownerGlobal;
+        if (window && window.gHilalBoosts) {
+          window.gHilalBoosts.handleExtractedThemeColor(
+            aMessage.data.domain,
+            aMessage.data.themeColor
+          );
+        }
+        break;
+      }
     }
     return null;
   }

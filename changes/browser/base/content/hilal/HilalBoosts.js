@@ -7,6 +7,8 @@
 
   const PREF_DATA = "hilal.boosts.data";
   const PREF_ENABLED = "hilal.boosts.enabled";
+  const PREF_AUTO_PALETTE = "hilal.boosts.auto_palette.enabled";
+  const PREF_BROWSER_UI = "hilal.boosts.browser_ui.enabled";
   const DEFAULT_ACCENT_COLOR = "#7c5cff";
   const DEFAULT_SECONDARY_COLOR = "#00d4ff";
 
@@ -18,6 +20,7 @@
     constructor() {
       this._boosts = {};
       this._enabled = true;
+      this._extractedThemeColors = {};
       this._activeSheetUri = null;
       this._zapping = false;
       this._draggingColor = false;
@@ -48,6 +51,8 @@
 
       Services.prefs.addObserver(PREF_DATA, this._prefObserver);
       Services.prefs.addObserver(PREF_ENABLED, this._prefObserver);
+      Services.prefs.addObserver(PREF_AUTO_PALETTE, this._prefObserver);
+      Services.prefs.addObserver(PREF_BROWSER_UI, this._prefObserver);
 
       // Listen to tab selection/navigation to update panel state
       this._tabSelectListener = () => {
@@ -93,6 +98,8 @@
       if (this._prefObserver) {
         Services.prefs.removeObserver(PREF_DATA, this._prefObserver);
         Services.prefs.removeObserver(PREF_ENABLED, this._prefObserver);
+        Services.prefs.removeObserver(PREF_AUTO_PALETTE, this._prefObserver);
+        Services.prefs.removeObserver(PREF_BROWSER_UI, this._prefObserver);
       }
       if (this._tabSelectListener) {
         window.gBrowser.tabContainer.removeEventListener("TabSelect", this._tabSelectListener);
@@ -167,7 +174,8 @@
           textCase: "none",
           smartInvert: false,
           colorEnabled: false,
-          browserUIEnabled: false,
+          browserUIEnabled: Services.prefs.getBoolPref("hilal.boosts.browser_ui.enabled", false),
+          autoPaletteEnabled: Services.prefs.getBoolPref("hilal.boosts.auto_palette.enabled", false),
           accentColor: DEFAULT_ACCENT_COLOR,
           secondaryColor: DEFAULT_SECONDARY_COLOR,
           colorIntensity: 35,
@@ -385,7 +393,26 @@
 
     _updateBrowserUIColors(boost) {
       const docEl = document.documentElement;
-      if (boost && boost.enabled && boost.browserUIEnabled) {
+      const domain = this.activeDomain;
+
+      const globalAutoPalette = Services.prefs.getBoolPref("hilal.boosts.auto_palette.enabled", false);
+      const isAutoPalette = boost && boost.enabled
+        ? boost.autoPaletteEnabled
+        : globalAutoPalette;
+
+      const extractedColor = domain ? this._extractedThemeColors[domain] : null;
+
+      if (isAutoPalette && extractedColor) {
+        const secondaryColor = this._rotateHexColor(extractedColor, 52);
+        const intensity = boost ? boost.colorIntensity : 35;
+        const brightness = boost ? boost.colorBrightness : 100;
+
+        docEl.setAttribute("hilal-boosts-ui", "true");
+        docEl.style.setProperty("--hilal-boosts-ui-accent", extractedColor);
+        docEl.style.setProperty("--hilal-boosts-ui-secondary", secondaryColor);
+        docEl.style.setProperty("--hilal-boosts-ui-intensity", intensity + "%");
+        docEl.style.setProperty("--hilal-boosts-ui-brightness", brightness + "%");
+      } else if (boost && boost.enabled && boost.browserUIEnabled) {
         docEl.setAttribute("hilal-boosts-ui", "true");
         docEl.style.setProperty("--hilal-boosts-ui-accent", boost.accentColor);
         docEl.style.setProperty("--hilal-boosts-ui-secondary", boost.secondaryColor);
@@ -428,6 +455,7 @@
       this._addPanelCommandListener("hilal-boosts-case", "change");
       this._addPanelCommandListener("hilal-boosts-invert", "change");
       this._addPanelCommandListener("hilal-boosts-color-enable", "change");
+      this._addPanelCommandListener("hilal-boosts-auto-palette-enable", "change");
       this._addPanelCommandListener("hilal-boosts-browser-ui-enable", "change");
       this._addPanelCommandListener("hilal-boosts-color", "input");
       this._addPanelCommandListener("hilal-boosts-color-secondary", "input");
@@ -557,6 +585,7 @@
         ["hilal-boosts-case", "change"],
         ["hilal-boosts-invert", "change"],
         ["hilal-boosts-color-enable", "change"],
+        ["hilal-boosts-auto-palette-enable", "change"],
         ["hilal-boosts-browser-ui-enable", "change"],
         ["hilal-boosts-color", "input"],
         ["hilal-boosts-color-secondary", "input"],
@@ -643,6 +672,7 @@
 
       // Color Boost
       document.getElementById("hilal-boosts-color-enable").checked = !!boost.colorEnabled;
+      document.getElementById("hilal-boosts-auto-palette-enable").checked = !!boost.autoPaletteEnabled;
       document.getElementById("hilal-boosts-browser-ui-enable").checked = !!boost.browserUIEnabled;
       const colorInput = document.getElementById("hilal-boosts-color");
       colorInput.value = boost.accentColor;
@@ -748,6 +778,12 @@
         boost.smartInvert = target.checked;
       } else if (target.id === "hilal-boosts-color-enable") {
         boost.colorEnabled = target.checked;
+        if (target.checked) {
+          boost.enabled = true;
+          document.getElementById("hilal-boosts-enable").checked = true;
+        }
+      } else if (target.id === "hilal-boosts-auto-palette-enable") {
+        boost.autoPaletteEnabled = target.checked;
         if (target.checked) {
           boost.enabled = true;
           document.getElementById("hilal-boosts-enable").checked = true;
@@ -1022,6 +1058,11 @@
     _normalizeBoost(boost) {
       boost.colorEnabled = boost.colorEnabled === true;
       boost.browserUIEnabled = boost.browserUIEnabled === true;
+      if (boost.autoPaletteEnabled === undefined) {
+        boost.autoPaletteEnabled = Services.prefs.getBoolPref("hilal.boosts.auto_palette.enabled", false);
+      } else {
+        boost.autoPaletteEnabled = boost.autoPaletteEnabled === true;
+      }
       boost.accentColor = this._normalizeHexColor(boost.accentColor);
       boost.secondaryColor = this._normalizeHexColor(
         boost.secondaryColor,
@@ -1294,6 +1335,20 @@
       }
       boost.enabled = true; // Auto-enable boost when zapping
       this.saveBoostForDomain(domain, boost);
+    }
+
+    handleExtractedThemeColor(domain, themeColor) {
+      if (!domain) return;
+      if (themeColor) {
+        this._extractedThemeColors[domain] = themeColor;
+      } else {
+        delete this._extractedThemeColors[domain];
+      }
+
+      if (domain === this.activeDomain) {
+        this._updateUIState();
+        this._updatePanelUI();
+      }
     }
   }
 

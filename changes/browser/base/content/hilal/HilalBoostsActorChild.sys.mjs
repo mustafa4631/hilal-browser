@@ -43,9 +43,120 @@ export class HilalBoostsChild extends JSWindowActorChild {
     try {
       const boost = await this.sendQuery("HilalBoosts:GetBoostForDomain", { domain });
       this.applyBoostToBackend(boost);
+      this._notifyThemeColor();
+      this._startMetaObserver();
     } catch (e) {
       console.error("HilalBoostsChild: failed to init boost", e);
     }
+  }
+
+  parseToHex(colorStr, doc) {
+    if (!colorStr) return null;
+    colorStr = colorStr.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(colorStr)) return colorStr.toLowerCase();
+    if (/^#[0-9a-fA-F]{3}$/.test(colorStr)) {
+      return `#${colorStr[1]}${colorStr[1]}${colorStr[2]}${colorStr[2]}${colorStr[3]}${colorStr[3]}`.toLowerCase();
+    }
+    try {
+      const canvas = doc.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = colorStr;
+      const val = ctx.fillStyle;
+      if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+        return val.toLowerCase();
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  _isGenericColor(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const diff = max - min;
+    if (diff < 15) {
+      return true;
+    }
+    const avg = (r + g + b) / 3;
+    if (avg > 240 || avg < 15) {
+      return true;
+    }
+    return false;
+  }
+
+  extractThemeColor() {
+    const doc = this.document;
+    if (!doc) return null;
+
+    let meta = doc.querySelector('meta[name="theme-color"]');
+    if (meta && meta.content) {
+      const parsed = this.parseToHex(meta.content, doc);
+      if (parsed) return parsed;
+    }
+
+    for (const name of ["apple-mobile-web-app-status-bar-style", "msapplication-navbutton-color"]) {
+      meta = doc.querySelector(`meta[name="${name}"]`);
+      if (meta && meta.content) {
+        const parsed = this.parseToHex(meta.content, doc);
+        if (parsed) return parsed;
+      }
+    }
+
+    try {
+      if (doc.body) {
+        const bg = doc.defaultView.getComputedStyle(doc.body).backgroundColor;
+        const parsed = this.parseToHex(bg, doc);
+        if (parsed && !this._isGenericColor(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+
+    return null;
+  }
+
+  _startMetaObserver() {
+    this._stopMetaObserver();
+    const doc = this.document;
+    if (!doc) return;
+
+    try {
+      this._metaObserver = new this.contentWindow.MutationObserver(() => {
+        this._notifyThemeColor();
+      });
+      const target = doc.head || doc.documentElement;
+      if (target) {
+        this._metaObserver.observe(target, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["content", "name"],
+        });
+      }
+    } catch (e) {
+      console.error("HilalBoostsChild: failed to start meta observer", e);
+    }
+  }
+
+  _stopMetaObserver() {
+    if (this._metaObserver) {
+      try {
+        this._metaObserver.disconnect();
+      } catch (e) {}
+      this._metaObserver = null;
+    }
+  }
+
+  _notifyThemeColor() {
+    const domain = this.hostWithoutPort;
+    if (!domain) return;
+    const themeColor = this.extractThemeColor();
+    this.sendAsyncMessage("HilalBoosts:ThemeColorExtracted", {
+      domain,
+      themeColor,
+    });
   }
 
   receiveMessage(aMessage) {
@@ -67,6 +178,7 @@ export class HilalBoostsChild extends JSWindowActorChild {
 
   actorDestroy() {
     this.stopZap();
+    this._stopMetaObserver();
   }
 
   startZap(data = {}) {
