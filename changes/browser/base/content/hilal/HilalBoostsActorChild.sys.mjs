@@ -387,6 +387,17 @@ export class HilalBoostsChild extends JSWindowActorChild {
 
   get hostWithoutPort() {
     try {
+      const urlStr = this.document.documentURI;
+      const uri = Services.io.newURI(urlStr);
+      if (uri && (uri.schemeIs("http") || uri.schemeIs("https"))) {
+        try {
+          return Services.eTLD.getBaseDomain(uri);
+        } catch (e) {
+          return uri.host;
+        }
+      }
+    } catch (e) {}
+    try {
       const host = this.contentWindow.top.location.host;
       return host?.split(":")[0];
     } catch (e) {

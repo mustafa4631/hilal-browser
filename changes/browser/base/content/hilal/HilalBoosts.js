@@ -147,7 +147,11 @@
       try {
         const uri = window.gBrowser.selectedBrowser?.currentURI;
         if (uri && (uri.schemeIs("http") || uri.schemeIs("https"))) {
-          return uri.host;
+          try {
+            return Services.eTLD.getBaseDomain(uri);
+          } catch (e) {
+            return uri.host;
+          }
         }
       } catch (e) {}
       return null;
@@ -190,7 +194,15 @@
               if (browser && browser.browsingContext) {
                 try {
                   const uri = browser.currentURI;
-                  if (uri && (uri.schemeIs("http") || uri.schemeIs("https")) && uri.host === domain) {
+                  let tabDomain = "";
+                  if (uri && (uri.schemeIs("http") || uri.schemeIs("https"))) {
+                    try {
+                      tabDomain = Services.eTLD.getBaseDomain(uri);
+                    } catch (e) {
+                      tabDomain = uri.host;
+                    }
+                  }
+                  if (tabDomain === domain) {
                     const actor = browser.browsingContext.currentWindowGlobal?.getActor("HilalBoosts");
                     if (actor) {
                       if (data.enabled) {
@@ -402,9 +414,108 @@
       this._addPanelCommandListener("hilal-boosts-css", "input");
       document.getElementById("hilal-boosts-zap-btn")
         ?.addEventListener("click", this._zapButtonListener);
-      for (const preset of document.querySelectorAll(".hilal-boosts-color-preset")) {
+      for (const preset of document.querySelectorAll(".hilal-boosts-swatch-circle")) {
         preset.addEventListener("click", this._colorPresetListener);
       }
+
+      document.getElementById("hilal-boosts-btn-close")?.addEventListener("click", () => {
+        document.getElementById("hilal-boosts-panel")?.hidePopup();
+      });
+
+      document.getElementById("hilal-boosts-btn-reset")?.addEventListener("click", () => {
+        const domain = this.activeDomain;
+        if (domain) {
+          this.saveBoostForDomain(domain, {
+            enabled: false,
+            fontFamily: "",
+            fontSize: 100,
+            textCase: "none",
+            smartInvert: false,
+            colorEnabled: false,
+            accentColor: DEFAULT_ACCENT_COLOR,
+            secondaryColor: DEFAULT_SECONDARY_COLOR,
+            colorIntensity: 35,
+            colorBrightness: 100,
+            customCSS: "",
+            zappedSelectors: []
+          });
+          this.populatePanel();
+        }
+      });
+
+      document.getElementById("hilal-boosts-btn-sparkle")?.addEventListener("click", () => {
+        const input = document.getElementById("hilal-boosts-color-enable");
+        if (input) {
+          input.checked = !input.checked;
+          input.dispatchEvent(new Event("change"));
+        }
+      });
+
+      document.getElementById("hilal-boosts-btn-invert-toggle")?.addEventListener("click", () => {
+        const input = document.getElementById("hilal-boosts-invert");
+        if (input) {
+          input.checked = !input.checked;
+          input.dispatchEvent(new Event("change"));
+        }
+      });
+
+      document.getElementById("hilal-boosts-btn-sliders-toggle")?.addEventListener("click", (event) => {
+        const drawer = document.getElementById("hilal-boosts-drawer-sliders");
+        const btn = event.currentTarget;
+        if (drawer) {
+          const isOpen = drawer.getAttribute("open") === "true";
+          drawer.setAttribute("open", isOpen ? "false" : "true");
+          btn.setAttribute("active", isOpen ? "false" : "true");
+        }
+      });
+
+      document.getElementById("hilal-boosts-btn-power-toggle")?.addEventListener("click", () => {
+        const input = document.getElementById("hilal-boosts-enable");
+        if (input) {
+          input.checked = !input.checked;
+          input.dispatchEvent(new Event("change"));
+        }
+      });
+
+      for (const btn of document.querySelectorAll(".hilal-boosts-font-preview-btn")) {
+        btn.addEventListener("click", (event) => {
+          const fontInput = document.getElementById("hilal-boosts-font");
+          if (fontInput) {
+            fontInput.value = event.currentTarget.dataset.font || "";
+            fontInput.dispatchEvent(new Event("change"));
+          }
+        });
+      }
+
+      document.getElementById("hilal-boosts-btn-size-toggle")?.addEventListener("click", () => {
+        const drawer = document.getElementById("hilal-boosts-drawer-sliders");
+        const btn = document.getElementById("hilal-boosts-btn-sliders-toggle");
+        if (drawer) {
+          const isOpen = drawer.getAttribute("open") === "true";
+          drawer.setAttribute("open", isOpen ? "false" : "true");
+          btn?.setAttribute("active", isOpen ? "false" : "true");
+        }
+      });
+
+      document.getElementById("hilal-boosts-btn-case-cycle")?.addEventListener("click", () => {
+        const input = document.getElementById("hilal-boosts-case");
+        if (input) {
+          const cases = ["none", "uppercase", "lowercase", "capitalize"];
+          const currentIdx = cases.indexOf(input.value || "none");
+          const nextIdx = (currentIdx + 1) % cases.length;
+          input.value = cases[nextIdx];
+          input.dispatchEvent(new Event("change"));
+        }
+      });
+
+      document.getElementById("hilal-boosts-code-btn")?.addEventListener("click", () => {
+        const drawer = document.getElementById("hilal-boosts-drawer-code");
+        if (drawer) {
+          const isOpen = drawer.getAttribute("open") === "true";
+          drawer.setAttribute("open", isOpen ? "false" : "true");
+        }
+      });
+
       window.addEventListener("pointermove", this._colorPickerPointerMove);
       window.addEventListener("pointerup", this._colorPickerPointerUp);
     }
@@ -527,6 +638,36 @@
       // Custom CSS
       document.getElementById("hilal-boosts-css").value = boost.customCSS || "";
 
+      // Action Row Buttons Active State
+      document.getElementById("hilal-boosts-btn-invert-toggle").toggleAttribute("active", !!boost.smartInvert);
+      document.getElementById("hilal-boosts-btn-power-toggle").toggleAttribute("active", !!boost.enabled);
+
+      // Text Case Cycle Button Text
+      const caseBtn = document.getElementById("hilal-boosts-btn-case-cycle");
+      if (caseBtn) {
+        const textCase = boost.textCase || "none";
+        let label = "Case: Default";
+        if (textCase === "uppercase") label = "Case: UPPER";
+        else if (textCase === "lowercase") label = "Case: lower";
+        else if (textCase === "capitalize") label = "Case: Title";
+        caseBtn.textContent = label;
+      }
+
+      // Font Family Selection Grid Highlight
+      const font = boost.fontFamily || "";
+      let activeFontLabel = "System Default";
+      for (const fontBtn of document.querySelectorAll(".hilal-boosts-font-preview-btn")) {
+        const isMatch = (fontBtn.dataset.font || "") === font;
+        fontBtn.toggleAttribute("active", isMatch);
+        if (isMatch) {
+          activeFontLabel = fontBtn.getAttribute("title") || "System Default";
+        }
+      }
+      const labelEl = document.getElementById("hilal-boosts-lbl-active-font");
+      if (labelEl) {
+        labelEl.textContent = activeFontLabel;
+      }
+
       // Zaps
       const zapsList = document.getElementById("hilal-boosts-zaps-list");
       zapsList.textContent = "";
@@ -553,11 +694,13 @@
           item.appendChild(removeBtn);
           zapsList.appendChild(item);
         }
+        document.getElementById("hilal-boosts-drawer-zaps")?.setAttribute("open", "true");
       } else {
         const placeholder = document.createElement("div");
         placeholder.textContent = "No active element blocks";
         placeholder.className = "hilal-boosts-zap-placeholder";
         zapsList.appendChild(placeholder);
+        document.getElementById("hilal-boosts-drawer-zaps")?.setAttribute("open", "false");
       }
     }
 
@@ -641,6 +784,23 @@
 
     _onColorPickerPointerDown(event) {
       if (event.button !== 0) return;
+
+      const secondaryDot = document.getElementById("hilal-boosts-color-dot-secondary");
+      const primaryDot = document.getElementById("hilal-boosts-color-dot-primary");
+      
+      this._dragTarget = "primary";
+      if (secondaryDot && event.target === secondaryDot) {
+        this._dragTarget = "secondary";
+      } else if (secondaryDot && primaryDot) {
+        const secRect = secondaryDot.getBoundingClientRect();
+        const priRect = primaryDot.getBoundingClientRect();
+        const secDist = Math.hypot(event.clientX - (secRect.left + secRect.width / 2), event.clientY - (secRect.top + secRect.height / 2));
+        const priDist = Math.hypot(event.clientX - (priRect.left + priRect.width / 2), event.clientY - (priRect.top + priRect.height / 2));
+        if (secDist < priDist && secDist < 25) {
+          this._dragTarget = "secondary";
+        }
+      }
+
       this._draggingColor = true;
       this._updateColorFromPickerEvent(event);
     }
@@ -695,7 +855,7 @@
       const picker = document.getElementById("hilal-boosts-color-picker");
       const dot = document.getElementById("hilal-boosts-color-dot-primary");
       const secondaryDot = document.getElementById("hilal-boosts-color-dot-secondary");
-      const circle = picker?.querySelector(".hilal-boosts-color-picker-circle");
+      const circle = picker?.querySelector(".hilal-boosts-picker-circle");
       const preview = document.getElementById("hilal-boosts-gradient-preview");
       if (!picker || !dot || !secondaryDot) return;
 
@@ -722,7 +882,7 @@
         preview.style.setProperty("--hilal-boosts-accent", color);
         preview.style.setProperty("--hilal-boosts-secondary", secondaryColor);
       }
-      for (const preset of document.querySelectorAll(".hilal-boosts-color-preset")) {
+      for (const preset of document.querySelectorAll(".hilal-boosts-swatch-circle")) {
         preset.toggleAttribute("active", preset.dataset.color === color);
       }
     }
