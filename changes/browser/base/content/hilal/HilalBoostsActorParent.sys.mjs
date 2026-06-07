@@ -1,6 +1,8 @@
 export const HilalBoostsShared = {
   activeSheetUri: null,
+  activeSheetUris: new Map(),
   activeSheetCSS: "",
+  sheetType: null,
 };
 
 export class HilalBoostsParent extends JSWindowActorParent {
@@ -16,4 +18,3 @@ export class HilalBoostsParent extends JSWindowActorParent {
     }
   }
 }
-
