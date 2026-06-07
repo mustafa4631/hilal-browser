@@ -227,15 +227,205 @@
 </groupbox>
 
 <groupbox id="hilalShortcutsGroup" data-category="paneHilal" hidden="true">
+  <html:style>
+    .shortcuts-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-top: 15px;
+    }
+
+    .shortcuts-category-card {
+      background: var(--in-content-box-background);
+      border: 1px solid var(--in-content-border-color);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .shortcuts-category-title {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: var(--in-content-text-color);
+      margin: 0 0 6px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--in-content-border-color);
+    }
+
+    .shortcut-row-container {
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid var(--in-content-border-color);
+      padding-bottom: 8px;
+      margin-bottom: 4px;
+    }
+
+    .shortcut-row-container:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    .shortcut-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 4px;
+      border-radius: 6px;
+    }
+
+    .shortcut-row:hover {
+      background-color: var(--in-content-button-background-hover);
+    }
+
+    .shortcut-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      padding-right: 12px;
+    }
+
+    .shortcut-label {
+      font-weight: 600;
+      color: var(--in-content-text-color);
+    }
+
+    .shortcut-desc {
+      font-size: 0.85em;
+      opacity: 0.75;
+      color: var(--in-content-deemphasized-text);
+      margin-top: 2px;
+    }
+
+    .shortcut-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .kbd-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      min-width: 120px;
+      justify-content: flex-end;
+    }
+
+    .shortcut-keycap {
+      background-color: var(--in-content-button-background);
+      border: 1px solid var(--in-content-border-color);
+      border-bottom: 2px solid var(--in-content-border-color);
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-family: monospace;
+      font-size: 0.85em;
+      font-weight: 600;
+      color: var(--in-content-text-color);
+      min-width: 20px;
+      text-align: center;
+      display: inline-block;
+    }
+
+    .shortcut-action-btn {
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--in-content-border-color);
+      background-color: var(--in-content-button-background);
+      color: var(--in-content-text-color);
+      cursor: pointer;
+      font-weight: 500;
+      min-width: 70px;
+      text-align: center;
+    }
+
+    .shortcut-action-btn:hover {
+      background-color: var(--in-content-button-background-hover);
+    }
+
+    .shortcut-action-btn.recording-active {
+      background: linear-gradient(135deg, #0060df, #0090ff);
+      color: #ffffff;
+      border-color: transparent;
+      animation: pulse-glow 1.5s infinite;
+      font-weight: 600;
+    }
+
+    @keyframes pulse-glow {
+      0% {
+        box-shadow: 0 0 0 0 rgba(0, 96, 223, 0.6);
+      }
+      70% {
+        box-shadow: 0 0 0 5px rgba(0, 96, 223, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(0, 96, 223, 0);
+      }
+    }
+
+    .shortcut-clear-btn {
+      background: none;
+      border: none;
+      color: var(--in-content-deemphasized-text);
+      cursor: pointer;
+      font-size: 1.1em;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .shortcut-clear-btn:hover {
+      background-color: var(--in-content-button-background-hover);
+      color: #ff3b30;
+    }
+
+    .shortcut-conflict-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px dashed #ff4500;
+      background-color: rgba(255, 69, 0, 0.08);
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-top: 4px;
+      font-size: 0.85em;
+    }
+
+    .shortcut-conflict-text {
+      color: var(--in-content-text-color);
+    }
+
+    .shortcut-conflict-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .conflict-action-link {
+      background: none;
+      border: none;
+      color: var(--in-content-primary-button-background);
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: underline;
+      padding: 0;
+    }
+
+    .conflict-action-link:hover {
+      color: var(--in-content-primary-button-background-hover);
+    }
+  </html:style>
+
   <label><html:h2 data-l10n-id="hilal-shortcuts-header"/></label>
   <description class="description-deemphasized" data-l10n-id="hilal-shortcuts-description" />
-  <hbox>
-        <button id="hilalShortcutsRestoreDefaults" data-l10n-id="hilal-shortcuts-reset" class="accessory-button"/>
+  
+  <hbox style="margin-top: 10px;">
+    <button id="hilalShortcutsRestoreDefaults" data-l10n-id="hilal-shortcuts-reset" class="accessory-button"/>
   </hbox>
-  <vbox id="hilalShortcutsWrapper" style="margin-top: 15px;">
-    <html:table>
-      <html:tbody id="hilalShortcutsTbody"></html:tbody>
-    </html:table>
-  </vbox>
+
+  <html:div class="shortcuts-container" id="hilalShortcutsContainer">
+  </html:div>
 </groupbox>
 </html:template>

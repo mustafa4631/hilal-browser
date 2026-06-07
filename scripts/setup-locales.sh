@@ -86,7 +86,8 @@ mkdir -p "$L10N_TEMP"
   done
 
   log "Fetching official Firefox localizations: ${LOCALES[*]}"
-  git pull --depth=1 origin main
+  git fetch --depth=1 origin main
+  git reset --hard origin/main
   git read-tree -mu HEAD
 )
 
