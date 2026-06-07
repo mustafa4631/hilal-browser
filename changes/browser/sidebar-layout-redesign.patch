@@ -358,7 +358,7 @@ diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/
 diff --git a/browser/components/sidebar/sidebar-main.css b/browser/components/sidebar/sidebar-main.css
 --- a/browser/components/sidebar/sidebar-main.css
 +++ b/browser/components/sidebar/sidebar-main.css
-@@ -17,6 +17,520 @@
+@@ -17,6 +17,521 @@
    width: 100%;
  }
  
@@ -473,7 +473,8 @@ diff --git a/browser/components/sidebar/sidebar-main.css b/browser/components/si
 +.hilal-footer-row:focus-visible,
 +.hilal-row:focus-visible,
 +.hilal-new-tab-button:focus-visible,
-+#hilal-sidebar-search:focus-visible {
++#hilal-sidebar-search:focus-visible,
++.hilal-workspace-button.hilal-ws-drop-target {
 +  outline: var(--focus-outline);
 +  outline-offset: var(--focus-outline-offset);
 +}
@@ -879,7 +880,7 @@ diff --git a/browser/components/sidebar/sidebar-main.css b/browser/components/si
  .wrapper {
    display: grid;
    grid-template-rows: auto min-content min-content;
-@@ -185,3 +699,24 @@
+@@ -185,3 +700,24 @@
  .bottom-actions {
    align-self: end;
  }
@@ -1019,7 +1020,7 @@ diff --git a/browser/components/sidebar/sidebar-main.mjs b/browser/components/si
      this._toolsIntersectionObserver?.disconnect();
      this._toolsResizeObserver?.disconnect();
      this.ownerDocument
-@@ -163,6 +228,643 @@ export default class SidebarMain extends MozLitElement {
+@@ -163,6 +228,693 @@ export default class SidebarMain extends MozLitElement {
        ?.disconnectedCallback();
    }
  
@@ -1488,6 +1489,56 @@ diff --git a/browser/components/sidebar/sidebar-main.mjs b/browser/components/si
 +    );
 +  }
 +
++  handleWorkspaceDragStart(workspace, event) {
++    event.dataTransfer.setData("application/x-hilal-workspace", workspace.id);
++    event.dataTransfer.effectAllowed = "move";
++    event.currentTarget.style.opacity = "0.5";
++  }
++
++  handleWorkspaceDragEnd(event) {
++    event.currentTarget.style.opacity = "";
++  }
++
++  handleWorkspaceDragOver(workspace, event) {
++    const types = event.dataTransfer.types;
++    if (this._draggedTab || types.includes("application/x-moz-tabbrowser-tab") || types.includes("application/x-hilal-workspace")) {
++      event.preventDefault();
++      event.dataTransfer.dropEffect = "move";
++      event.currentTarget.classList.add("hilal-ws-drop-target");
++    }
++  }
++
++  handleWorkspaceDragLeave(event) {
++    event.currentTarget.classList.remove("hilal-ws-drop-target");
++  }
++
++  handleWorkspaceDrop(workspace, event) {
++    event.currentTarget.classList.remove("hilal-ws-drop-target");
++
++    if (this._draggedTab) {
++      event.preventDefault();
++      this._hilalManager?._moveTabToWorkspace?.(this._draggedTab, workspace.id);
++      this._draggedTab = null;
++      this.scheduleHilalRefresh();
++      return;
++    }
++
++    const types = event.dataTransfer.types;
++    if (types.includes("application/x-moz-tabbrowser-tab")) {
++      const draggedTab = event.dataTransfer.mozGetDataAt("application/x-moz-tabbrowser-tab", 0);
++      if (draggedTab && window.gBrowser.isTab(draggedTab)) {
++        event.preventDefault();
++        this._hilalManager?._moveTabToWorkspace?.(draggedTab, workspace.id);
++      }
++    } else if (types.includes("application/x-hilal-workspace")) {
++      const draggedWsId = event.dataTransfer.getData("application/x-hilal-workspace");
++      if (draggedWsId && draggedWsId !== workspace.id) {
++        event.preventDefault();
++        this._hilalManager?.reorderWorkspaces?.(draggedWsId, workspace.id);
++      }
++    }
++  }
++
 +  showHilalCreateWorkspace() {
 +    this._hilalManager?._showCreateDialog?.();
 +  }
@@ -1663,7 +1714,7 @@ diff --git a/browser/components/sidebar/sidebar-main.mjs b/browser/components/si
    get isToolsDragging() {
      return this.toolsSplitter.getAttribute("state") === "dragging";
    }
-@@ -509,6 +1211,16 @@ export default class SidebarMain extends MozLitElement {
+@@ -509,6 +1261,16 @@ export default class SidebarMain extends MozLitElement {
  
    async handleEvent(e) {
      switch (e.type) {
@@ -1680,7 +1731,7 @@ diff --git a/browser/components/sidebar/sidebar-main.mjs b/browser/components/si
        case "command":
          switch (e.target.id) {
            case "sidebar-context-menu-manage-extension":
-@@ -648,7 +1360,16 @@ export default class SidebarMain extends MozLitElement {
+@@ -648,7 +1410,16 @@ export default class SidebarMain extends MozLitElement {
      this._toolsResizeObserver?.disconnect();
    }
  
@@ -1698,7 +1749,7 @@ diff --git a/browser/components/sidebar/sidebar-main.mjs b/browser/components/si
      if (
        window.SidebarController.sidebarRevampVisibility !== "expand-on-hover"
      ) {
-@@ -671,6 +1392,58 @@ export default class SidebarMain extends MozLitElement {
+@@ -671,6 +1442,58 @@ export default class SidebarMain extends MozLitElement {
      }
    }
  
@@ -1757,7 +1808,7 @@ diff --git a/browser/components/sidebar/sidebar-main.mjs b/browser/components/si
    getEntrypointValues(action) {
      let providerInfo;
      if (action.view === "viewGenaiChatSidebar") {
-@@ -790,7 +1563,409 @@ export default class SidebarMain extends MozLitElement {
+@@ -790,7 +1613,415 @@ export default class SidebarMain extends MozLitElement {
      return container && !container.hidden;
    }
  
@@ -1809,8 +1860,14 @@ diff --git a/browser/components/sidebar/sidebar-main.mjs b/browser/components/si
 +        title=${tooltip}
 +        aria-label=${ariaLabel}
 +        aria-current=${active ? "true" : nothing}
++        draggable="true"
 +        @click=${() => this.switchHilalWorkspace(workspace)}
 +        @contextmenu=${event => this.showHilalWorkspaceMenu(workspace, event)}
++        @dragstart=${event => this.handleWorkspaceDragStart(workspace, event)}
++        @dragend=${event => this.handleWorkspaceDragEnd(event)}
++        @dragover=${event => this.handleWorkspaceDragOver(workspace, event)}
++        @dragleave=${event => this.handleWorkspaceDragLeave(event)}
++        @drop=${event => this.handleWorkspaceDrop(workspace, event)}
 +      >
 +        <span class="hilal-workspace-emoji" aria-hidden="true">
 +          ${workspace.emoji || "\u{1F5C2}"}
