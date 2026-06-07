@@ -134,6 +134,15 @@
   background-image: none !important;
 }
 
+@media (-moz-platform: macos) {
+  :root[hilal-boosts-ui="true"]:not([macOSNativeFullscreen]) #navigator-toolbox,
+  :root[hilal-boosts-ui="true"]:not([macOSNativeFullscreen]) #nav-bar,
+  :root[hilal-boosts-ui="true"]:not([macOSNativeFullscreen]) #PersonalToolbar {
+    background-color: transparent !important;
+    background-image: none !important;
+  }
+}
+
 :root[hilal-boosts-ui="true"] .tab-background[selected] {
   background-color: var(--tab-selected-bgcolor) !important;
   background-image: none !important;
