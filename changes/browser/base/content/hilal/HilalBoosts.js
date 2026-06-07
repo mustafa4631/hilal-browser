@@ -179,17 +179,30 @@
       this._pulseContentBorder();
 
       try {
-        const browser = window.gBrowser.selectedBrowser;
-        const actor = browser?.browsingContext?.currentWindowGlobal?.getActor("HilalBoosts");
-        if (actor) {
-          if (data.enabled) {
-            actor.sendAsyncMessage("HilalBoosts:UpdateBoost", data);
-          } else {
-            actor.sendAsyncMessage("HilalBoosts:ClearBoost");
+        for (let win of Services.wm.getEnumerator("navigator:browser")) {
+          if (win.gBrowser && win.gBrowser.tabs) {
+            for (let tab of win.gBrowser.tabs) {
+              let browser = tab.linkedBrowser;
+              if (browser && browser.browsingContext) {
+                try {
+                  const uri = browser.currentURI;
+                  if (uri && (uri.schemeIs("http") || uri.schemeIs("https")) && uri.host === domain) {
+                    const actor = browser.browsingContext.currentWindowGlobal?.getActor("HilalBoosts");
+                    if (actor) {
+                      if (data.enabled) {
+                        actor.sendAsyncMessage("HilalBoosts:UpdateBoost", data);
+                      } else {
+                        actor.sendAsyncMessage("HilalBoosts:ClearBoost");
+                      }
+                    }
+                  }
+                } catch (e) {}
+              }
+            }
           }
         }
       } catch (e) {
-        console.error("HilalBoosts: failed to send update to child actor", e);
+        console.error("HilalBoosts: failed to send update to child actors", e);
       }
     }
 

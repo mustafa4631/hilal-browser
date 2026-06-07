@@ -801,7 +801,7 @@ diff --git a/layout/style/nsHilalBoostsBackend.cpp b/layout/style/nsHilalBoostsB
 new file mode 100644
 --- /dev/null
 +++ b/layout/style/nsHilalBoostsBackend.cpp
-@@ -0,0 +1,422 @@
+@@ -0,0 +1,436 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -817,6 +817,7 @@ new file mode 100644
 +#include "nsPresContext.h"
 +#include "nsIFrame.h"
 +#include "nsIContent.h"
++#include "nsIURI.h"
 +#include "mozilla/ClearOnShutdown.h"
 +#include "mozilla/StaticPtr.h"
 +#include "mozilla/Services.h"
@@ -882,26 +883,29 @@ new file mode 100644
 +  if (strcmp(aTopic, "hilal-boost-updated") == 0) {
 +    nsAutoString dataStr16(aData);
 +    NS_ConvertUTF16toUTF8 dataStr(dataStr16);
-+    unsigned long long tempBcId = 0;
-+    unsigned int tempAccent = 0;
-+    float tempRotation = 0.0f;
-+    int tempInverted = 0;
-+    if (sscanf(dataStr.get(), "%llu:%u:%f:%d", &tempBcId, &tempAccent, &tempRotation, &tempInverted) == 4) {
-+      uint64_t bcId = tempBcId;
-+      if (tempAccent == 0 && tempInverted == 0) {
-+        mBoostsMap.Remove(bcId);
-+      } else {
-+        mBoostsMap.InsertOrUpdate(bcId, HilalBoostData{tempAccent, tempRotation, tempInverted != 0});
++    int32_t firstPipe = dataStr.FindChar('|');
++    if (firstPipe != kNotFound) {
++      nsCString domain(Substring(dataStr, 0, firstPipe));
++      nsCString rest(Substring(dataStr, firstPipe + 1));
++      unsigned int tempAccent = 0;
++      float tempRotation = 0.0f;
++      int tempInverted = 0;
++      if (sscanf(rest.get(), "%u|%f|%d", &tempAccent, &tempRotation, &tempInverted) == 3) {
++        if (tempAccent == 0 && tempInverted == 0) {
++          mBoostsMap.Remove(domain);
++        } else {
++          mBoostsMap.InsertOrUpdate(domain, HilalBoostData{tempAccent, tempRotation, tempInverted != 0});
++        }
 +      }
 +    }
 +  }
 +  return NS_OK;
 +}
 +
-+void nsHilalBoostsBackend::GetBoostForBrowsingContext(uint64_t aId, nscolor* aAccent,
-+                                                      float* aRotation, bool* aInverted) {
++void nsHilalBoostsBackend::GetBoostForDomain(const nsACString& aDomain, nscolor* aAccent,
++                                             float* aRotation, bool* aInverted) {
 +  HilalBoostData data;
-+  if (mBoostsMap.Get(aId, &data)) {
++  if (mBoostsMap.Get(aDomain, &data)) {
 +    *aAccent = data.accent;
 +    *aRotation = data.complementaryRotation;
 +    *aInverted = data.inverted;
@@ -1132,9 +1136,9 @@ new file mode 100644
 +                   static_cast<uint8_t>(bShifted), a);
 +  }
 +
-+  constexpr uint32_t channelFloor = 40;
-+  const uint32_t range = 255 - channelFloor;
-+  const auto lift = [channelFloor, range](uint8_t c) -> uint8_t {
++  static constexpr uint32_t channelFloor = 40;
++  static constexpr uint32_t range = 255 - channelFloor;
++  const auto lift = [](uint8_t c) -> uint8_t {
 +    return static_cast<uint8_t>(channelFloor + (c * range) / 255);
 +  };
 +  return NS_RGBA(lift(rShifted), lift(gShifted), lift(bShifted), a);
@@ -1185,12 +1189,22 @@ new file mode 100644
 +    return;
 +  }
 +  browsingContext = browsingContext->Top();
-+  uint64_t bcId = browsingContext->Id();
++
++  nsAutoCString host;
++  if (mozilla::dom::Document* topDoc = browsingContext->GetExtantDocument()) {
++    if (nsIURI* uri = topDoc->GetDocumentURI()) {
++      uri->GetAsciiHost(host);
++    }
++  }
++
++  if (host.IsEmpty()) {
++    return;
++  }
 +
 +  nsHilalBoostsBackend* backend = nsHilalBoostsBackend::GetInstance();
 +  if (backend) {
-+    backend->GetBoostForBrowsingContext(bcId, aData, aComplementaryRotation,
-+                                        aIsInverted);
++    backend->GetBoostForDomain(host, aData, aComplementaryRotation,
++                               aIsInverted);
 +  }
 +}
 +
@@ -1270,13 +1284,13 @@ new file mode 100644
 +
 +  static auto ResolveStyleColor(nscolor aColor, const nsIFrame* aFrame) -> nscolor;
 +
-+  void GetBoostForBrowsingContext(uint64_t aId, nscolor* aAccent,
-+                                  float* aRotation, bool* aInverted);
++  void GetBoostForDomain(const nsACString& aDomain, nscolor* aAccent,
++                         float* aRotation, bool* aInverted);
 +
 + private:
 +  ~nsHilalBoostsBackend() = default;
 +
-+  nsTHashMap<uint64_t, HilalBoostData> mBoostsMap;
++  nsTHashMap<nsCString, HilalBoostData> mBoostsMap;
 +};
 +
 +extern thread_local const nsIFrame* gActiveFrame;
@@ -1300,10 +1314,11 @@ new file mode 100644
 diff --git a/layout/svg/SVGImageContext.cpp b/layout/svg/SVGImageContext.cpp
 --- a/layout/svg/SVGImageContext.cpp
 +++ b/layout/svg/SVGImageContext.cpp
-@@ -15,9 +15,30 @@
+@@ -15,9 +15,38 @@
  #include "nsISVGPaintContext.h"
  #include "nsPresContext.h"
  #include "nsStyleStruct.h"
++#include "nsIURI.h"
 +#include "mozilla/dom/BrowsingContext.h"
 +#include "nsHilalBoostsBackend.h"
  
@@ -1315,15 +1330,22 @@ diff --git a/layout/svg/SVGImageContext.cpp b/layout/svg/SVGImageContext.cpp
 +  if (dom::Document* doc = aPresContext.Document()) {
 +    if (dom::BrowsingContext* bc = doc->GetBrowsingContext()) {
 +      bc = bc->Top();
-+      uint64_t bcId = bc->Id();
-+      nscolor accent = 0;
-+      float rotation = 0.0f;
-+      bool inverted = false;
-+      hilal::nsHilalBoostsBackend* backend = hilal::nsHilalBoostsBackend::GetInstance();
-+      if (backend) {
-+        backend->GetBoostForBrowsingContext(bcId, &accent, &rotation, &inverted);
++      nsAutoCString host;
++      if (dom::Document* topDoc = bc->GetExtantDocument()) {
++        if (nsIURI* uri = topDoc->GetDocumentURI()) {
++          uri->GetAsciiHost(host);
++        }
 +      }
-+      aContext.SetHilalBoosts(accent, rotation, inverted);
++      if (!host.IsEmpty()) {
++        nscolor accent = 0;
++        float rotation = 0.0f;
++        bool inverted = false;
++        hilal::nsHilalBoostsBackend* backend = hilal::nsHilalBoostsBackend::GetInstance();
++        if (backend) {
++          backend->GetBoostForDomain(host, &accent, &rotation, &inverted);
++        }
++        aContext.SetHilalBoosts(accent, rotation, inverted);
++      }
 +    }
 +  }
 +}
@@ -1331,7 +1353,7 @@ diff --git a/layout/svg/SVGImageContext.cpp b/layout/svg/SVGImageContext.cpp
  /* static */
  void SVGImageContext::MaybeStoreContextPaint(SVGImageContext& aContext,
                                               nsIFrame* aFromFrame,
-@@ -36,6 +57,8 @@ void SVGImageContext::MaybeStoreContextPaint(SVGImageContext& aContext,
+@@ -36,6 +65,8 @@ void SVGImageContext::MaybeStoreContextPaint(SVGImageContext& aContext,
      return;
    }
  

@@ -376,7 +376,9 @@ export class HilalBoostsChild extends JSWindowActorChild {
 
   applyBoostToBackend(boost) {
     try {
-      const bcId = this.browsingContext.top.id;
+      const domain = this.hostWithoutPort;
+      if (!domain) return;
+
       if (boost && boost.enabled) {
         let accentInt = 0;
         if (boost.colorEnabled && boost.accentColor) {
@@ -389,10 +391,10 @@ export class HilalBoostsChild extends JSWindowActorChild {
 
         const inverted = boost.smartInvert ? 1 : 0;
 
-        const notifyStr = `${bcId}:${accentInt}:${complementaryRotation}:${inverted}`;
+        const notifyStr = `${domain}|${accentInt}|${complementaryRotation}|${inverted}`;
         Services.obs.notifyObservers(null, "hilal-boost-updated", notifyStr);
       } else {
-        Services.obs.notifyObservers(null, "hilal-boost-updated", `${bcId}:0:0:0`);
+        Services.obs.notifyObservers(null, "hilal-boost-updated", `${domain}|0|0|0`);
       }
     } catch (e) {
       console.error("HilalBoostsChild: failed to apply boost to backend", e);
