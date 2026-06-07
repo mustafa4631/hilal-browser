@@ -1322,7 +1322,7 @@ diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/
    ATTR: "hilal-compact-mode",
  
    _prefObserver: null,
-@@ -2821,11 +2834,26 @@ var HilalCompactMode = {
+@@ -2821,11 +2834,33 @@ var HilalCompactMode = {
    _showDelayMs: 180,
    _leaveDelayMs: 400,
  
@@ -1331,9 +1331,14 @@ diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/
 +  _toolboxLeaveTimer: null,
 +  _topHoverZoneHeight: 48,
 +
++  _lastMouseX: 0,
++  _lastMouseY: 0,
++  _openPopups: null,
++
    init() {
 -    this._prefObserver = (_subject, _topic, _data) => {
 -      this._apply(Services.prefs.getBoolPref(this.PREF, false));
++    this._openPopups = new Set();
 +    this._prefObserver = (_subject, _topic, data) => {
 +      if (
 +        data === this.PREF ||
@@ -1348,10 +1353,12 @@ diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/
 +    Services.prefs.addObserver(this.HIDE_TOOLBOX_PREF, this._prefObserver);
 +    Services.prefs.addObserver("hilal.workspaces.enabled", this._prefObserver);
 +    Services.prefs.addObserver("sidebar.verticalTabs", this._prefObserver);
++    window.addEventListener("popupshown", this, true);
++    window.addEventListener("popuphidden", this, true);
      window.addEventListener("unload", () => this.uninit(), { once: true });
      this._apply(Services.prefs.getBoolPref(this.PREF, false));
    },
-@@ -2833,6 +2861,12 @@ var HilalCompactMode = {
+@@ -2833,11 +2868,44 @@ var HilalCompactMode = {
    uninit() {
      if (this._prefObserver) {
        Services.prefs.removeObserver(this.PREF, this._prefObserver);
@@ -1363,8 +1370,40 @@ diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/
 +      Services.prefs.removeObserver("sidebar.verticalTabs", this._prefObserver);
        this._prefObserver = null;
      }
++    window.removeEventListener("popupshown", this, true);
++    window.removeEventListener("popuphidden", this, true);
++    this._openPopups = null;
      this._removeMouseListeners();
-@@ -2847,14 +2881,44 @@ var HilalCompactMode = {
+   },
+ 
++  handleEvent(event) {
++    switch (event.type) {
++      case "popupshown": {
++        let popup = event.target;
++        if (popup.tagName !== "tooltip") {
++          this._openPopups.add(popup);
++          this._cancelHide();
++          this._cancelToolboxHide();
++        }
++        break;
++      }
++      case "popuphidden": {
++        let popup = event.target;
++        if (popup.tagName !== "tooltip" && this._openPopups) {
++          this._openPopups.delete(popup);
++          if (this._openPopups.size === 0) {
++            this._checkHoverAndScheduleHide();
++          }
++        }
++        break;
++      }
++    }
++  },
++
+   get enabled() {
+     return Services.prefs.getBoolPref(this.PREF, false);
+   },
+@@ -2847,14 +2915,44 @@ var HilalCompactMode = {
    },
  
    _apply(compact) {
@@ -1410,7 +1449,7 @@ diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/
    },
  
    _syncToolbarButton(compact) {
-@@ -2886,57 +2950,118 @@ var HilalCompactMode = {
+@@ -2886,57 +2984,178 @@ var HilalCompactMode = {
        clearTimeout(this._mouseLeaveTimer);
        this._mouseLeaveTimer = null;
      }
@@ -1438,14 +1477,20 @@ diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/
 -    const isNearEdge = isLeft
 -      ? (this._lastMouseX <= this._hoverZoneWidth)
 -      : (this._lastMouseX >= windowWidth - this._hoverZoneWidth);
-+    const sidebar = document.getElementById("sidebar-main");
-+    const toolbox = document.getElementById("navigator-toolbox");
++    if (this._openPopups && this._openPopups.size > 0) {
++      this._cancelHide();
++      this._cancelToolboxHide();
++      return;
++    }
  
 -    if (isNearEdge && !this._sidebarVisible) {
 -      if (this._mouseShowTimer) {
 -        return;
 -      }
 -      this._mouseShowTimer = setTimeout(() => {
++    const sidebar = document.getElementById("sidebar-main");
++    const toolbox = document.getElementById("navigator-toolbox");
++
 +    const workspacesEnabled = Services.prefs.getBoolPref(
 +      "hilal.workspaces.enabled",
 +      true
@@ -1535,21 +1580,7 @@ diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/
 +              }
 +            }
 +          }, this._showDelayMs);
-         }
--      }, this._showDelayMs);
--    } else if (this._sidebarVisible) {
--      const sidebarRect = sidebar.getBoundingClientRect();
--      const width = 280;
--      const isInsideSidebar = isLeft
--        ? (this._lastMouseX >= 0 && this._lastMouseX <= width &&
--           this._lastMouseY >= sidebarRect.top && this._lastMouseY <= sidebarRect.bottom)
--        : (this._lastMouseX >= windowWidth - width && this._lastMouseX <= windowWidth &&
--           this._lastMouseY >= sidebarRect.top && this._lastMouseY <= sidebarRect.bottom);
--
--      if (!isInsideSidebar && !isNearEdge) {
--        this._scheduleHide();
--      } else {
--        this._cancelHide();
++        }
 +      } else if (this._toolboxVisible) {
 +        const toolboxRect = toolbox.getBoundingClientRect();
 +        const isInsideToolbox =
@@ -1559,18 +1590,81 @@ diff --git a/browser/components/sidebar/browser-sidebar.js b/browser/components/
 +          this._scheduleToolboxHide();
 +        } else {
 +          this._cancelToolboxHide();
-+        }
+         }
+-      }, this._showDelayMs);
+-    } else if (this._sidebarVisible) {
 +      } else if (!isNearTopEdge && this._toolboxShowTimer) {
 +        clearTimeout(this._toolboxShowTimer);
 +        this._toolboxShowTimer = null;
++      }
++    }
++  },
++
++  _checkHoverAndScheduleHide() {
++    const sidebar = document.getElementById("sidebar-main");
++    const toolbox = document.getElementById("navigator-toolbox");
++
++    const workspacesEnabled = Services.prefs.getBoolPref(
++      "hilal.workspaces.enabled",
++      true
++    );
++    const verticalTabsEnabled = Services.prefs.getBoolPref(
++      "sidebar.verticalTabs",
++      false
++    );
++    const isSidebarActive = workspacesEnabled || verticalTabsEnabled;
++    const compactSidebar = this.enabled && isSidebarActive;
++
++    if (sidebar && compactSidebar && this._sidebarVisible) {
++      const isLeft = SidebarController._positionStart;
++      const windowWidth = window.innerWidth;
+       const sidebarRect = sidebar.getBoundingClientRect();
+-      const width = 280;
++      const width = SidebarController.sidebarVerticalTabsEnabled ? 280 : 52;
++      const isNearEdge = isLeft
++        ? this._lastMouseX <= this._hoverZoneWidth
++        : this._lastMouseX >= windowWidth - this._hoverZoneWidth;
+       const isInsideSidebar = isLeft
+-        ? (this._lastMouseX >= 0 && this._lastMouseX <= width &&
+-           this._lastMouseY >= sidebarRect.top && this._lastMouseY <= sidebarRect.bottom)
+-        : (this._lastMouseX >= windowWidth - width && this._lastMouseX <= windowWidth &&
+-           this._lastMouseY >= sidebarRect.top && this._lastMouseY <= sidebarRect.bottom);
++        ? this._lastMouseX >= 0 &&
++          this._lastMouseX <= width &&
++          this._lastMouseY >= sidebarRect.top &&
++          this._lastMouseY <= sidebarRect.bottom
++        : this._lastMouseX >= windowWidth - width &&
++          this._lastMouseX <= windowWidth &&
++          this._lastMouseY >= sidebarRect.top &&
++          this._lastMouseY <= sidebarRect.bottom;
+ 
+       if (!isInsideSidebar && !isNearEdge) {
+         this._scheduleHide();
+-      } else {
+-        this._cancelHide();
        }
 -    } else if (!isNearEdge && this._mouseShowTimer) {
 -      clearTimeout(this._mouseShowTimer);
 -      this._mouseShowTimer = null;
++    }
++
++    const hideToolbox = Services.prefs.getBoolPref(
++      this.HIDE_TOOLBOX_PREF,
++      true
++    );
++    if (toolbox && hideToolbox && this._toolboxVisible) {
++      const isNearTopEdge = this._lastMouseY <= this._topHoverZoneHeight;
++      const toolboxRect = toolbox.getBoundingClientRect();
++      const isInsideToolbox =
++        this._lastMouseY >= 0 && this._lastMouseY <= toolboxRect.bottom;
++
++      if (!isInsideToolbox && !isNearTopEdge) {
++        this._scheduleToolboxHide();
++      }
      }
    },
  
-@@ -2974,4 +3099,39 @@ var HilalCompactMode = {
+@@ -2974,4 +3193,39 @@ var HilalCompactMode = {
        this._mouseLeaveTimer = null;
      }
    },
