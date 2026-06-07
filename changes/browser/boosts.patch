@@ -21,7 +21,7 @@ diff --git a/browser/base/content/browser.xhtml b/browser/base/content/browser.x
 diff --git a/browser/base/content/main-popupset.inc.xhtml b/browser/base/content/main-popupset.inc.xhtml
 --- a/browser/base/content/main-popupset.inc.xhtml
 +++ b/browser/base/content/main-popupset.inc.xhtml
-@@ -932,4 +932,673 @@
+@@ -932,4 +932,735 @@
      <menuitem id="select-translations-panel-about-translations-menuitem"
                data-l10n-id="translations-panel-settings-about2"/>
    </menupopup>
@@ -490,6 +490,51 @@ diff --git a/browser/base/content/main-popupset.inc.xhtml b/browser/base/content
 +        box-sizing: border-box;
 +        outline: none;
 +      }
++      
++      /* Switch component styling */
++      .hilal-boosts-switch {
++        position: relative;
++        display: inline-block;
++        width: 34px;
++        height: 18px;
++      }
++      .hilal-boosts-switch-checkbox {
++        opacity: 0;
++        width: 0;
++        height: 0;
++        position: absolute;
++      }
++      .hilal-boosts-switch-slider {
++        position: absolute;
++        cursor: pointer;
++        top: 0;
++        left: 0;
++        right: 0;
++        bottom: 0;
++        background-color: rgba(255, 255, 255, 0.1);
++        border: 1px solid rgba(255, 255, 255, 0.08);
++        transition: .2s ease-in-out;
++        border-radius: 9px;
++      }
++      .hilal-boosts-switch-slider:before {
++        position: absolute;
++        content: "";
++        height: 12px;
++        width: 12px;
++        left: 2px;
++        bottom: 2px;
++        background-color: #a1a1aa;
++        transition: .2s ease-in-out;
++        border-radius: 50%;
++      }
++      .hilal-boosts-switch-checkbox:checked + .hilal-boosts-switch-slider {
++        background-color: rgba(124, 92, 255, 0.25) !important;
++        border-color: #7c5cff !important;
++      }
++      .hilal-boosts-switch-checkbox:checked + .hilal-boosts-switch-slider:before {
++        transform: translateX(16px) !important;
++        background-color: #a78bfa !important;
++      }
 +    </html:style>
 +    
 +    <!-- HEADER -->
@@ -523,7 +568,6 @@ diff --git a/browser/base/content/main-popupset.inc.xhtml b/browser/base/content
 +      
 +      <!-- HIDDEN FORM INPUTS -->
 +      <html:input type="checkbox" id="hilal-boosts-enable" style="display: none !important;"/>
-+      <html:input type="checkbox" id="hilal-boosts-color-enable" style="display: none !important;"/>
 +      <html:input type="checkbox" id="hilal-boosts-invert" style="display: none !important;"/>
 +      <html:input type="hidden" id="hilal-boosts-font"/>
 +      <html:input type="hidden" id="hilal-boosts-case"/>
@@ -649,6 +693,24 @@ diff --git a/browser/base/content/main-popupset.inc.xhtml b/browser/base/content
 +            <html:span id="hilal-boosts-scale-value" class="hilal-boosts-sub-value">100%</html:span>
 +          </html:div>
 +          <html:input type="range" id="hilal-boosts-scale" class="hilal-boosts-slider" min="50" max="200" step="10" value="100"/>
++        </html:div>
++        
++        <!-- Dynamic Coloring Toggles -->
++        <html:div style="display: flex; flex-direction: column; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; margin-top: 6px;">
++          <html:div style="display: flex; justify-content: space-between; align-items: center;">
++            <html:span style="font-size: 12.5px; font-weight: 600; color: #e2e8f0;">Apply to Page</html:span>
++            <html:label class="hilal-boosts-switch">
++              <html:input type="checkbox" id="hilal-boosts-color-enable" class="hilal-boosts-switch-checkbox"/>
++              <html:span class="hilal-boosts-switch-slider"></html:span>
++            </html:label>
++          </html:div>
++          <html:div style="display: flex; justify-content: space-between; align-items: center;">
++            <html:span style="font-size: 12.5px; font-weight: 600; color: #e2e8f0;">Apply to Browser UI</html:span>
++            <html:label class="hilal-boosts-switch">
++              <html:input type="checkbox" id="hilal-boosts-browser-ui-enable" class="hilal-boosts-switch-checkbox"/>
++              <html:span class="hilal-boosts-switch-slider"></html:span>
++            </html:label>
++          </html:div>
 +        </html:div>
 +      </html:div>
 +      

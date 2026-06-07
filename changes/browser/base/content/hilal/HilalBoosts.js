@@ -167,6 +167,7 @@
           textCase: "none",
           smartInvert: false,
           colorEnabled: false,
+          browserUIEnabled: false,
           accentColor: DEFAULT_ACCENT_COLOR,
           secondaryColor: DEFAULT_SECONDARY_COLOR,
           colorIntensity: 35,
@@ -367,6 +368,7 @@
       const domain = this.activeDomain;
       if (!domain) {
         btn.setAttribute("hidden", "true");
+        this._updateBrowserUIColors(null);
         return;
       }
 
@@ -376,6 +378,25 @@
         btn.setAttribute("active", "true");
       } else {
         btn.removeAttribute("active");
+      }
+
+      this._updateBrowserUIColors(boost);
+    }
+
+    _updateBrowserUIColors(boost) {
+      const docEl = document.documentElement;
+      if (boost && boost.enabled && boost.browserUIEnabled) {
+        docEl.setAttribute("hilal-boosts-ui", "true");
+        docEl.style.setProperty("--hilal-boosts-ui-accent", boost.accentColor);
+        docEl.style.setProperty("--hilal-boosts-ui-secondary", boost.secondaryColor);
+        docEl.style.setProperty("--hilal-boosts-ui-intensity", boost.colorIntensity + "%");
+        docEl.style.setProperty("--hilal-boosts-ui-brightness", boost.colorBrightness + "%");
+      } else {
+        docEl.removeAttribute("hilal-boosts-ui");
+        docEl.style.removeProperty("--hilal-boosts-ui-accent");
+        docEl.style.removeProperty("--hilal-boosts-ui-secondary");
+        docEl.style.removeProperty("--hilal-boosts-ui-intensity");
+        docEl.style.removeProperty("--hilal-boosts-ui-brightness");
       }
     }
 
@@ -407,6 +428,7 @@
       this._addPanelCommandListener("hilal-boosts-case", "change");
       this._addPanelCommandListener("hilal-boosts-invert", "change");
       this._addPanelCommandListener("hilal-boosts-color-enable", "change");
+      this._addPanelCommandListener("hilal-boosts-browser-ui-enable", "change");
       this._addPanelCommandListener("hilal-boosts-color", "input");
       this._addPanelCommandListener("hilal-boosts-color-secondary", "input");
       this._addPanelCommandListener("hilal-boosts-color-intensity", "input");
@@ -432,6 +454,7 @@
             textCase: "none",
             smartInvert: false,
             colorEnabled: false,
+            browserUIEnabled: false,
             accentColor: DEFAULT_ACCENT_COLOR,
             secondaryColor: DEFAULT_SECONDARY_COLOR,
             colorIntensity: 35,
@@ -534,6 +557,7 @@
         ["hilal-boosts-case", "change"],
         ["hilal-boosts-invert", "change"],
         ["hilal-boosts-color-enable", "change"],
+        ["hilal-boosts-browser-ui-enable", "change"],
         ["hilal-boosts-color", "input"],
         ["hilal-boosts-color-secondary", "input"],
         ["hilal-boosts-color-intensity", "input"],
@@ -619,6 +643,7 @@
 
       // Color Boost
       document.getElementById("hilal-boosts-color-enable").checked = !!boost.colorEnabled;
+      document.getElementById("hilal-boosts-browser-ui-enable").checked = !!boost.browserUIEnabled;
       const colorInput = document.getElementById("hilal-boosts-color");
       colorInput.value = boost.accentColor;
       const secondaryColorInput = document.getElementById("hilal-boosts-color-secondary");
@@ -723,6 +748,12 @@
         boost.smartInvert = target.checked;
       } else if (target.id === "hilal-boosts-color-enable") {
         boost.colorEnabled = target.checked;
+        if (target.checked) {
+          boost.enabled = true;
+          document.getElementById("hilal-boosts-enable").checked = true;
+        }
+      } else if (target.id === "hilal-boosts-browser-ui-enable") {
+        boost.browserUIEnabled = target.checked;
         if (target.checked) {
           boost.enabled = true;
           document.getElementById("hilal-boosts-enable").checked = true;
@@ -990,6 +1021,7 @@
 
     _normalizeBoost(boost) {
       boost.colorEnabled = boost.colorEnabled === true;
+      boost.browserUIEnabled = boost.browserUIEnabled === true;
       boost.accentColor = this._normalizeHexColor(boost.accentColor);
       boost.secondaryColor = this._normalizeHexColor(
         boost.secondaryColor,
