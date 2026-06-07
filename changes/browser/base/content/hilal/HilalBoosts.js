@@ -83,7 +83,11 @@
     }
 
     _loadData() {
-      this._enabled = Services.prefs.getBoolPref(PREF_ENABLED, true);
+      try {
+        this._enabled = Services.prefs.getBoolPref(PREF_ENABLED, true);
+      } catch (e) {
+        this._enabled = true;
+      }
       try {
         const dataStr = Services.prefs.getStringPref(PREF_DATA, "{}");
         this._boosts = JSON.parse(dataStr);
@@ -376,9 +380,18 @@
     }
   }
 
-  window.addEventListener("DOMContentLoaded", () => {
+  function tryInit() {
+    if (window.gHilalBoosts) {
+      return;
+    }
+    if (typeof gBrowser === "undefined" || !gBrowser.tabContainer) {
+      setTimeout(tryInit, 50);
+      return;
+    }
     window.gHilalBoosts = new HilalBoostsManager();
     window.gHilalBoosts.init();
-  }, { once: true });
+  }
+
+  window.addEventListener("DOMContentLoaded", tryInit, { once: true });
 
 })();
