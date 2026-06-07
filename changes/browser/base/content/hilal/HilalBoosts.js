@@ -62,7 +62,6 @@
       };
       window.gBrowser.addTabsProgressListener(this._tabsProgressListener);
 
-      // Register zapper window actor programmatically
       try {
         ChromeUtils.registerWindowActor("HilalBoosts", {
           parent: {
@@ -70,6 +69,11 @@
           },
           child: {
             esModuleURI: "chrome://browser/content/hilal/HilalBoostsActorChild.sys.mjs",
+            events: {
+              DOMDocElementInserted: {},
+              DOMContentLoaded: {},
+              pageshow: {},
+            },
           },
           allFrames: true,
           remoteTypes: ["web", "file"],

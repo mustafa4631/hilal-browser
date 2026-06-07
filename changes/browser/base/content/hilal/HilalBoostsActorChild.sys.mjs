@@ -17,9 +17,28 @@ export class HilalBoostsChild extends JSWindowActorChild {
     }
   }
 
-  async initBoost() {
+  handleEvent(aEvent) {
+    if (
+      aEvent.type === "DOMDocElementInserted" ||
+      aEvent.type === "DOMContentLoaded" ||
+      aEvent.type === "pageshow"
+    ) {
+      if (this.browsingContext.parent === null) {
+        this.initBoost(aEvent.type === "pageshow");
+      }
+    }
+  }
+
+  async initBoost(force = false) {
     const domain = this.hostWithoutPort;
     if (!domain) return;
+
+    const currentDoc = this.document;
+    if (!force && this._lastInitializedDoc === currentDoc && this._lastInitializedUrl === currentDoc.documentURI) {
+      return;
+    }
+    this._lastInitializedDoc = currentDoc;
+    this._lastInitializedUrl = currentDoc.documentURI;
 
     try {
       const boost = await this.sendQuery("HilalBoosts:GetBoostForDomain", { domain });
