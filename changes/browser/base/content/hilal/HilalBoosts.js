@@ -40,6 +40,7 @@
       this._prefObserver = () => {
         this._loadData();
         this._applyStyles();
+        this._syncContentBoosts();
         this._updateUIState();
         this._updatePanelUI();
       };
@@ -118,7 +119,7 @@
       }
       document.getElementById("hilal-boosts-zap-btn")
         ?.removeEventListener("click", this._zapButtonListener);
-      for (const preset of document.querySelectorAll(".hilal-boosts-color-preset")) {
+      for (const preset of document.querySelectorAll(".hilal-boosts-swatch-circle")) {
         preset.removeEventListener("click", this._colorPresetListener);
       }
       this._removePanelCommandListeners();
@@ -150,41 +151,47 @@
       }
     }
 
+    _makeDefaultBoost() {
+      return {
+        enabled: false,
+        fontFamily: "",
+        fontSize: 100,
+        textCase: "none",
+        smartInvert: false,
+        colorEnabled: false,
+        browserUIEnabled: Services.prefs.getBoolPref(PREF_BROWSER_UI, false),
+        autoPaletteEnabled: Services.prefs.getBoolPref(PREF_AUTO_PALETTE, false),
+        accentColor: DEFAULT_ACCENT_COLOR,
+        secondaryColor: DEFAULT_SECONDARY_COLOR,
+        colorIntensity: 35,
+        colorBrightness: 100,
+        customCSS: "",
+        zappedSelectors: [],
+      };
+    }
+
     get activeDomain() {
       try {
         const uri = window.gBrowser.selectedBrowser?.currentURI;
-        if (uri && (uri.schemeIs("http") || uri.schemeIs("https"))) {
-          try {
-            return Services.eTLD.getBaseDomain(uri);
-          } catch (e) {
-            return uri.host;
-          }
-        }
+        return this._domainForURI(uri);
       } catch (e) {}
       return null;
     }
 
+    _domainForURI(uri) {
+      if (!uri || !(uri.schemeIs("http") || uri.schemeIs("https"))) {
+        return null;
+      }
+      try {
+        return Services.eTLD.getBaseDomain(uri);
+      } catch (e) {
+        return uri.host;
+      }
+    }
+
     getBoostForDomain(domain) {
       if (!domain) return null;
-      if (!this._boosts[domain]) {
-        this._boosts[domain] = {
-          enabled: false,
-          fontFamily: "",
-          fontSize: 100,
-          textCase: "none",
-          smartInvert: false,
-          colorEnabled: false,
-          browserUIEnabled: Services.prefs.getBoolPref("hilal.boosts.browser_ui.enabled", false),
-          autoPaletteEnabled: Services.prefs.getBoolPref("hilal.boosts.auto_palette.enabled", false),
-          accentColor: DEFAULT_ACCENT_COLOR,
-          secondaryColor: DEFAULT_SECONDARY_COLOR,
-          colorIntensity: 35,
-          colorBrightness: 100,
-          customCSS: "",
-          zappedSelectors: []
-        };
-      }
-      return this._normalizeBoost(this._boosts[domain]);
+      return this._normalizeBoost(this._boosts[domain] || this._makeDefaultBoost());
     }
 
     saveBoostForDomain(domain, data) {
@@ -194,32 +201,30 @@
       this._applyStyles();
       this._updateUIState();
       this._pulseContentBorder();
+      this._syncContentBoosts(domain);
+    }
 
+    _syncContentBoosts(targetDomain = null) {
       try {
         for (let win of Services.wm.getEnumerator("navigator:browser")) {
           if (win.gBrowser && win.gBrowser.tabs) {
             for (let tab of win.gBrowser.tabs) {
-              let browser = tab.linkedBrowser;
+              const browser = tab.linkedBrowser;
               if (browser && browser.browsingContext) {
                 try {
-                  const uri = browser.currentURI;
-                  let tabDomain = "";
-                  if (uri && (uri.schemeIs("http") || uri.schemeIs("https"))) {
-                    try {
-                      tabDomain = Services.eTLD.getBaseDomain(uri);
-                    } catch (e) {
-                      tabDomain = uri.host;
-                    }
+                  const tabDomain = this._domainForURI(browser.currentURI);
+                  if (!tabDomain || (targetDomain && tabDomain !== targetDomain)) {
+                    continue;
                   }
-                  if (tabDomain === domain) {
-                    const actor = browser.browsingContext.currentWindowGlobal?.getActor("HilalBoosts");
-                    if (actor) {
-                      if (data.enabled) {
-                        actor.sendAsyncMessage("HilalBoosts:UpdateBoost", data);
-                      } else {
-                        actor.sendAsyncMessage("HilalBoosts:ClearBoost");
-                      }
-                    }
+                  const actor = browser.browsingContext.currentWindowGlobal?.getActor("HilalBoosts");
+                  if (!actor) {
+                    continue;
+                  }
+                  const boost = this._enabled ? this._boosts[tabDomain] : null;
+                  if (boost?.enabled) {
+                    actor.sendAsyncMessage("HilalBoosts:UpdateBoost", this._normalizeBoost(boost));
+                  } else {
+                    actor.sendAsyncMessage("HilalBoosts:ClearBoost");
                   }
                 } catch (e) {}
               }
@@ -382,7 +387,7 @@
 
       btn.removeAttribute("hidden");
       const boost = this.getBoostForDomain(domain);
-      if (boost && boost.enabled) {
+      if (this._enabled && boost && boost.enabled) {
         btn.setAttribute("active", "true");
       } else {
         btn.removeAttribute("active");
@@ -395,7 +400,12 @@
       const docEl = document.documentElement;
       const domain = this.activeDomain;
 
-      const globalAutoPalette = Services.prefs.getBoolPref("hilal.boosts.auto_palette.enabled", false);
+      if (!this._enabled) {
+        this._clearBrowserUIColors();
+        return;
+      }
+
+      const globalAutoPalette = Services.prefs.getBoolPref(PREF_AUTO_PALETTE, false);
       const isAutoPalette = boost && boost.enabled
         ? boost.autoPaletteEnabled
         : globalAutoPalette;
@@ -419,12 +429,17 @@
         docEl.style.setProperty("--hilal-boosts-ui-intensity", boost.colorIntensity + "%");
         docEl.style.setProperty("--hilal-boosts-ui-brightness", boost.colorBrightness + "%");
       } else {
-        docEl.removeAttribute("hilal-boosts-ui");
-        docEl.style.removeProperty("--hilal-boosts-ui-accent");
-        docEl.style.removeProperty("--hilal-boosts-ui-secondary");
-        docEl.style.removeProperty("--hilal-boosts-ui-intensity");
-        docEl.style.removeProperty("--hilal-boosts-ui-brightness");
+        this._clearBrowserUIColors();
       }
+    }
+
+    _clearBrowserUIColors() {
+      const docEl = document.documentElement;
+      docEl.removeAttribute("hilal-boosts-ui");
+      docEl.style.removeProperty("--hilal-boosts-ui-accent");
+      docEl.style.removeProperty("--hilal-boosts-ui-secondary");
+      docEl.style.removeProperty("--hilal-boosts-ui-intensity");
+      docEl.style.removeProperty("--hilal-boosts-ui-brightness");
     }
 
     _updatePanelUI() {
@@ -482,6 +497,7 @@
             textCase: "none",
             smartInvert: false,
             colorEnabled: false,
+            autoPaletteEnabled: false,
             browserUIEnabled: false,
             accentColor: DEFAULT_ACCENT_COLOR,
             secondaryColor: DEFAULT_SECONDARY_COLOR,
@@ -1176,7 +1192,7 @@
     // Interactive element zapper trigger
     startZapMode() {
       const domain = this.activeDomain;
-      if (!domain) return;
+      if (!domain || !this._enabled) return;
 
       // Close the panel
       const panel = document.getElementById("hilal-boosts-panel");
@@ -1185,7 +1201,7 @@
       }
 
       const browser = window.gBrowser.selectedBrowser;
-      const actor = browser.browsingContext.currentWindowGlobal.getActor("HilalBoosts");
+      const actor = browser.browsingContext.currentWindowGlobal?.getActor("HilalBoosts");
       if (actor) {
         const boost = this.getBoostForDomain(domain);
         this._zapping = true;
@@ -1324,7 +1340,7 @@
 
     handleZappedElement(selector) {
       const domain = this.activeDomain;
-      if (!domain || !selector) return;
+      if (!domain || !selector || !this._enabled) return;
 
       const boost = this.getBoostForDomain(domain);
       if (!boost.zappedSelectors) {
@@ -1335,6 +1351,10 @@
       }
       boost.enabled = true; // Auto-enable boost when zapping
       this.saveBoostForDomain(domain, boost);
+    }
+
+    handleZapStopped() {
+      this._zapping = false;
     }
 
     handleExtractedThemeColor(domain, themeColor) {

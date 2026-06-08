@@ -794,6 +794,17 @@ diff --git a/browser/base/jar.mn b/browser/base/jar.mn
          content/browser/global-scripts.js                   (content/global-scripts.js)
          content/browser/main-popupset.js                    (content/main-popupset.js)
  *       content/browser/pageinfo/pageInfo.xhtml             (content/pageinfo/pageInfo.xhtml)
+diff --git a/browser/base/moz.build b/browser/base/moz.build
+--- a/browser/base/moz.build
++++ b/browser/base/moz.build
+@@ -29,6 +29,7 @@ BROWSER_CHROME_MANIFESTS += [
+     "content/test/fullscreen/browser.toml",
+     "content/test/general/browser.toml",
+     "content/test/gesture/browser.toml",
++    "content/test/hilal/browser.ini",
+     "content/test/historySwipeAnimation/browser.toml",
+     "content/test/keyboard/browser.toml",
+     "content/test/keyboard/browserSidebarRevamp.toml",
 diff --git a/browser/components/preferences/main.js b/browser/components/preferences/main.js
 --- a/browser/components/preferences/main.js
 +++ b/browser/components/preferences/main.js
@@ -910,32 +921,51 @@ diff --git a/layout/base/PresShell.cpp b/layout/base/PresShell.cpp
 diff --git a/layout/base/nsPresContext.h b/layout/base/nsPresContext.h
 --- a/layout/base/nsPresContext.h
 +++ b/layout/base/nsPresContext.h
-@@ -594,6 +594,17 @@ class nsPresContext : public nsISupports,
+@@ -594,6 +594,34 @@ class nsPresContext : public nsISupports,
     */
    void SetColorSchemeOverride(mozilla::dom::PrefersColorSchemeOverride);
  
-+  void SetHilalBoostsOverride(nscolor aAccent, float aRotation, bool aInverted) {
++  void SetHilalBoostsOverride(nscolor aAccent, float aRotation,
++                              bool aInverted) {
 +    mHasHilalBoostsOverride = (aAccent != 0 || aInverted);
 +    mHilalBoostsOverrideAccent = aAccent;
 +    mHilalBoostsOverrideComplementaryRotation = aRotation;
 +    mHilalBoostsOverrideInverted = aInverted;
 +  }
 +  bool HasHilalBoostsOverride() const { return mHasHilalBoostsOverride; }
-+  nscolor HilalBoostsOverrideAccent() const { return mHilalBoostsOverrideAccent; }
-+  float HilalBoostsOverrideComplementaryRotation() const { return mHilalBoostsOverrideComplementaryRotation; }
-+  bool HilalBoostsOverrideInverted() const { return mHilalBoostsOverrideInverted; }
++  nscolor HilalBoostsOverrideAccent() const {
++    return mHilalBoostsOverrideAccent;
++  }
++  float HilalBoostsOverrideComplementaryRotation() const {
++    return mHilalBoostsOverrideComplementaryRotation;
++  }
++  bool HilalBoostsOverrideInverted() const {
++    return mHilalBoostsOverrideInverted;
++  }
++  bool HasHilalBoostsCachedBaseDomain() const {
++    return mHasHilalBoostsCachedBaseDomain;
++  }
++  const nsCString& HilalBoostsCachedBaseDomain() const {
++    return mHilalBoostsBaseDomain;
++  }
++  void SetHilalBoostsCachedBaseDomain(const nsACString& aDomain) {
++    mHilalBoostsBaseDomain = aDomain;
++    mHasHilalBoostsCachedBaseDomain = true;
++  }
 +
    /**
     * Return the device's screen size in inches, for font size
     * inflation.
-@@ -1425,6 +1436,10 @@ class nsPresContext : public nsISupports,
+@@ -1425,6 +1453,12 @@ class nsPresContext : public nsISupports,
    FontVisibility mFontVisibility = FontVisibility::Unknown;
    mozilla::dom::PrefersColorSchemeOverride mOverriddenOrEmbedderColorScheme;
    mozilla::StyleForcedColors mForcedColors;
 +  nscolor mHilalBoostsOverrideAccent = 0;
 +  float mHilalBoostsOverrideComplementaryRotation = 0.0f;
++  nsCString mHilalBoostsBaseDomain;
 +  bool mHasHilalBoostsOverride = false;
 +  bool mHilalBoostsOverrideInverted = false;
++  bool mHasHilalBoostsCachedBaseDomain = false;
  
   protected:
    virtual ~nsPresContext();
@@ -1004,14 +1034,14 @@ diff --git a/layout/painting/nsCSSRendering.cpp b/layout/painting/nsCSSRendering
 diff --git a/layout/painting/nsDisplayList.cpp b/layout/painting/nsDisplayList.cpp
 --- a/layout/painting/nsDisplayList.cpp
 +++ b/layout/painting/nsDisplayList.cpp
-@@ -9,6 +9,7 @@
-  */
- 
- #include "nsDisplayList.h"
-+#include "nsHilalBoostsBackend.h"
- 
- #include <stdint.h>
- 
+@@ -81,6 +81,7 @@
+ #include "mozilla/layers/WebRenderLayerManager.h"
+ #include "mozilla/layers/WebRenderMessages.h"
+ #include "mozilla/layers/WebRenderScrollData.h"
++#include "mozilla/nsHilalBoostsBackend.h"
+ #include "nsCSSProps.h"
+ #include "nsCSSRendering.h"
+ #include "nsCSSRenderingGradients.h"
 @@ -2204,6 +2205,8 @@ void nsDisplayList::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx,
        continue;
      }
@@ -1044,13 +1074,13 @@ diff --git a/layout/painting/nsImageRenderer.cpp b/layout/painting/nsImageRender
 diff --git a/layout/style/StyleColor.cpp b/layout/style/StyleColor.cpp
 --- a/layout/style/StyleColor.cpp
 +++ b/layout/style/StyleColor.cpp
-@@ -9,6 +9,7 @@
+@@ -7,6 +7,7 @@
+ #include "mozilla/StaticPrefs_layout.h"
+ #include "mozilla/StyleColorInlines.h"
  #include "mozilla/dom/BindingDeclarations.h"
++#include "mozilla/nsHilalBoostsBackend.h"
  #include "nsIFrame.h"
  #include "nsStyleStruct.h"
-+#include "nsHilalBoostsBackend.h"
- 
- namespace mozilla {
  
 @@ -51,6 +52,7 @@ nscolor StyleColor::CalcColor(const ComputedStyle& aStyle) const {
  
@@ -1060,7 +1090,7 @@ diff --git a/layout/style/StyleColor.cpp b/layout/style/StyleColor.cpp
    return ResolveColor(aFrame->StyleText()->mColor).ToColor();
  }
  
-@@ -101,11 +103,13 @@ nscolor StyleAbsoluteColor::ToColor() const {
+@@ -101,11 +103,12 @@ nscolor StyleAbsoluteColor::ToColor() const {
      }
    }
  
@@ -1070,11 +1100,10 @@ diff --git a/layout/style/StyleColor.cpp b/layout/style/StyleColor.cpp
 -      nsStyleUtil::FloatToColorComponent(translatedColor.components._2),
 -      nsStyleUtil::FloatToColorComponent(translatedColor.alpha));
 +  return hilal::nsHilalBoostsBackend::ResolveStyleColor(
-+      NS_RGBA(
-+          nsStyleUtil::FloatToColorComponent(translatedColor.components._0),
-+          nsStyleUtil::FloatToColorComponent(translatedColor.components._1),
-+          nsStyleUtil::FloatToColorComponent(translatedColor.components._2),
-+          nsStyleUtil::FloatToColorComponent(translatedColor.alpha)),
++      NS_RGBA(nsStyleUtil::FloatToColorComponent(translatedColor.components._0),
++              nsStyleUtil::FloatToColorComponent(translatedColor.components._1),
++              nsStyleUtil::FloatToColorComponent(translatedColor.components._2),
++              nsStyleUtil::FloatToColorComponent(translatedColor.alpha)),
 +      nullptr);
  }
  
@@ -1102,37 +1131,39 @@ diff --git a/layout/style/nsHilalBoostsBackend.cpp b/layout/style/nsHilalBoostsB
 new file mode 100644
 --- /dev/null
 +++ b/layout/style/nsHilalBoostsBackend.cpp
-@@ -0,0 +1,450 @@
+@@ -0,0 +1,472 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 +
 +#include "nsHilalBoostsBackend.h"
-+#include <cmath>
++
 +#include <algorithm>
 +#include <array>
-+#include <cstdint>
-+#include <cstring>
 +#include <cinttypes>
++#include <cmath>
++#include <cstdint>
++#include <cstdio>
++#include <cstring>
 +
-+#include "nsPresContext.h"
-+#include "nsIFrame.h"
-+#include "nsIContent.h"
-+#include "nsIURI.h"
 +#include "mozilla/ClearOnShutdown.h"
-+#include "mozilla/StaticPtr.h"
-+#include "mozilla/Services.h"
-+#include "nsIObserverService.h"
-+#include "nsIObserver.h"
-+#include "mozilla/dom/Document.h"
-+#include "mozilla/dom/BrowsingContext.h"
-+#include "mozilla/dom/Element.h"
 +#include "mozilla/PseudoStyleType.h"
-+#include "nsStyleUtil.h"
-+#include "nsStyleStruct.h"
-+#include "nsXULAppAPI.h"
++#include "mozilla/Services.h"
++#include "mozilla/StaticPtr.h"
++#include "mozilla/dom/BrowsingContext.h"
++#include "mozilla/dom/Document.h"
++#include "mozilla/dom/Element.h"
++#include "nsIContent.h"
 +#include "nsIEffectiveTLDService.h"
++#include "nsIFrame.h"
++#include "nsIObserver.h"
++#include "nsIObserverService.h"
++#include "nsIURI.h"
 +#include "nsNetCID.h"
++#include "nsPresContext.h"
++#include "nsStyleStruct.h"
++#include "nsStyleUtil.h"
++#include "nsXULAppAPI.h"
 +
 +#if defined(__clang__) || defined(__GNUC__)
 +#  define HILAL_HOT_FUNCTION __attribute__((hot))
@@ -1186,22 +1217,22 @@ new file mode 100644
 +  if (strcmp(aTopic, "hilal-boost-updated") == 0) {
 +    nsAutoString dataStr16(aData);
 +    NS_ConvertUTF16toUTF8 dataStr(dataStr16);
-+    int32_t firstPipe = dataStr.FindChar('|');
-+    fprintf(stderr, "HILAL_OBSERVED: dataStr=%s, firstPipe=%d\n", dataStr.get(), firstPipe);
++    const int32_t firstPipe = dataStr.FindChar('|');
 +    if (firstPipe != -1) {
 +      nsCString domain(Substring(dataStr, 0, firstPipe));
 +      nsCString rest(Substring(dataStr, firstPipe + 1));
-+      fprintf(stderr, "HILAL_OBSERVED_PARSED: domain=%s, rest=%s\n", domain.get(), rest.get());
 +      unsigned int tempAccent = 0;
 +      float tempRotation = 0.0f;
 +      int tempInverted = 0;
-+      int scanCount = sscanf(rest.get(), "%u|%f|%d", &tempAccent, &tempRotation, &tempInverted);
-+      fprintf(stderr, "HILAL_OBSERVED_SSCANF: scanCount=%d, accent=%u, rot=%f, inv=%d\n", scanCount, tempAccent, tempRotation, tempInverted);
++      const int scanCount = sscanf(rest.get(), "%u|%f|%d", &tempAccent,
++                                   &tempRotation, &tempInverted);
 +      if (scanCount == 3) {
 +        if (tempAccent == 0 && tempInverted == 0) {
 +          mBoostsMap.Remove(domain);
 +        } else {
-+          mBoostsMap.InsertOrUpdate(domain, HilalBoostData{tempAccent, tempRotation, tempInverted != 0});
++          mBoostsMap.InsertOrUpdate(
++              domain,
++              HilalBoostData{tempAccent, tempRotation, tempInverted != 0});
 +        }
 +      }
 +    }
@@ -1209,8 +1240,9 @@ new file mode 100644
 +  return NS_OK;
 +}
 +
-+void nsHilalBoostsBackend::GetBoostForDomain(const nsACString& aDomain, nscolor* aAccent,
-+                                             float* aRotation, bool* aInverted) {
++void nsHilalBoostsBackend::GetBoostForDomain(const nsACString& aDomain,
++                                             nscolor* aAccent, float* aRotation,
++                                             bool* aInverted) {
 +  HilalBoostData data;
 +  if (mBoostsMap.Get(aDomain, &data)) {
 +    *aAccent = data.accent;
@@ -1221,6 +1253,35 @@ new file mode 100644
 +    *aRotation = 0.0f;
 +    *aInverted = false;
 +  }
++}
++
++bool nsHilalBoostsBackend::GetBaseDomainForDocument(
++    mozilla::dom::Document* aDocument, nsACString& aDomain) {
++  aDomain.Truncate();
++  if (!aDocument) {
++    return false;
++  }
++
++  mozilla::dom::Document* topDoc = aDocument;
++  while (mozilla::dom::Document* parent =
++             topDoc->GetInProcessParentDocument()) {
++    topDoc = parent;
++  }
++
++  nsIURI* uri = topDoc->GetDocumentURI();
++  if (!uri) {
++    return false;
++  }
++
++  nsCOMPtr<nsIEffectiveTLDService> tldService =
++      do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
++  if (tldService) {
++    tldService->GetBaseDomain(uri, 0, aDomain);
++  }
++  if (aDomain.IsEmpty()) {
++    uri->GetAsciiHost(aDomain);
++  }
++  return !aDomain.IsEmpty();
 +}
 +
 +namespace {
@@ -1289,8 +1350,8 @@ new file mode 100644
 +}
 +
 +HILAL_HOT_FUNCTION
-+inline static nsHilalAccentOklab hilalRotateAccent(const nsHilalAccentOklab& aBase,
-+                                                   float aRotationDeg) {
++inline static nsHilalAccentOklab hilalRotateAccent(
++    const nsHilalAccentOklab& aBase, float aRotationDeg) {
 +  constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
 +  const float angle = aRotationDeg * kDegToRad;
 +  const float cosR = std::cos(angle);
@@ -1484,7 +1545,8 @@ new file mode 100644
 +  }
 +  if (presContext->HasHilalBoostsOverride()) {
 +    *aData = presContext->HilalBoostsOverrideAccent();
-+    *aComplementaryRotation = presContext->HilalBoostsOverrideComplementaryRotation();
++    *aComplementaryRotation =
++        presContext->HilalBoostsOverrideComplementaryRotation();
 +    *aIsInverted = presContext->HilalBoostsOverrideInverted();
 +    return;
 +  }
@@ -1492,25 +1554,14 @@ new file mode 100644
 +  if (!doc) {
 +    return;
 +  }
-+  mozilla::dom::Document* topDoc = doc;
-+  while (mozilla::dom::Document* parent = topDoc->GetInProcessParentDocument()) {
-+    topDoc = parent;
-+  }
 +
 +  nsAutoCString host;
-+  if (nsIURI* uri = topDoc->GetDocumentURI()) {
-+    nsCOMPtr<nsIEffectiveTLDService> tldService =
-+        do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
-+    if (tldService) {
-+      tldService->GetBaseDomain(uri, 0, host);
-+    }
-+    if (host.IsEmpty()) {
-+      uri->GetAsciiHost(host);
-+    }
++  if (presContext->HasHilalBoostsCachedBaseDomain()) {
++    host = presContext->HilalBoostsCachedBaseDomain();
++  } else {
++    nsHilalBoostsBackend::GetBaseDomainForDocument(doc, host);
++    presContext->SetHilalBoostsCachedBaseDomain(host);
 +  }
-+
-+  fprintf(stderr, "HILAL_LOOKUP: host=%s\n", host.get());
-+
 +  if (host.IsEmpty()) {
 +    return;
 +  }
@@ -1519,7 +1570,6 @@ new file mode 100644
 +  if (backend) {
 +    backend->GetBoostForDomain(host, aData, aComplementaryRotation,
 +                               aIsInverted);
-+    fprintf(stderr, "HILAL_LOOKUP_RESULT: host=%s, acc=%u, rot=%f, inv=%d\n", host.get(), *aData, *aComplementaryRotation, *aIsInverted);
 +  }
 +}
 +
@@ -1544,7 +1594,8 @@ new file mode 100644
 +  if (accentNS) {
 +    const AccentCacheEntry& cached =
 +        GetCachedAccent(accentNS, complementaryRotation);
-+    aColor = hilalFilterColorChannel(aColor, cached.accent, cached.complementary);
++    aColor =
++        hilalFilterColorChannel(aColor, cached.accent, cached.complementary);
 +  }
 +  if (invertColors) {
 +    aColor = hilalInvertColorChannel(aColor);
@@ -1557,7 +1608,7 @@ diff --git a/layout/style/nsHilalBoostsBackend.h b/layout/style/nsHilalBoostsBac
 new file mode 100644
 --- /dev/null
 +++ b/layout/style/nsHilalBoostsBackend.h
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,74 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -1565,12 +1616,17 @@ new file mode 100644
 +#ifndef mozilla_HilalBoostsBackend_h_
 +#define mozilla_HilalBoostsBackend_h_
 +
++#include "nsCOMPtr.h"
 +#include "nsColor.h"
 +#include "nsIObserver.h"
-+#include "nsCOMPtr.h"
++#include "nsStringFwd.h"
 +#include "nsTHashMap.h"
 +
 +class nsIFrame;
++
++namespace mozilla::dom {
++class Document;
++}
 +
 +namespace hilal {
 +
@@ -1597,7 +1653,10 @@ new file mode 100644
 +
 +  static auto GetInstance() -> nsHilalBoostsBackend*;
 +
-+  static auto ResolveStyleColor(nscolor aColor, const nsIFrame* aFrame) -> nscolor;
++  static auto ResolveStyleColor(nscolor aColor, const nsIFrame* aFrame)
++      -> nscolor;
++  static bool GetBaseDomainForDocument(mozilla::dom::Document* aDocument,
++                                       nsACString& aDomain);
 +
 +  void GetBoostForDomain(const nsACString& aDomain, nscolor* aAccent,
 +                         float* aRotation, bool* aInverted);
@@ -1612,13 +1671,11 @@ new file mode 100644
 +
 +class AutoActiveFrame {
 + public:
-+  explicit AutoActiveFrame(const nsIFrame* aFrame)
-+      : mPrevFrame(gActiveFrame) {
++  explicit AutoActiveFrame(const nsIFrame* aFrame) : mPrevFrame(gActiveFrame) {
 +    gActiveFrame = aFrame;
 +  }
-+  ~AutoActiveFrame() {
-+    gActiveFrame = mPrevFrame;
-+  }
++  ~AutoActiveFrame() { gActiveFrame = mPrevFrame; }
++
 + private:
 +  const nsIFrame* mPrevFrame;
 +};
@@ -1629,13 +1686,15 @@ new file mode 100644
 diff --git a/layout/svg/SVGImageContext.cpp b/layout/svg/SVGImageContext.cpp
 --- a/layout/svg/SVGImageContext.cpp
 +++ b/layout/svg/SVGImageContext.cpp
-@@ -15,9 +15,37 @@
+@@ -11,6 +11,7 @@
+ #include "mozilla/ServoCSSParser.h"
+ #include "mozilla/StaticPrefs_svg.h"
+ #include "mozilla/dom/Document.h"
++#include "mozilla/nsHilalBoostsBackend.h"
+ #include "nsIFrame.h"
  #include "nsISVGPaintContext.h"
  #include "nsPresContext.h"
- #include "nsStyleStruct.h"
-+#include "nsIURI.h"
-+#include "mozilla/dom/BrowsingContext.h"
-+#include "nsHilalBoostsBackend.h"
+@@ -18,6 +19,25 @@
  
  namespace mozilla {
  
@@ -1643,19 +1702,13 @@ diff --git a/layout/svg/SVGImageContext.cpp b/layout/svg/SVGImageContext.cpp
 +void SVGImageContext::MaybeStoreHilalBoosts(SVGImageContext& aContext,
 +                                            const nsPresContext& aPresContext) {
 +  if (dom::Document* doc = aPresContext.Document()) {
-+    dom::Document* topDoc = doc;
-+    while (dom::Document* parent = topDoc->GetInProcessParentDocument()) {
-+      topDoc = parent;
-+    }
 +    nsAutoCString host;
-+    if (nsIURI* uri = topDoc->GetDocumentURI()) {
-+      uri->GetAsciiHost(host);
-+    }
-+    if (!host.IsEmpty()) {
++    if (hilal::nsHilalBoostsBackend::GetBaseDomainForDocument(doc, host)) {
 +      nscolor accent = 0;
 +      float rotation = 0.0f;
 +      bool inverted = false;
-+      hilal::nsHilalBoostsBackend* backend = hilal::nsHilalBoostsBackend::GetInstance();
++      hilal::nsHilalBoostsBackend* backend =
++          hilal::nsHilalBoostsBackend::GetInstance();
 +      if (backend) {
 +        backend->GetBoostForDomain(host, &accent, &rotation, &inverted);
 +      }
@@ -1667,7 +1720,7 @@ diff --git a/layout/svg/SVGImageContext.cpp b/layout/svg/SVGImageContext.cpp
  /* static */
  void SVGImageContext::MaybeStoreContextPaint(SVGImageContext& aContext,
                                               nsIFrame* aFromFrame,
-@@ -36,6 +64,8 @@ void SVGImageContext::MaybeStoreContextPaint(SVGImageContext& aContext,
+@@ -36,6 +56,8 @@ void SVGImageContext::MaybeStoreContextPaint(SVGImageContext& aContext,
      return;
    }
  
@@ -1762,32 +1815,19 @@ diff --git a/layout/svg/SVGImageContext.h b/layout/svg/SVGImageContext.h
 diff --git a/widget/Theme.cpp b/widget/Theme.cpp
 --- a/widget/Theme.cpp
 +++ b/widget/Theme.cpp
-@@ -113,6 +113,20 @@ static StaticRefPtr<Theme> gRDMInstance;
- 
- }  // namespace
- 
-+namespace hilal {
-+  extern thread_local const ::nsIFrame* gActiveFrame;
-+}
-+
-+struct AutoThemeActiveFrame {
-+  explicit AutoThemeActiveFrame(const nsIFrame* aFrame) : mPrev(hilal::gActiveFrame) {
-+    hilal::gActiveFrame = aFrame;
-+  }
-+  ~AutoThemeActiveFrame() {
-+    hilal::gActiveFrame = mPrev;
-+  }
-+  const nsIFrame* mPrev;
-+};
-+
- #ifdef ANDROID
- already_AddRefed<Theme> do_CreateNativeThemeDoNotUseDirectly() {
-   // Android doesn't have a native theme.
-@@ -1107,6 +1121,7 @@ bool Theme::DoDrawWidgetBackground(PaintBackendData& aPaintData,
+@@ -19,6 +19,7 @@
+ #include "mozilla/ScrollContainerFrame.h"
+ #include "mozilla/StaticPrefs_widget.h"
+ #include "mozilla/webrender/WebRenderAPI.h"
++#include "mozilla/nsHilalBoostsBackend.h"
+ #include "nsCSSColorUtils.h"
+ #include "nsCSSRendering.h"
+ #include "nsScrollbarFrame.h"
+@@ -1107,6 +1108,7 @@ bool Theme::DoDrawWidgetBackground(PaintBackendData& aPaintData,
                                     StyleAppearance aAppearance,
                                     const nsRect& aRect,
                                     DrawOverflow aDrawOverflow) {
-+  AutoThemeActiveFrame active(aFrame);
++  hilal::AutoActiveFrame active(aFrame);
    static_assert(std::is_same_v<PaintBackendData, DrawTarget> ||
                  std::is_same_v<PaintBackendData, WebRenderBackendData>);
  

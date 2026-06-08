@@ -177,7 +177,7 @@ export class HilalBoostsChild extends JSWindowActorChild {
   }
 
   actorDestroy() {
-    this.stopZap();
+    this.stopZap(false);
     this._stopMetaObserver();
   }
 
@@ -195,7 +195,7 @@ export class HilalBoostsChild extends JSWindowActorChild {
     doc.addEventListener("keydown", this._onKeyDown, true);
   }
 
-  stopZap() {
+  stopZap(notifyParent = true) {
     if (!this._zapping && !this._zapHost) {
       return;
     }
@@ -207,6 +207,9 @@ export class HilalBoostsChild extends JSWindowActorChild {
     doc.removeEventListener("click", this._onClick, true);
     doc.removeEventListener("keydown", this._onKeyDown, true);
     this._removeZapOverlay();
+    if (notifyParent) {
+      this.sendAsyncMessage("HilalBoosts:ZapStopped");
+    }
   }
 
   onMouseMove(e) {

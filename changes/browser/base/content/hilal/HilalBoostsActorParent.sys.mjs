@@ -11,6 +11,9 @@ export class HilalBoostsParent extends JSWindowActorParent {
       case "HilalBoosts:GetBoostForDomain": {
         const domain = aMessage.data.domain;
         try {
+          if (!Services.prefs.getBoolPref("hilal.boosts.enabled", true)) {
+            return null;
+          }
           const dataStr = Services.prefs.getStringPref("hilal.boosts.data", "{}");
           const boosts = JSON.parse(dataStr);
           return boosts[domain] || null;
@@ -22,6 +25,13 @@ export class HilalBoostsParent extends JSWindowActorParent {
         const window = this.browsingContext.top.embedderElement.ownerGlobal;
         if (window && window.gHilalBoosts) {
           window.gHilalBoosts.handleZappedElement(aMessage.data.selector);
+        }
+        break;
+      }
+      case "HilalBoosts:ZapStopped": {
+        const window = this.browsingContext.top.embedderElement?.ownerGlobal;
+        if (window && window.gHilalBoosts) {
+          window.gHilalBoosts.handleZapStopped();
         }
         break;
       }

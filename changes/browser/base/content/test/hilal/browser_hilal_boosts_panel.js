@@ -44,6 +44,11 @@ add_task(async function test_boosts_button_opens_panel() {
         "example.com",
         "Panel title should show the active domain"
       );
+      is(
+        Services.prefs.getStringPref("hilal.boosts.data"),
+        "{}",
+        "Opening the panel should not persist a default site boost"
+      );
 
       const colorInput = document.getElementById("hilal-boosts-color");
       colorInput.value = "#ff3366";
@@ -103,6 +108,63 @@ add_task(async function test_boosts_button_opens_panel() {
       const hidden = BrowserTestUtils.waitForEvent(panel, "popuphidden");
       panel.hidePopup();
       await hidden;
+    }
+  );
+
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_boosts_global_disable_clears_chrome_state() {
+  const boostData = {
+    "example.com": {
+      enabled: true,
+      fontFamily: "",
+      fontSize: 100,
+      textCase: "none",
+      smartInvert: false,
+      colorEnabled: true,
+      autoPaletteEnabled: false,
+      browserUIEnabled: true,
+      accentColor: "#ff3366",
+      secondaryColor: "#00d4ff",
+      colorIntensity: 35,
+      colorBrightness: 100,
+      customCSS: "",
+      zappedSelectors: [],
+    },
+  };
+
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["hilal.boosts.enabled", true],
+      ["hilal.boosts.data", JSON.stringify(boostData)],
+    ],
+  });
+
+  await BrowserTestUtils.withNewTab(
+    "https://example.com/browser/browser/base/content/test/general/dummy_page.html",
+    async () => {
+      await TestUtils.waitForCondition(
+        () => window.gHilalBoosts,
+        "Hilal Boosts manager should initialize"
+      );
+
+      window.gHilalBoosts._applyStyles();
+      window.gHilalBoosts._updateUIState();
+
+      await TestUtils.waitForCondition(
+        () => HilalBoostsShared.activeSheetCSS.includes("#ff3366") &&
+          document.documentElement.getAttribute("hilal-boosts-ui") === "true",
+        "Enabled boost should register page and browser UI styling"
+      );
+
+      Services.prefs.setBoolPref("hilal.boosts.enabled", false);
+
+      await TestUtils.waitForCondition(
+        () => !HilalBoostsShared.activeSheetCSS &&
+          !document.documentElement.hasAttribute("hilal-boosts-ui"),
+        "Global disable should clear boost styles and browser UI tint"
+      );
     }
   );
 
