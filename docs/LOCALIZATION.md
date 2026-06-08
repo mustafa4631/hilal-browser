@@ -2,7 +2,7 @@
 
 Hilal can bundle Firefox language packs plus Hilal-specific UI strings. The
 browser follows the operating system language when a matching bundled locale is
-installed. If no bundled locale matches, Firefox falls back to packaged `en-US`.
+installed. Without a matching bundled locale, Firefox falls back to `en-US`.
 
 The default is controlled by:
 
@@ -10,9 +10,8 @@ The default is controlled by:
 pref("intl.locale.requested", "");
 ```
 
-Users can also choose a specific language in Settings > Hilal Preferences >
-Language Selection. The selection is applied with Firefox's multilingual restart
-flow.
+Users can choose a language in Settings > Hilal Preferences > Language
+Selection. Firefox applies the selection through its multilingual restart flow.
 
 ## Quick Start
 
@@ -112,4 +111,4 @@ large and are intentionally not stored directly in this overlay repo.
 - Missing Hilal custom translations may fall back to English or produce Fluent
   missing-message logs, so run `scripts/check-locales.py` before release.
 - `browser/app/distribution/moz.build` includes bundled language packs with a
-  wildcard, so new langpack XPI files do not need a manual `moz.build` edit.
+  wildcard; new langpack XPI files do not need a manual `moz.build` edit.

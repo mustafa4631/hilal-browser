@@ -46,7 +46,6 @@ if [ -z "$CODESIGN_IDENTITY" ]; then
   die "CODESIGN_IDENTITY is not set. Export it before running this script."
 fi
 
-# Locate the built app bundle
 APP_BUNDLE=""
 for candidate in "$HILAL_FIREFOX_SRC"/obj-*/dist/*.app; do
   if [ -d "$candidate" ]; then
@@ -75,7 +74,6 @@ if [ ! -f "$ENTITLEMENTS" ]; then
   die "Entitlements plist not found: $ENTITLEMENTS"
 fi
 
-# Sign inner binaries, frameworks, and plugins first
 log "Signing inner binaries and frameworks..."
 find "$APP_BUNDLE/Contents/MacOS" -type f -perm +111 -print0 2>/dev/null | while IFS= read -r -d '' f; do
   codesign --sign "$CODESIGN_IDENTITY" --force --options runtime --entitlements "$ENTITLEMENTS" "$f" 2>/dev/null || true
@@ -87,16 +85,13 @@ if [ -d "$APP_BUNDLE/Contents/Frameworks" ]; then
   done
 fi
 
-# Sign the entire bundle
 log "Signing app bundle..."
 codesign --sign "$CODESIGN_IDENTITY" --force --deep --options runtime --entitlements "$ENTITLEMENTS" "$APP_BUNDLE"
 
-# Verify signature
 log "Verifying signature..."
 codesign --verify --deep --strict "$APP_BUNDLE"
 log "codesign --verify --deep --strict: OK"
 
-# Notarization
 if [ "$DO_NOTARIZE" = 1 ]; then
   APPLE_ID="${APPLE_ID:-}"
   APPLE_APP_SPECIFIC_PASSWORD="${APPLE_APP_SPECIFIC_PASSWORD:-}"

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Download, Monitor, Command, Terminal, Sparkles, CheckCircle2, Search, ArrowRight } from "lucide-react";
+import { Download, Monitor, Command, Terminal, CheckCircle2, Search } from "lucide-react";
 import { GithubRelease, GithubAsset } from "../types";
 import { formatBytes, detectOS, getRecommendedAsset } from "../utils/github";
 
@@ -27,7 +27,7 @@ export default function DownloadModal({ isOpen, onClose, release, lang, initialA
       successTitle: "İndirme Başlatıldı",
       successDesc: "Dosya indirme kuyruğuna eklendi.",
       restart: "Tekrar Başlat",
-      safe: "Açık Kaynak & Güvenli",
+      safe: "Kaynak GitHub'da",
       navHint: "gezin",
       selectHint: "seç",
       closeHint: "kapat"
@@ -39,7 +39,7 @@ export default function DownloadModal({ isOpen, onClose, release, lang, initialA
       successTitle: "Download Initiated",
       successDesc: "File has been added to your download queue.",
       restart: "Restart",
-      safe: "Open Source & Secure",
+      safe: "Source on GitHub",
       navHint: "navigate",
       selectHint: "select",
       closeHint: "close"
@@ -54,25 +54,21 @@ export default function DownloadModal({ isOpen, onClose, release, lang, initialA
   const initialAsset = initialAssetId ? activeAssets.find(a => a.id === initialAssetId) : null;
   const primaryAsset = initialAsset || recommendedAsset || (activeAssets.length > 0 ? activeAssets[0] : null);
 
-  // Prepare a flat list of assets with the primary one first
   const displayAssets = [
     ...(primaryAsset ? [primaryAsset] : []),
     ...activeAssets.filter(a => !primaryAsset || a.id !== primaryAsset.id)
   ];
 
-  // Auto-focus input when opened to ensure keyboard events work smoothly
   useEffect(() => {
     if (isOpen) {
       setSelectedIndex(0);
       setDownloadedAsset(null);
-      // Small delay to allow animation to complete
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     }
   }, [isOpen]);
 
-  // Keyboard navigation logic (Raycast / Spotlight style)
   useEffect(() => {
     if (!isOpen || downloadedAsset) return;
 
@@ -116,7 +112,6 @@ export default function DownloadModal({ isOpen, onClose, release, lang, initialA
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[12vh] sm:pt-[15vh] px-4">
-          {/* Extremely dark blur backdrop, standard for command palettes */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -133,7 +128,6 @@ export default function DownloadModal({ isOpen, onClose, release, lang, initialA
             className="relative w-full max-w-2xl bg-white/90 dark:bg-[#111111]/90 border border-black/10 dark:border-white/10 shadow-[0_32px_80px_rgba(0,0,0,0.3)] rounded-2xl overflow-hidden backdrop-blur-3xl flex flex-col"
             style={{ maxHeight: "70vh" }}
           >
-            {/* Command Input Area - Acts as the header */}
             <div className="flex items-center gap-4 px-6 py-5 border-b border-neutral-200/50 dark:border-white/10 bg-white/50 dark:bg-black/50">
               {downloadedAsset ? (
                 <CheckCircle2 className="w-6 h-6 text-emerald-500 animate-pulse" />
@@ -164,7 +158,6 @@ export default function DownloadModal({ isOpen, onClose, release, lang, initialA
                   className="flex flex-col overflow-y-auto custom-scrollbar"
                 >
                   <div className="p-3">
-                    {/* Render primary / recommended asset first */}
                     {primaryAsset && (
                       <div className="mb-4">
                         <div className="px-3 py-2 text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">
@@ -204,7 +197,6 @@ export default function DownloadModal({ isOpen, onClose, release, lang, initialA
                       </div>
                     )}
 
-                    {/* Render the rest */}
                     {displayAssets.length > 1 && (
                       <div>
                         <div className="px-3 py-2 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
@@ -212,7 +204,6 @@ export default function DownloadModal({ isOpen, onClose, release, lang, initialA
                         </div>
                         <div className="space-y-1">
                           {displayAssets.map((asset, index) => {
-                            // Skip the primary asset as it's already rendered
                             if (index === 0) return null;
                             const isSelected = selectedIndex === index;
                             
@@ -285,11 +276,10 @@ export default function DownloadModal({ isOpen, onClose, release, lang, initialA
               )}
             </AnimatePresence>
 
-            {/* Footer with hints */}
             {!downloadedAsset && (
               <div className="px-6 py-3 bg-neutral-50/80 dark:bg-white/[0.02] border-t border-neutral-200/50 dark:border-white/5 flex items-center justify-between text-[11px] text-neutral-500">
                 <div className="flex items-center gap-2 font-medium">
-                  <Sparkles className="w-3.5 h-3.5" /> {activeTranslation.safe}
+                  <CheckCircle2 className="w-3.5 h-3.5" /> {activeTranslation.safe}
                 </div>
                 <div className="hidden sm:flex gap-5 font-mono">
                   <span className="flex items-center gap-1.5">

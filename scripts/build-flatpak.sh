@@ -15,14 +15,12 @@
 
 set -euo pipefail
 
-# Color Definitions
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# Helper Library Loading and Default Logging Functions
 if [ -f "$(dirname "$0")/lib.sh" ]; then
     # shellcheck source=/dev/null
     . "$(dirname "$0")/lib.sh"
@@ -32,7 +30,6 @@ else
     die() { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 fi
 
-# Directory and Configuration Definitions
 HILAL_REPO_ROOT="$(cd "$(dirname "$0")/../" && pwd)"
 TARGET_DIST_DIR="${HILAL_REPO_ROOT}/dist"
 CONFIG_FILE="${HILAL_REPO_ROOT}/config.yml"
@@ -56,7 +53,6 @@ need() {
     command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
 }
 
-# Fetch Git tag and date details
 get_git_tag() {
     if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0"
@@ -69,7 +65,6 @@ get_git_date() {
     if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         local tag
         tag=$(get_git_tag)
-        # Fetch the creation date of the tag in YYYYMMDD format
         git log -1 --format=%cd --date=format:'%Y%m%d' "$tag" 2>/dev/null || date +'%Y%m%d'
     else
         date +'%Y%m%d'
@@ -78,7 +73,6 @@ get_git_date() {
 
 find_package() {
     local pkg
-    # Search for tar.xz or tar.gz packages only in the root dist/ directory
     pkg=$(find "$TARGET_DIST_DIR" -maxdepth 1 -type f \( \
         -name "firefox-*.tar.xz" -o \
         -name "firefox-*.tar.gz" -o \
@@ -214,10 +208,8 @@ check_stable_ready() {
     log "Flatpak metadata is stable-release ready: version=$version tag=$tag"
 }
 
-# Function to safely unmount locked FUSE mountpoints
 force_cleanup_fuse() {
     local mountpoint
-    # Find and force unmount rofiles mountpoints inside .flatpak-builder
     if [ -d "$HILAL_REPO_ROOT/.flatpak-builder" ]; then
         find "$HILAL_REPO_ROOT/.flatpak-builder" -type d -name "rofiles-*" 2>/dev/null | while read -r mountpoint; do
             if mountpoint -q "$mountpoint" 2>/dev/null || (command -v gvfs-mount >/dev/null && gvfs-mount -l 2>/dev/null | grep -q "$mountpoint"); then
@@ -263,7 +255,6 @@ case "$cmd" in
         exit 0
         ;;
     build|install)
-        # Continue inside build or install steps below
         ;;
     *)
         usage >&2
@@ -271,7 +262,6 @@ case "$cmd" in
         ;;
 esac
 
-# Clean up any previously locked FUSE mountpoints as a pre-build safety step
 force_cleanup_fuse
 
 echo -e "${BLUE}[Flatpak Automation]${NC} Scanning dist/ directory for local packages..."
@@ -283,19 +273,16 @@ if [ -z "$PACKAGE_FILE" ]; then
 fi
 echo -e "${GREEN}[Found Package]${NC} $PACKAGE_FILE"
 
-# Retrieve version and date tags from Git
 GIT_TAG=$(get_git_tag)
 GIT_DATE=$(get_git_date)
 echo -e "${GREEN}[Git Details]${NC} Latest Tag: $GIT_TAG | Tag Date: $GIT_DATE"
 
-# Create a temporary local source directory and extract the archive there
 LOCAL_SRC_DIR="$TARGET_DIST_DIR/flatpak-src"
 echo -e "${BLUE}[Action]${NC} Extracting package to temporary Flatpak source directory: $LOCAL_SRC_DIR"
 rm -rf "$LOCAL_SRC_DIR"
 mkdir -p "$LOCAL_SRC_DIR"
 tar -xf "$PACKAGE_FILE" -C "$LOCAL_SRC_DIR" --strip-components=1
 
-# Transfer auxiliary files from flatpak/ directory to source folder
 if [ -d "$HILAL_REPO_ROOT/flatpak" ]; then
     echo -e "${BLUE}[Action]${NC} Copying auxiliary flatpak/ files to source directory..."
     find "$HILAL_REPO_ROOT/flatpak" -maxdepth 1 ! -name "*.json" ! -name "*.json.bak" -not -path "$HILAL_REPO_ROOT/flatpak" -exec cp -R -t "$LOCAL_SRC_DIR/" {} +
@@ -306,7 +293,6 @@ if [ -d "$HILAL_REPO_ROOT/branding/hilal" ]; then
     cp "$HILAL_REPO_ROOT/branding/hilal"/default*.png "$LOCAL_SRC_DIR/branding/hilal/" 2>/dev/null || true
 fi
 
-# Locate the Flatpak manifest file
 MANIFEST_PATH=$(find_manifest)
 if [ -z "$MANIFEST_PATH" ]; then
     echo -e "${RED}[Error]${NC} Flatpak manifest file ($APP_ID.json) not found!" >&2
@@ -314,7 +300,6 @@ if [ -z "$MANIFEST_PATH" ]; then
 fi
 echo -e "${GREEN}[Found Manifest]${NC} $MANIFEST_PATH"
 
-# Backup the original manifest file and restore it on script exit
 MANIFEST_BAK="${MANIFEST_PATH}.bak"
 cp "$MANIFEST_PATH" "$MANIFEST_BAK"
 cleanup() {
@@ -327,7 +312,6 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# Update remote source definitions and tags in manifest with dynamic local source paths using Python
 echo -e "${BLUE}[Action]${NC} Redirecting Flatpak manifest to local sources with dynamic Git metadata..."
 MANIFEST_PATH="$MANIFEST_PATH" LOCAL_SRC_DIR="$LOCAL_SRC_DIR" GIT_TAG="$GIT_TAG" python3 - <<'EOF'
 import json
@@ -356,14 +340,12 @@ def patch_recursive(node):
                 "type": "dir",
                 "path": local_dir
             }]
-            # Clear other Git-related configurations
             node.pop('branch', None)
             node.pop('tag', None)
             node.pop('commit', None)
             print(f"-> Redirected '{name}' module to local directory ({local_dir}).")
             patched_count += 1
 
-        # Recursive call to sweep nested modules
         for key, val in list(node.items()):
             patch_recursive(val)
             
@@ -371,10 +353,8 @@ def patch_recursive(node):
         for item in node:
             patch_recursive(item)
 
-# Trigger recursive sweep
 patch_recursive(data)
 
-# Safe fallback: if no module match was found, patch the last module in the manifest
 if patched_count == 0 and 'modules' in data and len(data['modules']) > 0:
     last_mod = data['modules'][-1]
     last_mod['sources'] = [{
@@ -383,7 +363,6 @@ if patched_count == 0 and 'modules' in data and len(data['modules']) > 0:
     }]
     print(f"-> Last module '{last_mod.get('name')}' redirected to local directory as a fallback safety measure.")
 
-# Update tag fields in top-level metadata as necessary
 if 'x-git-tag' in data:
     data['x-git-tag'] = git_tag
 if 'tag' in data:
@@ -393,7 +372,6 @@ with open(manifest_file, 'w') as f:
     json.dump(data, f, indent=2)
 EOF
 
-# --- FIRST ATTEMPT: Standard Build (FUSE rofiles enabled) ---
 echo -e "${BLUE}[Flatpak Automation]${NC} Starting Flatpak $cmd process..."
 FLATPAK_BUNDLE_NAME="hilal-${GIT_TAG}-${GIT_DATE}.flatpak"
 FLATPAK_BUNDLE=""
@@ -411,13 +389,11 @@ else
     fi
 fi
 
-# --- SECOND ATTEMPT: Fallback Mode ---
 # If standard build fails, unlock FUSE and retry with the --no-rofiles-fuse flag
 if [ "$BUILD_SUCCESS" -eq 0 ]; then
     warn "Standard build failed (likely due to a FUSE/rofiles locking issue)."
     warn "Starting auto-recovery: Clearing hung connections and retrying with --no-rofiles-fuse parameter..."
 
-    # Forcefully clear stale FUSE mountpoints
     force_cleanup_fuse
     if [ "$cmd" = "install" ]; then
         flatpak-builder --force-clean --no-rofiles-fuse --user --install "$BUILD_DIR" "$MANIFEST_PATH"
@@ -427,7 +403,6 @@ if [ "$BUILD_SUCCESS" -eq 0 ]; then
     log "Fallback build mode (--no-rofiles-fuse) completed successfully!"
 fi
 
-# --- POST-BUILD INSTRUCTIONS ---
 if [ "$cmd" != "install" ]; then
     FLATPAK_BUNDLE="$TARGET_DIST_DIR/$FLATPAK_BUNDLE_NAME"
     echo -e "${BLUE}[Action]${NC} Generating dynamic Flatpak bundle: $FLATPAK_BUNDLE"
@@ -435,7 +410,6 @@ if [ "$cmd" != "install" ]; then
 fi
 echo -e "\n--------------------------------------------------"
 
-# --- CONFIGURATION FILE (config.yml) MANAGEMENT ---
 CURRENT_BUILD=0
 if [ -f "$CONFIG_FILE" ]; then
     CURRENT_BUILD=$(grep -E '^build_count:' "$CONFIG_FILE" | awk '{print $2}' || echo 0)
@@ -448,11 +422,9 @@ else
 fi
 NEXT_BUILD=$((CURRENT_BUILD + 1))
 
-# --- UPDATE CONFIG FILE IN-PLACE ---
 sed -i "s/^build_count:.*/build_count: $NEXT_BUILD/" "$CONFIG_FILE" 2>/dev/null || \
 echo "build_count: $NEXT_BUILD" > "$CONFIG_FILE"
 
-# --- POST-INSTALL INSTRUCTIONS ---
 if [ "$cmd" = "install" ]; then
     if flatpak info "$APP_ID" >/dev/null 2>&1; then
         echo -e "${GREEN}[Success]${NC} Flatpak successfully installed: $APP_ID"
@@ -463,7 +435,6 @@ if [ "$cmd" = "install" ]; then
     exit 0
 fi
 
-# --- POST-BUILD BUNDLE VERIFICATION ---
 if [ -n "$FLATPAK_BUNDLE" ] && [ -f "$FLATPAK_BUNDLE" ]; then
     echo -e "${GREEN}[Success]${NC} Flatpak bundle saved to dist/ directory: $FLATPAK_BUNDLE"
 else

@@ -39,7 +39,6 @@ Notes:
 USAGE
 }
 
-# Safely returns the path to the appimagetool executable
 get_appimagetool_path() {
   if command -v appimagetool >/dev/null 2>&1; then
     echo "appimagetool"
@@ -74,13 +73,10 @@ EOF
   exit 1
 }
 
-# Searches for the packaged browser archive created by mach package.
 find_package() {
   local pkg
-  # First, search within the obj-dir build directory's dist folder
   pkg=$(find "$HILAL_FIREFOX_SRC"/obj-* \( -name "firefox-*.tar.xz" -o -name "firefox-*.tar.gz" -o -name "hilal-*.tar.xz" -o -name "hilal-*.tar.gz" \) 2>/dev/null | head -1 || true)
 
-  # If not found, fall back to the main dist directory
   if [ -z "$pkg" ]; then
     pkg=$(find "$TARGET_DIST_DIR" \( -name "firefox-*.tar.xz" -o -name "firefox-*.tar.gz" -o -name "hilal-*.tar.xz" -o -name "hilal-*.tar.gz" \) 2>/dev/null | head -1 || true)
   fi
@@ -91,14 +87,11 @@ find_appimage() {
   find "$TARGET_DIST_DIR" -name "Hilal*.AppImage" 2>/dev/null | sort -V | tail -1
 }
 
-# Reads and sanitizes the version number using the closest Git tag
 get_version_by_git_tag() {
   if command -v git >/dev/null 2>&1 && git -C "$HILAL_REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     local git_tag
-    # Fetch the most recent git tag (including unannotated tags)
     git_tag=$(git -C "$HILAL_REPO_ROOT" describe --tags --abbrev=0 2>/dev/null || echo "")
     if [ -n "$git_tag" ]; then
-      # If the tag starts with 'v', strip it (e.g., v1.53.0 -> 1.53.0)
       echo "${git_tag#v}"
       return 0
     fi
@@ -106,11 +99,9 @@ get_version_by_git_tag() {
   return 1
 }
 
-# Fallback method: returns the latest commit hash when no Git tag is found
 get_version_by_git_hash() {
   if command -v git >/dev/null 2>&1 && git -C "$HILAL_REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     local git_hash
-    # Fetch the short hash of the latest commit (e.g., 7a3f2b1)
     git_hash=$(git -C "$HILAL_REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo "")
     if [ -n "$git_hash" ]; then
       echo "git-$git_hash"
@@ -142,7 +133,6 @@ case "$cmd" in
     exit 0
     ;;
   build)
-    # Continue to build steps below
     ;;
   *)
     usage >&2
@@ -178,7 +168,6 @@ if [ ! -f "$APPDIR/usr/bin/firefox" ] && [ -f "$APPDIR/usr/firefox" ]; then
   ln -s ../firefox "$APPDIR/usr/bin/firefox" 2>/dev/null || true
 fi
 
-# Icon copying setup
 ICON_SRC=""
 for size in 128 64 48 32 16; do
   candidate="$HILAL_REPO_ROOT/changes/browser/branding/hilal/default${size}.png"
@@ -202,7 +191,6 @@ else
   fi
 fi
 
-# Desktop file copying/creation
 DESKTOP_SRC="$HILAL_REPO_ROOT/flatpak/$APP_ID.desktop"
 if [ ! -f "$DESKTOP_SRC" ]; then
   DESKTOP_SRC="$HILAL_REPO_ROOT/flatpak/org.gkdevstudio.Hilal.desktop"
@@ -228,7 +216,6 @@ StartupNotify=true
 DESKTOP
 fi
 
-# Create AppRun script
 cat > "$APPDIR/AppRun" <<'APPRUN'
 #!/usr/bin/env bash
 HERE="$(dirname "$(readlink -f "$0")")"
@@ -251,7 +238,6 @@ chmod +x "$APPDIR/AppRun"
 
 mkdir -p "$TARGET_DIST_DIR"
 
-# Version resolution (prioritizing Git tag, then Git commit hash)
 VERSION=""
 if get_version_by_git_tag >/dev/null; then
   VERSION=$(get_version_by_git_tag)
@@ -260,7 +246,6 @@ elif get_version_by_git_hash >/dev/null; then
   VERSION=$(get_version_by_git_hash)
   echo -e "${GREEN}[Version]${NC} Git Tag not found. Version detected from latest Git Commit Hash: $VERSION"
 else
-  # If no Git environment is available, try to parse the version string from the package filename
   if [ -n "$PACKAGE_FILE" ]; then
     VERSION=$(basename "$PACKAGE_FILE" | grep -oE '[0-9]+[.][0-9]+[^.]*' | head -1 || echo "unknown")
     echo -e "${YELLOW}[Version]${NC} Git metadata not found. Version parsed from package filename: $VERSION"
@@ -299,7 +284,6 @@ fi
 if [ -f "$APPIMAGE_PATH" ] ; then
   echo -e "${GREEN}[Success]${NC} AppImage successfully created: $APPIMAGE_PATH"
 
-  # Update build count
   CURRENT_BUILD=0
   if [ -f "$CONFIG_FILE" ]; then
     CURRENT_BUILD=$(grep -E '^build_count:' "$CONFIG_FILE" | awk '{print $2}' || echo 0)
@@ -315,7 +299,6 @@ if [ -f "$APPIMAGE_PATH" ] ; then
 
   sed -i "s/^build_count:.*/build_count: $NEXT_BUILD/" "$CONFIG_FILE" 2>/dev/null || echo "build_count: $NEXT_BUILD" > "$CONFIG_FILE"
 
-  # Clean temporary AppDir build directory
   rm -rf "$APPDIR"
 
   echo "RESULT_PATH:$APPIMAGE_PATH"

@@ -3,16 +3,15 @@
 This is a short addendum to Mozilla's official guide:
 <https://firefox-source-docs.mozilla.org/setup/macos_build.html>
 
-If you haven't done it yet, bootstrap your machine **once**:
+Bootstrap your machine once:
 
 ```bash
 curl -L https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/python/mozboot/bin/bootstrap.py -O
 python3 bootstrap.py
 ```
 
-That installs Xcode CLT, the build sysroot, `mozbuild`/`mach`
-dependencies, `cargo`, and `cbindgen`. It only needs to run once per
-machine.
+That installs Xcode CLT, the build sysroot, `mozbuild`/`mach` dependencies,
+`cargo`, and `cbindgen`.
 
 ## Building Hilal
 
@@ -48,7 +47,7 @@ and are documented at <https://firefox-source-docs.mozilla.org/build/buildsystem
 After a successful build, the macOS app bundle is at:
 
 ```
-firefox/obj-aarch64-apple-darwin*/dist/Hilal Browser.app
+engine/obj-aarch64-apple-darwin*/dist/Hilal Browser.app
 ```
 
 The bundle name comes from `changes/browser/branding/hilal/configure.sh`, which sets
@@ -65,9 +64,8 @@ it, or run via `./mach run`.
 Do not upload unsigned local DMGs as public release assets. Downloaded macOS
 apps are subject to Gatekeeper quarantine, and a normal double-click launch for
 users requires a Developer ID signed and notarized app. The Apple Developer
-Program is therefore required for public macOS releases; without it, the only
-honest distribution is an explicitly unsigned development build with manual
-Gatekeeper workaround instructions.
+Program is required for public macOS releases. Without it, distribute unsigned
+development builds with manual Gatekeeper workaround instructions.
 
 For distribution builds, use `scripts/sign-macos.sh` after packaging.
 
@@ -143,5 +141,4 @@ its own tree). Don't add it here.
 helper, distinct from the one-time `bootstrap.py` above).
 
 **Big rebuilds after `./bin/hil apply --force`.** Force-apply resets
-the tree, which usually invalidates the build cache. Expect a slow next
-build.
+the tree and often invalidates the build cache.

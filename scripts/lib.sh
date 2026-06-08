@@ -34,14 +34,12 @@ Hint: set HILAL_FIREFOX_SRC, or run ./bin/hil setup first."
   fi
 }
 
-# Read patches from manifest.toml into a bash array, filtering for files ending in .patch.
 read_series() {
   local manifest_file="$HILAL_REPO_ROOT/manifest.toml"
   [ -f "$manifest_file" ] || die "Missing manifest.toml file."
   # shellcheck disable=SC2034
   SERIES=()
   
-  # Parse manifest.toml to get patch paths ending in .patch
   local patches_list
   patches_list=$(python3 -c "
 import re

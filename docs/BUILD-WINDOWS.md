@@ -23,7 +23,8 @@ curl -L https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/mai
 python bootstrap.py
 ```
 
-That installs `mozbuild`, `mach` dependencies, `cargo`, `cbindgen`, and verifies your Visual Studio installation. It only needs to run once per machine.
+That installs `mozbuild`, `mach` dependencies, `cargo`, `cbindgen`, and checks
+the Visual Studio installation.
 
 ## Building Hilal
 
@@ -114,8 +115,7 @@ run `cd engine && ./mach clobber` to clear the object directory.
 helper, distinct from the one-time `bootstrap.py` above).
 
 **Big rebuilds after `./bin/hil apply --force`.** Force-apply resets
-the tree, which usually invalidates the build cache. Expect a slow next
-build.
+the tree and often invalidates the build cache.
 
 **Anti-virus interference.** Windows Defender or other AV can slow Rust/C++
 compilation significantly. Add an exclusion for your `engine/` directory if

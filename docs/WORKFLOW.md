@@ -1,6 +1,6 @@
 # Workflow
 
-This document walks through day-to-day work on Hilal Browser.
+Day-to-day work on Hilal Browser.
 
 ## Mental Model
 
@@ -9,8 +9,9 @@ There are exactly two trees:
 1. **`hilal-browser/`** (this repo) — small, text-only, version-controlled. Holds the declarative configurations, patches, assets, scripts, and docs.
 2. **`hilal-browser/engine/`** — the full Firefox source checkout. Gitignored from this repo. It has its own git history pointing at `mozilla-firefox/firefox`.
 
-The Hilal changes live in `hilal-browser/` as the source of truth.
-Whenever you want to build, you "stamp" them onto `engine/` with `./bin/hil apply`. Whenever you change source code in `engine/`, you commit your changes in `engine/` and then bring them back with `./bin/hil refresh`.
+The Hilal changes live in `hilal-browser/`. Apply them to `engine/` with
+`./bin/hil apply`. After source edits in `engine/`, commit there and run
+`./bin/hil refresh` from this repo.
 
 ```
                     ./bin/hil apply
@@ -44,7 +45,9 @@ When a change is ready to be synchronized back to the repository:
 ./bin/hil refresh
 ```
 
-This compares the commit stack in the `engine/` tree against `upstream-base`, maps the changes back to the entries defined in `manifest.toml`, and regenerates the individual patch files (e.g. `changes/browser/transparent-macos-chrome.patch`) while cleanly preserving any description headers.
+This compares the `engine/` commit stack against `upstream-base`, maps changes
+to `manifest.toml`, and regenerates patch files such as
+`changes/browser/transparent-macos-chrome.patch`.
 
 ## Branding, Prefs & Locale Changes
 
@@ -53,17 +56,21 @@ Branding, preference configurations, and locales are **overlays**, not patches:
 - Edit them in `changes/` directly (e.g., real PNGs/ICOs/Fluent files), and run `./bin/hil apply` to push them to the `engine/` tree.
 - Or edit them inside `engine/` and run `./bin/hil refresh` to sync the changes back.
 
-Same model for preferences and locales: a file at `changes/browser/app/profile/firefox.js` is copied directly to `engine/browser/app/profile/firefox.js` on apply. Custom Turkish translations under `changes/browser/locales/tr/` are merged into the target locale files.
+Preferences and locales use the same copy model. A file at
+`changes/browser/app/profile/firefox.js` is copied to
+`engine/browser/app/profile/firefox.js` on apply. Turkish strings under
+`changes/browser/locales/tr/` are merged into the target locale files.
 
 ## When a Patch Fails to Apply
 
-If a patch fails to apply, `./bin/hil apply` will halt and print which step failed. First, reset and make sure you are on the pristine base:
+If a patch fails to apply, `./bin/hil apply` halts and prints the failed step.
+Reset to the pinned base:
 
 ```bash
 ./bin/hil apply --force
 ```
 
-If it still fails, the options are:
+If it still fails:
 
 1. **Manual Git Conflict Resolution**:
    Run `git apply --3way ../changes/<failing-patch>.patch` inside the `engine/` directory to get conflict markers, resolve them by hand, commit/amend the commit in the `engine/` Git history, and run `./bin/hil refresh` from the root directory.

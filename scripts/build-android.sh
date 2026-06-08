@@ -28,7 +28,6 @@ set -euo pipefail
 # shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
-# Help message
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
   sed -n '3,24p' "$0" | sed 's/^#//'
   exit 0
@@ -36,7 +35,6 @@ fi
 
 require_firefox_src
 
-# 1. Parse target architecture
 ARCH="arm64"
 if [ $# -gt 0 ]; then
   case "$1" in
@@ -47,7 +45,6 @@ if [ $# -gt 0 ]; then
   esac
 fi
 
-# 2. Parse action
 ACTION="build"
 if [ $# -gt 0 ]; then
   case "$1" in
@@ -58,10 +55,8 @@ if [ $# -gt 0 ]; then
   esac
 fi
 
-# 3. Apply patches and branding overlays
 "$HILAL_REPO_ROOT/bin/hil" apply
 
-# 4. Copy selected Android mozconfig
 MOZCONFIG_SRC="$HILAL_REPO_ROOT/mozconfigs/android-$ARCH"
 if [ -f "$MOZCONFIG_SRC" ]; then
   log "Copying mozconfigs/android-$ARCH -> engine/mozconfig"
@@ -70,7 +65,6 @@ else
   die "Could not find Android configuration file: $MOZCONFIG_SRC"
 fi
 
-# 5. Execute requested action
 case "$ACTION" in
   clean)
     log "Cleaning object directory..."

@@ -69,8 +69,7 @@ Branding and preferences are **overlays**, not patches:
 ## Code Style
 
 - **No emoji** in code, commits, or documentation.
-- Limit comments to a strict minimum. Do not add explanatory comments for obvious code. Only comment non-trivial logic, complex function arguments, or class member purposes.
-- Do not remove existing comments unless directly related to your change.
+- Comment only non-obvious logic; do not narrate code.
 - Follow upstream Mozilla conventions for the language you're working in.
 
 ## Commit Rules
@@ -82,8 +81,6 @@ Branding and preferences are **overlays**, not patches:
 - Do **not** append "Generated with Devin" or automated "Co-Authored-By" trailers to commits.
 
 ## If a Patch Fails to Apply
-
-Usually means upstream Firefox changed the touched code:
 
 1. Run `./bin/hil apply --force` to reset and retry.
 2. Or run `git apply --3way changes/<path>.patch` inside the `engine/` folder to resolve conflict markers, fix by hand, commit/amend the commit in `engine/`, and then run `./bin/hil refresh`.

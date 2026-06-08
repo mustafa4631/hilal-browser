@@ -13,10 +13,9 @@
 
 @variant dark (&:where(.dark, .dark *));
 
-/* Global Custom Styles for Premium Minimalist Design */
 html, body {
-  background-color: #FAF9F6; /* Warm tebeşir/chalk */
-  color: #171717; /* Slate graphite */
+  background-color: #FAF9F6;
+  color: #171717;
   font-family: var(--font-sans);
   overflow-x: hidden;
   transition: background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1), color 0.6s cubic-bezier(0.16, 1, 0.3, 1);
@@ -25,11 +24,10 @@ html, body {
 }
 
 html.dark, html.dark body {
-  background-color: #050505; /* Deep luxury matte black */
-  color: #E5E5E5; /* Soft gray instead of jarring white */
+  background-color: #050505;
+  color: #E5E5E5;
 }
 
-/* Fine grain tactile noise overlay */
 .noise-bg {
   position: relative;
 }
@@ -45,7 +43,6 @@ html.dark, html.dark body {
   z-index: 1;
 }
 
-/* Mesh background with glowing radial pastels */
 .mesh-bg {
   background-color: #FAF9F6;
   background-image:
@@ -72,7 +69,6 @@ html.dark .mesh-bg {
   100% { background-position: 0% 50%; }
 }
 
-/* Grayscale and low-contrast high-end selection */
 ::selection {
   background-color: rgba(23, 23, 23, 0.08);
   color: #000000;
@@ -83,7 +79,6 @@ html.dark ::selection {
   color: #ffffff;
 }
 
-/* Thinner, elegant, low-contrast scrollbars */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -111,16 +106,14 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* Subtle border transitions and luxury outlines */
-.border-premium-light {
+.border-subtle-light {
   border-color: rgba(0, 0, 0, 0.06);
 }
 
-.border-premium-dark {
+.border-subtle-dark {
   border-color: rgba(255, 255, 255, 0.06);
 }
 
-/* Elegant glassmorphism presets */
 .glass-panel {
   backdrop-filter: blur(20px) saturate(180%);
   background-color: rgba(250, 249, 246, 0.7);
@@ -149,4 +142,3 @@ html.dark .glass-panel {
 .animate-float-slower {
   animation: float-slower 14s ease-in-out infinite;
 }
-

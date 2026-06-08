@@ -13,10 +13,9 @@ org.gkdevstudio.Hilal
 
 ## Current Flathub Status
 
-The packaging is intentionally present before the first stable Flathub
-submission. The current browser version is `0.2.0-alpha.4`, so stable Flathub
-submission is blocked until a stable tag is cut and the manifest source tag is
-updated.
+The packaging exists before the first stable Flathub submission. The current
+browser version is `0.2.0-alpha.4`, so stable Flathub submission is blocked
+until a stable tag is cut and the manifest source tag is updated.
 
 Run the readiness check before opening a Flathub PR:
 
@@ -24,8 +23,8 @@ Run the readiness check before opening a Flathub PR:
 scripts/build-flatpak.sh check-ready
 ```
 
-It must fail while the manifest or displayed browser version contains alpha,
-beta, nightly, or dev release markers.
+It fails while the manifest or displayed browser version contains alpha, beta,
+nightly, or dev release markers.
 
 ## Prerequisites
 
@@ -95,8 +94,8 @@ Before opening a human-authored Flathub PR:
 - Build and smoke-test both `x86_64` and `aarch64`.
 - Publish the Flathub verification token under `https://gkdevstudio.org/.well-known/org.flathub.VerifiedApps.txt` when Flathub requests it.
 
-Do not automate the Flathub pull request from this repo. The submission should
-be opened and reviewed by a human maintainer.
+Do not automate the Flathub pull request from this repo. A maintainer should
+open and review it.
 
 ## Update Policy
 

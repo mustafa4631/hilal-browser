@@ -28,19 +28,15 @@ if [ "$(uname -s)" != "Linux" ]; then
   warn "This script is tuned for Linux. On macOS, please use build-macos.sh."
 fi
 
-# --- INITIALIZATION OPERATIONS (Always run at the very beginning) ---
 log "Initializing build environment..."
 
-# Ensure patches and branding are applied
 "$HILAL_REPO_ROOT/bin/hil" apply
 
-# Copy Linux mozconfig
 if [ -f "$(dirname "$0")/../mozconfigs/linux" ]; then
   log "Copying mozconfigs/linux -> engine/mozconfig"
   cp "$(dirname "$0")/../mozconfigs/linux" "$HILAL_FIREFOX_SRC/mozconfig"
 fi
 
-# Status variables
 build_active=0
 run_after=0
 package_after=0
@@ -51,21 +47,17 @@ flatpak_install_after=0
 appimage_build_after=0
 appimage_run_after=0
 
-# Sub-arguments for compilation and CLI
 build_sub_args=()
 cli_sub_args=()
 
-# Automatic packaging trigger
 if [ ! -t 0 ] || [ -n "${HILAL_AUTO_PACKAGE:-}" ]; then
   package_after=1
 fi
 
-# Default to build step if no arguments are passed
 if [ $# -eq 0 ] && [ "$package_after" -eq 0 ]; then
   build_active=1
 fi
 
-# Parameter analysis
 last_defined_arg=""
 unknown_params=()
 
@@ -153,10 +145,8 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# Dynamic array to list execution steps
 declare -a steps=()
 
-# Gather steps
 if [ $build_active -eq 1 ]; then
   lag_flag=""
   if [ $no_lag_active -eq 1 ]; then
@@ -201,7 +191,6 @@ if [ "$appimage_run_after" = 1 ]; then
   steps+=("APPIMAGE-RUN: ./scripts/build-appimage.sh run")
 fi
 
-# --- STEP VALIDATION AND AUTOMATIC CORRECTION MECHANISM ---
 # If Flatpak or AppImage steps are present in the list and no PACKAGE step 
 # is running before them, this automatically injects a PACKAGE step.
 validate_and_fix_steps() {
@@ -209,7 +198,6 @@ validate_and_fix_steps() {
   local packaging_first_idx=-1
   local has_package_before=0
 
-  # Scan steps
   for i in "${!steps[@]}"; do
     if [[ "${steps[$i]}" =~ ^FLATPAK- ]] || [[ "${steps[$i]}" =~ ^APPIMAGE- ]]; then
       if [ $has_external_packaging -eq 0 ]; then
@@ -217,14 +205,12 @@ validate_and_fix_steps() {
         packaging_first_idx=$i
       fi
     elif [[ "${steps[$i]}" =~ ^PACKAGE: ]]; then
-      # If a package step is found and is before the external packaging step, it is considered valid.
       if [ $has_external_packaging -eq 0 ] || [ "$i" -lt "$packaging_first_idx" ]; then
         has_package_before=1
       fi
     fi
   done
 
-  # If a Flatpak or AppImage step exists but there is no packaging step before it, inject it mandatorily.
   if [ $has_external_packaging -eq 1 ] && [ $has_package_before -eq 0 ]; then
     log "Mandatory Check: Flatpak or AppImage steps detected but no PACKAGE step was found before them."
     log "The PACKAGE step has been automatically added before the first packaging step so that packages can use the local build outputs!"
@@ -240,16 +226,13 @@ validate_and_fix_steps() {
   fi
 }
 
-# Initial run check
 validate_and_fix_steps
 
-# Exit if no actions are scheduled
 if [ ${#steps[@]} -eq 0 ]; then
   log "No execution steps scheduled."
   exit 0
 fi
 
-# --- INTERACTIVE ORDERING AND APPROVAL MECHANISM ---
 if [ -t 0 ]; then
   COLOR_RESET="\033[0m"
   COLOR_BOLD="\033[1m"
@@ -261,7 +244,6 @@ if [ -t 0 ]; then
   COLOR_MAGENTA="\033[1;35m"
 
   while true; do
-    # Re-validate the list and auto-correct gaps at the beginning of each interactive loop
     validate_and_fix_steps
 
     printf "${COLOR_CYAN}==================================================${COLOR_RESET}\n"
@@ -474,7 +456,6 @@ if [ -t 0 ]; then
   done
 fi
 
-# --- RUNNING OPERATIONS ---
 log "Starting operations in order..."
 
 for step in "${steps[@]}"; do
@@ -516,7 +497,6 @@ for step in "${steps[@]}"; do
     log "Packaging Hilal Browser..."
     (cd "$HILAL_FIREFOX_SRC" && ./mach package)
     
-    # --- .packages Directory and config.yml Management ---
     PACKAGES_DIR=".packages"
     CONFIG_YML="config.yml"
     

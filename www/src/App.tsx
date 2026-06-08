@@ -4,14 +4,10 @@ import {
   Sun,
   Moon,
   Github,
-  Cpu,
-  Shield,
-  Layers,
   ChevronDown,
   ExternalLink,
   Download,
   Terminal,
-  Sparkle,
   BookmarkCheck,
   CodeXml,
   Lock,
@@ -80,28 +76,23 @@ const cardVariants = {
 };
 
 export default function App() {
-  // Page view state: "home" or "releases" (dedicated release archives page)
   const [view, setView] = useState<"home" | "releases">("home");
 
-  // Theme state
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     const saved = localStorage.getItem("hilal-theme");
     return saved === "light" ? "light" : "dark";
   });
 
-  // Language state
   const [lang, setLang] = useState<"tr" | "en">(() => {
     const saved = localStorage.getItem("hilal-lang");
     return (saved === "en" || saved === "tr") ? saved : "tr";
   });
 
-  // Release fetching states
   const [release, setRelease] = useState<GithubRelease | null>(null);
   const [releases, setReleases] = useState<GithubRelease[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isApiFallback, setIsApiFallback] = useState<boolean>(false);
 
-  // Modal active state
   const [isDownloadOpen, setIsDownloadOpen] = useState<boolean>(false);
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
   const [detectedOS, setDetectedOS] = useState<string>("other");
@@ -110,14 +101,11 @@ export default function App() {
     setDetectedOS(detectOS());
   }, []);
 
-  // FAQ accordion state
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
-  // Active navigation highlight
   const [activeSection, setActiveSection] = useState<string>("home");
   const [scrolled, setScrolled] = useState<boolean>(false);
 
-  // Image comparison slider state and handlers
   const [sliderPosition, setSliderPosition] = useState<number>(50);
   const [isSliderDragging, setIsSliderDragging] = useState<boolean>(false);
   const sliderRef = useRef<HTMLDivElement | null>(null);
@@ -172,7 +160,6 @@ export default function App() {
     };
   }, [isSliderDragging]);
 
-  // Sync theme
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === "dark") {
@@ -183,12 +170,10 @@ export default function App() {
     localStorage.setItem("hilal-theme", theme);
   }, [theme]);
 
-  // Sync language selection
   useEffect(() => {
     localStorage.setItem("hilal-lang", lang);
   }, [lang]);
 
-  // Fetch Releases
   useEffect(() => {
     const loadReleaseData = async () => {
       try {
@@ -212,7 +197,6 @@ export default function App() {
     loadReleaseData();
   }, []);
 
-  // Monitor Scroll
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -268,7 +252,6 @@ export default function App() {
     return "BIN";
   };
 
-  // Translations Setup
   const tr = {
     nav: {
       features: "Özellikler",
@@ -279,32 +262,32 @@ export default function App() {
     },
     hero: {
       alphaBadge: "Hilal Browser Alpha Aşamasındadır",
-      title1: "İnternette",
-      title2: "özgürlüğün",
-      title3: "ve",
-      title4: "sadeliğin",
-      title5: "yeni boyutu.",
-      desc: "Firefox (Gecko) motorunun sağlamlığı ve varsayılan dahili uBlock Origin kalkanıyla geliştirilen Hilal Browser; karmaşadan uzak, geniş dikey sekmelerle donatılmış sakin bir internet deneyimi sunar.",
+      title1: "Firefox'u",
+      title2: "Hilal",
+      title3: "patch ve",
+      title4: "overlay",
+      title5: "katmanıyla kullanın.",
+      desc: "Hilal Browser, Firefox (Gecko) üzerine uygulanan patch ve overlay dosyalarından oluşur. Varsayılan paket uBlock Origin, dikey sekmeler ve Hilal marka dosyalarını içerir.",
       downloadBtn: "Alpha Sürümünü İndir",
       sourceBtn: "Kaynak Kodu İncele"
     },
     preview: {
       title: "// ARAYÜZ TASARIMI",
-      sub: "Gecko motorunun minimal bütünlüğü"
+      sub: "Firefox arayüzü üzerinde Hilal değişiklikleri"
     },
     features: {
       tag: "ÖZELLİKLER",
-      title: "Gereksiz her şeyden arınmış bir pencere.",
-      desc: "Sadece bir internet tarayıcısı değil; odaklanma ve şeffaflık ilkeleri etrafında kurgulanmış sade bir çalışma alanı.",
+      title: "Firefox üzerinde takip edilebilir değişiklikler.",
+      desc: "Bu sitedeki iddialar repodaki patch, overlay ve betiklerle doğrulanabilir.",
       card1Title: "Firefox (Gecko) Altyapısı",
-      card1Desc: "Hilal Browser, kararlılık ve bellek yönetimiyle bilinen bağımsız Firefox motorunu kullanır. Firefox eklenti mağazasıyla tam uyumluluk sunar.",
+      card1Desc: "Hilal Browser, upstream Firefox kaynağını `engine/` içine çeker ve Hilal değişikliklerini `changes/` üzerinden uygular.",
       card1Foot: "Bağımsız Motor",
       card2Title: "Dahili uBlock Origin Kalkanı",
-      card2Desc: "Reklamlar, çerez pencereleri ve görünmez analitik takip kodları engellenir. Web sayfaları gereksiz şişkinlikten arınarak hızlıca açılır.",
-      card2Foot: "Yerleşik Kalkan",
-      card3Title: "Yenilikçi Dikey Sekmeler",
-      card3Desc: "Yatay sekmelerin sıkışıklığı yerine sol kenarda dikey listeleme. Dikey rıhtım alan kazanmak için daraltılabilir veya genişletilebilir.",
-      card3Foot: "Maksimum Görüş Alanı"
+      card2Desc: "uBlock Origin XPI kuruluma dahil edilir ve varsayılan profil için yüklenir.",
+      card2Foot: "Varsayılan Eklenti",
+      card3Title: "Dikey Sekmeler",
+      card3Desc: "Dikey sekmeler ve sol kenar çubuğu varsayılan ayarlar ve patch dosyalarıyla etkinleştirilir.",
+      card3Foot: "Sol Kenar Çubuğu"
     },
     releases: {
       tag: "SÜRÜMLER",
@@ -325,21 +308,21 @@ export default function App() {
       commits: "Commit Geçmişi"
     },
     principles: {
-      tag: "SARSILMAZ İLKELER",
-      title: "Sakin, Bağımsız ve Kullanıcı Egemen",
-      card1Title: "%100 Açık Kaynak & Şeffaflık",
-      card1Desc: "Hilal Browser'da hiçbir gizli veri toplama mekanizması barındırılmaz. Geliştirme süreci tamamen şeffaf ve denetlenebilir şekilde GitHub'dadır.",
+      tag: "İLKELER",
+      title: "Kaynak kodu, patch sırası ve upstream pini açık.",
+      card1Title: "Açık Kaynak",
+      card1Desc: "Patch dosyaları, overlay dosyaları, build betikleri ve upstream pin bu GitHub deposundadır.",
       card1Link: "GitHub deposunu ziyaret et",
-      card2Title: "Sıfır Profilleme & Yerel Gizlilik",
-      card2Desc: "Arama geçmişiniz, parolalarınız veya gezindiğiniz siteler hiçbir sunucuya ulaştırılmaz. Hilal yerel kum havuzunda, izleyicileri tam güçle engelleyerek çalışır.",
-      card2Foot: "İZLEME ENGELLEME AKTİF"
+      card2Title: "Yerel Değişiklikler",
+      card2Desc: "`./bin/hil apply` Hilal değişikliklerini yerel Firefox checkout'una uygular; `./bin/hil refresh` değişiklikleri tekrar patch dosyalarına yazar.",
+      card2Foot: "PATCH AKIŞI"
     },
     faq: {
       tag: "S.S.S.",
       title: "Sıkça Sorulan Sorular"
     },
     footer: {
-      quote: "İnternetin daha özgür, sakin ve sade yüzü.",
+      quote: "Firefox için Hilal patch ve overlay katmanı.",
       install: "İndir",
       copyright: "Hilal Browser projesi. Bir Firefox (Gecko) katmanıdır.",
       license: "MPL 2.0 Özgür Yazılım Lisansı ile koruma altındadır."
@@ -356,32 +339,32 @@ export default function App() {
     },
     hero: {
       alphaBadge: "Hilal Browser is in Alpha Phase",
-      title1: "Meet the new",
-      title2: "freedom",
-      title3: "and",
-      title4: "simplicity",
-      title5: "era of the web.",
-      desc: "Built on top of the robust, secure Firefox (Gecko) engine and pre-packaged with uBlock Origin. A peaceful web experience equipped with collapsible vertical tabs and completely free from visual clutter.",
+      title1: "Firefox with",
+      title2: "Hilal",
+      title3: "patch and",
+      title4: "overlay",
+      title5: "changes.",
+      desc: "Hilal Browser applies repo-tracked patches and overlays to upstream Firefox. The default package includes uBlock Origin, vertical tabs, and Hilal branding files.",
       downloadBtn: "Download Alpha Build",
       sourceBtn: "Inspect Source Code"
     },
     preview: {
       title: "// INTERFACE LAYOUT",
-      sub: "The serene harmony of the Gecko engine"
+      sub: "Hilal changes applied to Firefox chrome"
     },
     features: {
       tag: "FEATURES",
-      title: "A clear view, stripped of noise.",
-      desc: "Not just another web client; a calm digital environment designed strictly around clarity, focus, and transparency.",
+      title: "Firefox changes you can verify in the repo.",
+      desc: "Each claim here maps to a patch, overlay, script, or release artifact.",
       card1Title: "Firefox (Gecko) Core",
-      card1Desc: "Hilal Browser inherits its core strength from the independent Firefox web engine. Complete compatibility with the massive Firefox add-on store.",
+      card1Desc: "Hilal Browser fetches upstream Firefox into `engine/` and applies Hilal changes from `changes/`.",
       card1Foot: "Independent Core",
       card2Title: "Built-in uBlock Origin",
-      card2Desc: "Intrusive ads, cookie consent prompts, and analytic trackers are blocked. Pages load instantly without annoying data overhead.",
-      card2Foot: "Integrated Shield",
-      card3Title: "Sleek Vertical Tabs",
-      card3Desc: "Ditch horizontal tab clutter for an elegant collapsible vertical sidebar. Showcases readable tab names with hierarchical ordering.",
-      card3Foot: "Reclaimed Breathing Space"
+      card2Desc: "The uBlock Origin XPI is included in the default package and installed for the default profile.",
+      card2Foot: "Default Add-on",
+      card3Title: "Vertical Tabs",
+      card3Desc: "Vertical tabs and the left sidebar are enabled through preferences and Firefox patch files.",
+      card3Foot: "Left Sidebar"
     },
     releases: {
       tag: "RELEASES",
@@ -403,20 +386,20 @@ export default function App() {
     },
     principles: {
       tag: "CORE PRINCIPLES",
-      title: "A Calm and Sovereigntist Web Stance",
-      card1Title: "100% Open Source & Auditable",
-      card1Desc: "Not a single line of Hilal contains hidden user telemetry. All development happens transparently in public view on GitHub.",
+      title: "Source, patch order, and upstream pin are public.",
+      card1Title: "Open Source",
+      card1Desc: "Patches, overlays, build scripts, and upstream metadata live in this repository.",
       card1Link: "Browse source on GitHub",
-      card2Title: "Zero Profiling & Native Privacy",
-      card2Desc: "Your history, credentials, or search records are never sent online. Hilal runs strictly in your local sandbox, blocking persistent trackers.",
-      card2Foot: "ANTI-TRACKING ENFORCED"
+      card2Title: "Local Patch Workflow",
+      card2Desc: "`./bin/hil apply` applies Hilal changes to the local Firefox checkout; `./bin/hil refresh` writes local edits back to patch files.",
+      card2Foot: "PATCH WORKFLOW"
     },
     faq: {
       tag: "F.A.Q.",
       title: "Frequently Asked Questions"
     },
     footer: {
-      quote: "A calmer, simpler, and freer phase of the web.",
+      quote: "A Hilal patch and overlay layer for Firefox.",
       install: "Download",
       copyright: "Hilal Browser project. A Firefox (Gecko) overlay.",
       license: "Protected under the MPL 2.0 Free Software License."
@@ -425,42 +408,41 @@ export default function App() {
 
   const activeT = lang === "en" ? en : tr;
 
-  // FAQ Accordion Data
   const faqs = {
     tr: [
       {
         q: "Hilal Browser hangi altyapıyı kullanıyor?",
-        a: "Hilal Browser, kararlı, son derece güvenli ve gizlilik odaklı Firefox (Gecko) motorunu temel alır. Chromium tabanlı tekelleşmenin aksine, web'in açık standartlarını ve kullanıcı özgürlüğünü korumayı amaçlayan bağımsız bir tarayıcı ekolojisini savunur."
+        a: "Hilal Browser, upstream Firefox (Gecko) kaynak kodu üzerine uygulanan patch ve overlay dosyalarıyla oluşturulur."
       },
       {
         q: "Alpha sürümü ne anlama geliyor?",
-        a: "Alpha sürümü, tarayıcımızın erken aşama test sürecinde olduğunu ifade eder. Temel bileşenler entegre edilmiş olup, kullanıcı geri bildirimleriyle kararlı hale getirilmektedir. Sistem kararlılığı artsa da günlük kullanımda küçük kararsızlıklar görülebilir; katkıda bulunmak ve geri bildirim sağlamak için harika bir dönemdir!"
+        a: "Alpha sürümü, buildlerin test amaçlı yayımlandığı anlamına gelir. Günlük kullanımda hata veya eksik paket görülebilir."
       },
       {
         q: "Eklentilerimi kullanmaya devam edebilir miyim?",
-        a: "Evet! Hilal Browser, küresel Firefox Eklentiler (AMO) deposuyla tamamen uyumludur. Sevdiğiniz tüm Firefox eklentilerini doğrudan yükleyebilirsiniz. Ayrıca reklam ve zararlı yazılım izleyici engellemede altın standart olan uBlock Origin eklentisi varsayılan kurulumda gömülü olarak gelir."
+        a: "Evet. Hilal Browser Firefox eklenti altyapısını kullanır. uBlock Origin varsayılan pakete eklenmiştir."
       },
       {
         q: "Dikey sekmeler (Vertical Tabs) nasıl optimize edildi?",
-        a: "Geleneksel yatay sekmeler geniş ekranlı modern bilgisayarlarda hem görüş alanını daraltır hem de sekme başlıklarını okunamaz kılar. Hilal, sekmelerinizi sol kenarlıkta net isimlerle listeler. Dikey rıhtım alan kazanmak için daraltılabilir, böylece web sayfalarına maksimum nefes alma alanı sunulur."
+        a: "Dikey sekmeler sol kenar çubuğunda gösterilir. İlgili davranışlar tercih dosyaları ve Firefox patchleriyle etkinleştirilir."
       }
     ],
     en: [
       {
         q: "What technical engine powers Hilal Browser?",
-        a: "Hilal Browser is built on top of the highly secure, privacy-first, and stable Firefox Quantum (Gecko) engine. Unlike Chromium-based mono-cultures, we support a completely independent browser engine ecosystem that values open web standards and absolute user sovereignty."
+        a: "Hilal Browser is built by applying patch and overlay files to upstream Firefox (Gecko)."
       },
       {
         q: "What does an Alpha phase represent?",
-        a: "An Alpha release means our browser is in its early stages of active development. The essential features are fully implemented, and we are stabilizing major modules through early user feedback. While it is stable enough to test, minor rough edges may surface — making it the perfect time to get involved and contribute!"
+        a: "An alpha release is published for testing. Bugs, missing packages, and platform-specific issues may still appear."
       },
       {
         q: "Can I continue to use my standard add-ons?",
-        a: "Yes! Hilal Browser is fully compatible with the global Firefox Add-ons (AMO) library. You can immediately install all your favorite plugins. On top of that, uBlock Origin — the undisputed champion of ad-blocking and privacy filtering — comes integrated by default."
+        a: "Yes. Hilal Browser uses Firefox's add-on system. uBlock Origin is included in the default package."
       },
       {
         q: "How are the Vertical Tabs designed and optimized?",
-        a: "Traditional horizontal tabs restrict vertical reading space on modern widescreen displays and quickly become unreadable. Hilal reorganizes tabs in a clean vertical dock along the left edge. The side dock is completely collapsible, affording web documents maximum focus and reading space."
+        a: "Vertical tabs are shown in the left sidebar and enabled through preference files and Firefox patches."
       }
     ]
   };
@@ -475,7 +457,6 @@ export default function App() {
     ? getRecommendedAsset(activeRelease.assets, detectedOS as any)
     : null;
 
-  // Render ALL fetched releases inside the dedicated archive sub-page
   const allReleasesTimeline = isApiFallback || releases.length === 0
     ? [activeRelease]
     : releases;
@@ -658,9 +639,7 @@ export default function App() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {/* Hero Section */}
             <section className="relative w-full bg-gradient-to-br from-cobalt to-cobalt-dark text-white noise-bg pt-28 pb-24 md:pt-36 md:pb-32 overflow-hidden" id="hero">
-              {/* Floating ambient aura color blobs */}
               <div className="absolute top-1/4 left-1/10 w-72 h-72 rounded-full bg-sky-400/20 blur-3xl pointer-events-none animate-float-slow z-0" />
               <div className="absolute bottom-1/4 right-1/10 w-96 h-96 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none animate-float-slower z-0" />
 
@@ -686,15 +665,15 @@ export default function App() {
                 >
                   {lang === "tr" ? (
                     <>
-                      İnternette{" "}
+                      Firefox'u{" "}
                       <span className="font-serif italic font-light text-sky-200">
-                        özgürlüğün
+                        Hilal
                       </span>{" "}
-                      ve{" "}
+                      patch ve{" "}
                       <span className="font-serif italic font-light text-sky-200">
-                        sadeliğin
+                        overlay
                       </span>{" "}
-                      <div className="mt-1 font-serif italic font-light">yeni boyutu.</div>
+                      <div className="mt-1 font-serif italic font-light">katmanıyla kullanın.</div>
                     </>
                   ) : (
                     <>
@@ -756,7 +735,6 @@ export default function App() {
                 </motion.div>
               </motion.div>
 
-              {/* Repeating SVG scalloped wave transition to Soft Workspace */}
               <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-10 pointer-events-none">
                 <svg viewBox="0 0 1440 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-6 block text-[#FAF9F6] dark:text-[#050505]">
                   <path d="M0,0 Q60,20 120,0 Q180,20 240,0 Q300,20 360,0 Q420,20 480,0 Q540,20 600,0 Q660,20 720,0 Q780,20 840,0 Q900,20 960,0 Q1020,20 1080,0 Q1140,20 1200,0 Q1260,20 1320,0 Q1380,20 1440,0 L1440,24 L0,24 Z" fill="currentColor" />
@@ -764,7 +742,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* 3. Welcome Home Interactive Preview (Image Comparison Slider) */}
             <section className="mx-auto max-w-5xl px-6 py-12 md:py-16" id="arayuz">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -773,7 +750,6 @@ export default function App() {
                 transition={{ duration: 0.7, ease: "easeOut" }}
                 className="relative"
               >
-                {/* Visual slider wrapper with clean rounded corners and a premium shadow */}
                 <div
                   id="browser-preview-container"
                   ref={sliderRef}
@@ -833,7 +809,6 @@ export default function App() {
               </motion.div>
             </section>
 
-            {/* 4. Feature Highlights */}
             <section className="relative w-full pb-24 pt-12 text-center" id="ozellikler">
               <div className="mx-auto max-w-5xl px-6">
                 <div className="text-center mb-16">
@@ -856,7 +831,6 @@ export default function App() {
                   className="grid grid-cols-1 md:grid-cols-3 gap-6"
                   id="features-highlights-grid"
                 >
-                  {/* Bento Card 1 */}
                   <motion.div
                     variants={cardVariants}
                     whileHover={{ y: -6, transition: { duration: 0.2 } }}
@@ -870,7 +844,7 @@ export default function App() {
                         {activeT.features.card1Title}
                       </h3>
                       <div className="text-[10px] text-cobalt dark:text-sky-400 font-medium mt-1.5 font-sans italic">
-                        {lang === "tr" ? "Hızlı sayfa yüklemeleri, tüm eklentilerle tam uyum." : "Fast page loading, full support for your favorite extensions."}
+                        {lang === "tr" ? "Upstream Firefox kaynağı, Hilal patch sırası." : "Upstream Firefox source, Hilal patch order."}
                       </div>
                       <p className="mt-3.5 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
                         {activeT.features.card1Desc}
@@ -881,7 +855,6 @@ export default function App() {
                     </span>
                   </motion.div>
 
-                  {/* Bento Card 2 */}
                   <motion.div
                     variants={cardVariants}
                     whileHover={{ y: -6, transition: { duration: 0.2 } }}
@@ -895,7 +868,7 @@ export default function App() {
                         {activeT.features.card2Title}
                       </h3>
                       <div className="text-[10px] text-cobalt dark:text-sky-400 font-medium mt-1.5 font-sans italic">
-                        {lang === "tr" ? "İnternette sessizce gezinin. Reklam yok, takipçi yok." : "Browse in absolute peace. No ads, no tracking cookies."}
+                        {lang === "tr" ? "Varsayılan profile eklenen XPI." : "XPI installed for the default profile."}
                       </div>
                       <p className="mt-3.5 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
                         {activeT.features.card2Desc}
@@ -906,7 +879,6 @@ export default function App() {
                     </span>
                   </motion.div>
 
-                  {/* Bento Card 3 */}
                   <motion.div
                     variants={cardVariants}
                     whileHover={{ y: -6, transition: { duration: 0.2 } }}
@@ -920,7 +892,7 @@ export default function App() {
                         {activeT.features.card3Title}
                       </h3>
                       <div className="text-[10px] text-cobalt dark:text-sky-400 font-medium mt-1.5 font-sans italic">
-                        {lang === "tr" ? "Varsayılan olarak düzenli. Geniş ekranlarda nefes alma alanı." : "Organized by default. Maximum space on widescreen displays."}
+                        {lang === "tr" ? "Varsayılan sol kenar çubuğu ayarları." : "Default left sidebar settings."}
                       </div>
                       <p className="mt-3.5 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
                         {activeT.features.card3Desc}
@@ -933,7 +905,6 @@ export default function App() {
                 </motion.div>
               </div>
 
-              {/* Repeating SVG scalloped wave transition to Releases (Mesh Gradient / Dark Section) */}
               <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-10 pointer-events-none">
                 <svg viewBox="0 0 1440 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-6 block text-[#FAF9F6] dark:text-[#050505]">
                   <path d="M0,0 Q60,20 120,0 Q180,20 240,0 Q300,20 360,0 Q420,20 480,0 Q540,20 600,0 Q660,20 720,0 Q780,20 840,0 Q900,20 960,0 Q1020,20 1080,0 Q1140,20 1200,0 Q1260,20 1320,0 Q1380,20 1440,0 L1440,24 L0,24 Z" fill="currentColor" />
@@ -941,7 +912,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* 5. Dynamic GitHub Releases & Changelog Section (Mesh Gradient Background) */}
             <section className="relative w-full pb-20 pt-16 mesh-bg" id="surumler">
               <div className="mx-auto max-w-5xl px-6 relative z-10">
                 <div className="text-center mb-12">
@@ -1138,7 +1108,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* High-end call-to-action button to switch view to Releases archive */}
                 <div className="mt-12 text-center">
                   <button
                     onClick={() => {
@@ -1154,7 +1123,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* 6. Principles / Core Values (Mesh Gradient Background) */}
             <section className="relative w-full pb-24 pt-12 mesh-bg border-t border-neutral-200/20 dark:border-neutral-900/20" id="vizyon">
               <div className="mx-auto max-w-4xl px-6 relative z-10">
                 <div className="text-center mb-12">
@@ -1174,7 +1142,6 @@ export default function App() {
                   className="grid grid-cols-1 md:grid-cols-2 gap-8"
                   id="core-values-bento"
                 >
-                  {/* Principle Bento Card 1 */}
                   <motion.div
                     variants={cardVariants}
                     whileHover={{ y: -6, transition: { duration: 0.2 } }}
@@ -1188,7 +1155,7 @@ export default function App() {
                         {activeT.principles.card1Title}
                       </h3>
                       <div className="text-[10px] text-cobalt dark:text-sky-400 font-medium mt-1 font-sans italic">
-                        {lang === "tr" ? "Gizli veri toplama mekanizmaları yok, her şey şeffaf." : "No hidden tracking scripts. Entirely open source and auditable."}
+                        {lang === "tr" ? "Patch ve overlay dosyaları repoda." : "Patch and overlay files are in the repo."}
                       </div>
                       <p className="mt-3.5 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
                         {activeT.principles.card1Desc}
@@ -1205,7 +1172,6 @@ export default function App() {
                     </a>
                   </motion.div>
 
-                  {/* Principle Bento Card 2 */}
                   <motion.div
                     variants={cardVariants}
                     whileHover={{ y: -6, transition: { duration: 0.2 } }}
@@ -1219,7 +1185,7 @@ export default function App() {
                         {activeT.principles.card2Title}
                       </h3>
                       <div className="text-[10px] text-cobalt dark:text-sky-400 font-medium mt-1 font-sans italic">
-                        {lang === "tr" ? "Verileriniz sadece sizin cihazınızda yaşar." : "Your personal metrics and passwords never leave your hardware."}
+                        {lang === "tr" ? "Yerel Firefox checkout'u üzerinde çalışır." : "Runs against the local Firefox checkout."}
                       </div>
                       <p className="mt-3.5 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
                         {activeT.principles.card2Desc}
@@ -1233,7 +1199,6 @@ export default function App() {
                 </motion.div>
               </div>
 
-              {/* Repeating SVG scalloped wave transition to FAQ & Footer (Cream Section) */}
               <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-10 pointer-events-none">
                 <svg viewBox="0 0 1440 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-6 block text-[#FAF9F6] dark:text-[#050505]">
                   <path d="M0,0 Q60,20 120,0 Q180,20 240,0 Q300,20 360,0 Q420,20 480,0 Q540,20 600,0 Q660,20 720,0 Q780,20 840,0 Q900,20 960,0 Q1020,20 1080,0 Q1140,20 1200,0 Q1260,20 1320,0 Q1380,20 1440,0 L1440,24 L0,24 Z" fill="currentColor" />
@@ -1241,7 +1206,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* 7. FAQ Accordion */}
             <section className="mx-auto max-w-3xl px-6 py-16 md:py-24" id="faq-section">
               <div className="text-center mb-12">
                 <span className="text-[9px] font-bold tracking-[0.2em] text-neutral-400 dark:text-neutral-500 uppercase block">
@@ -1297,7 +1261,6 @@ export default function App() {
             </section>
           </motion.div>
         ) : (
-          // Dedicated Releases Page View (Complete timeline directory page)
           <motion.main
             key="releases-page"
             initial={{ opacity: 0, y: 10 }}
@@ -1306,7 +1269,6 @@ export default function App() {
             transition={{ duration: 0.3 }}
             className="mx-auto max-w-3xl px-6 py-16 md:py-24"
           >
-            {/* Back to Home Link */}
             <button
               onClick={() => setView("home")}
               className="inline-flex items-center gap-2 text-[10px] font-mono font-bold tracking-widest uppercase text-neutral-450 hover:text-neutral-900 dark:hover:text-white transition-colors mb-8"
@@ -1314,7 +1276,6 @@ export default function App() {
               ← {lang === "tr" ? "Ana Sayfaya Dön" : "Back to Home"}
             </button>
 
-            {/* Releases Header */}
             <div className="mb-12 border-b border-neutral-200/50 dark:border-neutral-900/50 pb-6">
               <span className="text-[9px] font-mono font-bold tracking-[0.25em] text-neutral-400 dark:text-neutral-500 uppercase block mb-1">
                 {activeT.releases.tag}
@@ -1327,7 +1288,6 @@ export default function App() {
               </p>
             </div>
 
-            {/* Full Release Timeline list */}
             <div className="divide-y divide-neutral-200/50 dark:divide-neutral-900/50">
               {allReleasesTimeline.map((item, index) => {
                 const buildTypes = getBuildTypesForRelease(item);
@@ -1398,7 +1358,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* 8. Footer Section (Premium Dark Solid Block) */}
       <footer
         className="w-full bg-[#0b0f19] text-neutral-350 py-16 relative overflow-hidden"
         id="app-footer"
@@ -1463,7 +1422,6 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Download Modal Dialog */}
       <DownloadModal
         isOpen={isDownloadOpen}
         onClose={() => {

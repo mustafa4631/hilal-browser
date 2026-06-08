@@ -23,7 +23,6 @@ if [ "$(uname -s)" != "Darwin" ]; then
   warn "This script is tuned for macOS. On Linux, please use build-linux.sh."
 fi
 
-# Parse args
 NO_SYMLINKS=0
 remaining=()
 for arg in "$@"; do
@@ -34,10 +33,8 @@ for arg in "$@"; do
 done
 set -- "${remaining[@]+"${remaining[@]}"}"
 
-# Ensure patches/branding are applied
 "$HILAL_REPO_ROOT/bin/hil" apply
 
-# Copy macOS mozconfig
 if [ -f "$(dirname "$0")/../mozconfigs/macos" ]; then
   log "Copying mozconfigs/macos -> engine/mozconfig"
   cp "$(dirname "$0")/../mozconfigs/macos" "$HILAL_FIREFOX_SRC/mozconfig"

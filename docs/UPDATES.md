@@ -1,7 +1,6 @@
 # Hilal Application Updates
 
-Hilal uses Firefox's built-in application updater for desktop builds. The
-client-side plumbing is intentionally small:
+Hilal uses Firefox's built-in application updater for desktop builds:
 
 - `mozconfigs/base` enables `MOZ_UPDATER` for desktop builds.
 - `changes/browser/app/distribution/update-policy.patch` packages
@@ -14,11 +13,10 @@ client-side plumbing is intentionally small:
 Release gating for update metadata, packaged browser smoke, and manual checks is
 tracked separately in `docs/STABLE-READINESS.md`.
 
-Android keeps the updater disabled because it is distributed through platform
-package mechanisms rather than Firefox's desktop MAR updater.
+Android keeps the updater disabled and uses platform package mechanisms.
 
-Flatpak builds also disable Firefox's built-in updater. Updates for
-`org.gkdevstudio.Hilal` are delivered by Flatpak/Flathub instead of MARs.
+Flatpak builds disable Firefox's built-in updater. Updates for
+`org.gkdevstudio.Hilal` are delivered by Flatpak/Flathub.
 
 ## Build-Time Channel
 
@@ -65,8 +63,8 @@ HILAL_SIGNMAR_CERT=mar_sig \
 scripts/make-full-update.sh 0.2.0-alpha.4
 ```
 
-If signing variables are not provided, the script still creates a MAR but warns
-that it is not safe for production updates.
+Without signing variables, the script creates an unsigned MAR and prints a
+production warning.
 
 ## Publish Update XML
 
@@ -88,8 +86,7 @@ The `www` app implements this route through the Vercel rewrite in
 ```
 
 When no signed MAR metadata is configured, it returns an empty `<updates>`
-document so clients do not attempt a broken update. There are two supported
-metadata sources.
+document. There are two supported metadata sources.
 
 ### Preferred: GitHub Release Manifest
 
@@ -117,9 +114,9 @@ The update endpoint fetches the latest GitHub Release, reads the manifest asset,
 selects the correct MAR for the request's `BUILD_TARGET`, verifies channel and
 metadata fields, and then returns Firefox-compatible update XML.
 
-Alpha, beta, and release-candidate tags are published as GitHub prereleases.
-Set `HILAL_UPDATE_INCLUDE_PRERELEASES=1` only for channels that should receive
-those builds.
+Alpha, beta, and release-candidate tags are GitHub prereleases. Set
+`HILAL_UPDATE_INCLUDE_PRERELEASES=1` only for channels that should receive those
+builds.
 
 `--version` is the Hilal release shown to users. `--app-version` must be the
 Firefox/Gecko version shipped in the build, for example `153.0a1`. Firefox sends
@@ -177,25 +174,29 @@ The public release page renders a live release-notes timeline from that feed,
 including publish date, tag, release notes, and the build artifact types present
 in each GitHub Release.
 
-## Production Signing & Signature Verification
+## Production Signing
 
-Do not ship production updates with unsigned MARs or with `--enable-unverified-updates`. The browser's built-in `updater` binary enforces cryptographic signature verification on all update packages. It only accepts MARs signed by a private key whose corresponding public certificate is compiled directly into the browser binary.
+Do not ship production updates with unsigned MARs or with
+`--enable-unverified-updates`. The browser's `updater` binary accepts MARs
+signed by a private key whose public certificate is compiled into the browser.
 
 ### NSS Database & Certificate Setup
 
-For secure production update packages, you must create and maintain an NSS (Network Security Services) key database containing your private signing key, and overlay the public certificate DER files in your repository so they are compiled into the browser.
+Create an NSS (Network Security Services) database containing the private
+signing key. Overlay the public certificate DER files in the repository so the
+browser build compiles them into the updater.
 
 To generate a new primary/secondary update signing keypair locally:
 
 1. **Initialize NSS Database**:
-   Create a secure directory for your signing database (ensure this is kept outside of version control) and initialize it with an empty password:
+   Create a signing database outside version control:
    ```bash
    mkdir -p /path/to/signing-db
    engine/obj-aarch64-apple-darwin25.4.0/dist/bin/certutil -N -d sql:/path/to/signing-db --empty-password
    ```
 
 2. **Generate Keypair & Certificate**:
-   Use a local random source for entropy (noise) to generate a secure 4096-bit RSA self-signed update signing certificate:
+   Generate a 4096-bit RSA self-signed update signing certificate:
    ```bash
    dd if=/dev/urandom of=noise.bin bs=2048 count=1
    engine/obj-aarch64-apple-darwin25.4.0/dist/bin/certutil -S -d sql:/path/to/signing-db \
@@ -207,21 +208,21 @@ To generate a new primary/secondary update signing keypair locally:
    ```
 
 3. **Export Public Certificate**:
-   Export the public certificate in DER format:
    ```bash
    engine/obj-aarch64-apple-darwin25.4.0/dist/bin/certutil -L -d sql:/path/to/signing-db -n mar_sig -r > release_primary.der
    ```
 
 4. **Embed Certificate into Build**:
-   Copy the exported certificate to your repository's overlay directory:
+   Copy the exported certificate to the overlay directory:
    ```bash
    cp release_primary.der changes/toolkit/mozapps/update/updater/release_primary.der
    ```
-   During `./bin/hil apply`, this file will be copied into the Firefox source tree. The build system will compile the certificate's raw bytes directly into the `updater` executable's C++ code (`primaryCertData`).
+   `./bin/hil apply` copies this file into the Firefox source tree. The build
+   system compiles the certificate bytes into the updater's `primaryCertData`.
 
 ### Key Rotation Procedure
 
-To smoothly transition to a new signing key without breaking auto-updates for existing users:
+To rotate signing keys without breaking updates for existing users:
 
 1. **Generate a New Keypair**:
    Generate a new certificate/key in a separate or the same NSS database, naming it `mar_sig_secondary`.
@@ -229,33 +230,34 @@ To smoothly transition to a new signing key without breaking auto-updates for ex
    Export the new certificate as `release_secondary.der` and place it at:
    `changes/toolkit/mozapps/update/updater/release_secondary.der`
 3. **Build and Ship Both Certs**:
-   Release a new browser version. This shipped version will trust MARs signed by *either* the primary or the secondary key.
+   Release a browser version that trusts MARs signed by either key.
 4. **Transition Signing**:
-   Once older browser builds have updated, start signing your MAR packages using the new `mar_sig_secondary` key. Older clients will trust it since they already have `release_secondary.der` compiled-in.
+   After older builds update, sign MAR packages with `mar_sig_secondary`.
 5. **Finalize Rotation**:
-   In the next release cycle, promote `release_secondary.der` to `release_primary.der`, and generate a brand-new certificate to act as the secondary, keeping the rotation chain secure.
+   In the next release cycle, promote `release_secondary.der` to
+   `release_primary.der` and generate a new secondary certificate.
 
 ### CI/CD Secret Integration
 
-To securely sign MAR packages inside your automated CI/CD pipelines (e.g. GitHub Actions) without checking private key database files into git:
+To sign MAR packages in CI without checking private key database files into git:
 
 1. **Package the NSS Database**:
-   Compress your secure local NSS database files (`cert9.db`, `key4.db`, `pkcs11.txt`):
+   Compress the NSS database files (`cert9.db`, `key4.db`, `pkcs11.txt`):
    ```bash
    tar -czf signing-db.tar.gz -C /path/to/signing-db .
    ```
 
 2. **Encode to Base64**:
-   Base64-encode the tarball to produce a single text string:
    ```bash
    base64 -i signing-db.tar.gz -o signing-db.base64
    ```
 
 3. **Configure GitHub Secrets**:
-   Copy the contents of `signing-db.base64` and save it as a Repository Secret named `HILAL_SIGNING_DB_BASE64` in your GitHub repository settings.
+   Save `signing-db.base64` as a repository secret named
+   `HILAL_SIGNING_DB_BASE64`.
 
 4. **Restore Database in CI**:
-   Add a step in your GitHub Actions workflow to decode and reconstruct the temporary NSS database on the runner:
+   Add a GitHub Actions step:
    ```yaml
    - name: Restore Signing NSS Database
      run: |
@@ -265,7 +267,6 @@ To securely sign MAR packages inside your automated CI/CD pipelines (e.g. GitHub
    ```
 
 5. **Generate and Sign the Update MAR**:
-   Run the packaging script pointing at the restored database:
    ```yaml
    - name: Create Signed Update MAR
      env:

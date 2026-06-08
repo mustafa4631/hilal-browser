@@ -29,10 +29,9 @@ They validate:
   Firefox app version and rejects Hilal display versions as app versions.
 - Active scripts do not fall back to a legacy `firefox/` checkout.
 
-Default guardrails intentionally ignore stale local `dist/` artifacts. Packaged
-DMGs, MARs, and update manifests are checked only by the strict release form
-below, because local development often carries old artifacts from the last
-published alpha.
+Default guardrails ignore stale local `dist/` artifacts. Packaged DMGs, MARs,
+and update manifests are checked only by the strict release form below because
+local development often carries old artifacts from the last published alpha.
 
 ## 2. Release Decision
 
@@ -109,9 +108,9 @@ Manual testing should stay small and release-focused:
 - Update UX copy and restart behavior.
 - Hilal-specific chrome polish, including workspaces and sidebar layout.
 
-Stable release is blocked when any automated guardrail, packaged browser smoke,
-artifact name, update manifest, Flatpak metadata, or required human check
-disagrees with the release version.
+Stable release is blocked when any guardrail, packaged browser smoke, artifact
+name, update manifest, Flatpak metadata, or required human check disagrees with
+the release version.
 
 Using the currently pinned Firefox base is a project decision, not by itself a
 release blocker. Treat stability as a property of the applied Hilal patch stack,

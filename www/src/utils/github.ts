@@ -6,7 +6,7 @@ export const FALLBACK_RELEASE_TR: GithubRelease = {
   name: "v1.0.0-alpha.5: Kararlı Başlangıç",
   published_at: "2026-05-20T14:30:00Z",
   html_url: "https://github.com/VastSea0/hilal-browser/releases",
-  body: `### Öne Çıkan Özellikler\n- 🦊 **Firefox (Gecko-128)** kararlı Web motoru altyapısına tamamen geçiş yapıldı.\n- 🛡️ Reklam ve izleyici engelleyicilerin lideri **uBlock Origin** eklentisi varsayılan olarak entegre edildi.\n- 📑 Ekranın sol kenarını kullanarak dikey navigasyon sağlayan yenilikçi **Dikey Sekmeler (Vertical Tabs)**.\n- ⚡ Sayfa yükleme hızlarında uBlock Origin sayesinde %40'a varan artış ve sıfır efor.\n- 🎨 Gözü yormayan sadeleştirilmiş başlangıç sayfası önizlemesi hazırlandı.`,
+  body: `### Öne çıkanlar\n- Firefox (Gecko-128) tabanına geçildi.\n- uBlock Origin varsayılan kurulum paketine eklendi.\n- Dikey Sekmeler sol kenar çubuğunda çalışır.\n- Başlangıç sayfası önizlemesi eklendi.`,
   assets: [
     {
       id: 101,
@@ -53,12 +53,12 @@ export const FALLBACK_RELEASE_EN: GithubRelease = {
   name: "v1.0.0-alpha.5: Stable Outset",
   published_at: "2026-05-20T14:30:00Z",
   html_url: "https://github.com/VastSea0/hilal-browser/releases",
-  body: `### Key Highlights\n- 🦊 **Firefox (Gecko-128)** fully migrated to the stable Gecko web engine.\n- 🛡️ Ad & tracker blocking champion **uBlock Origin** comes pre-integrated by default.\n- 📑 Innovative **Vertical Tabs** system built inside for a wider screen estate.\n- ⚡ Fast browsing with up to 40% reduction in web size overhead, zero configuration.\n- 🎨 Beautiful minimalist welcome home landing layout constructed.`,
+  body: `### Highlights\n- Moved to the Firefox (Gecko-128) base.\n- Added uBlock Origin to the default package.\n- Vertical Tabs run in the left sidebar.\n- Added a start page preview.`,
   assets: FALLBACK_RELEASE_TR.assets
 };
 
 /**
- * Robust fetch with exponential backoff
+ * Fetch with exponential backoff
  * Retries up to 5 times on fetch/transient errors, silently (does not log retries).
  */
 export async function fetchGithubReleases(): Promise<GithubRelease[]> {
@@ -86,13 +86,11 @@ export async function fetchGithubReleases(): Promise<GithubRelease[]> {
         }
       }
 
-      // If rate limited or standard non-2xx status, trigger backoff retry
       throw new Error(`State error: ${response.status}`);
     } catch (error) {
       if (attempt === maxRetries) {
         throw error;
       }
-      // Wait for next attempt with exponential delay
       await new Promise((res) => setTimeout(res, delay));
       delay *= 2;
     }
@@ -189,12 +187,10 @@ export function parseChangelogToSimpleLines(body: string): { type: 'header' | 'i
     let trimmed = line.trim();
     if (!trimmed) continue;
 
-    // Headings starting with #
     if (trimmed.startsWith("#")) {
       const cleanHeader = trimmed.replace(/^#+\s*/, "");
       result.push({ type: "header", text: cleanHeader });
     }
-    // List items starting with -, *, or numerical lists
     else if (trimmed.startsWith("-") || trimmed.startsWith("*")) {
       const cleanText = trimmed.replace(/^[-*]\s*/, "");
       result.push({ type: "item", text: cleanText });

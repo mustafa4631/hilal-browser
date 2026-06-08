@@ -1,16 +1,15 @@
 # Building Hilal Browser on Android
 
-This is a comprehensive guide to building Hilal Browser for Android (based on GeckoView and Fenix). 
+Hilal Android builds use GeckoView and Fenix.
 
-Before starting, ensure you have set up the base repository checkout and run `./bin/hil setup`.
+Run `./bin/hil setup` before Android build commands.
 
 ---
 
 ## One-Time Development Setup (Bootstrapping)
 
-Building for Android requires the Android SDK, NDK, and Java Development Kit (JDK). Firefox's built-in bootstrapper installs and configures all of these automatically in standard paths under `~/.mozbuild/`.
-
-To bootstrap your environment for Android:
+Android builds require the Android SDK, NDK, and Java Development Kit (JDK).
+Firefox's bootstrapper installs them under `~/.mozbuild/`.
 
 1. Inside the `engine/` directory, run:
    ```bash
@@ -23,7 +22,7 @@ To bootstrap your environment for Android:
 
 ## Architecture Targets
 
-Android targets require specific CPU architectures. We provide four pre-configured options under the `mozconfigs/` directory:
+Android targets use the `mozconfigs/` entries below:
 
 | Mapped Configuration | Target Architecture | Typical Use Case |
 | --- | --- | --- |
@@ -36,7 +35,8 @@ Android targets require specific CPU architectures. We provide four pre-configur
 
 ## Building and Installing
 
-A dedicated wrapper script `scripts/build-android.sh` is provided in the repository root to automate applying patches, copying configs, and running `./mach` commands.
+`scripts/build-android.sh` applies patches, copies the selected mozconfig, and
+runs `./mach`.
 
 ### 1. GeckoView backend build
 The engine (GeckoView) must be compiled first:
@@ -49,7 +49,6 @@ scripts/build-android.sh x86_64 build
 ```
 
 ### 2. Gradle compilation & APK Packaging
-To compile the Android app (Fenix) and produce the installable APKs:
 ```bash
 # Build debug APK for arm64
 scripts/build-android.sh arm64 gradle fenix:assembleDebug
@@ -61,7 +60,6 @@ The compiled APK files will be located under:
 `engine/mobile/android/fenix/app/build/outputs/apk/`
 
 ### 3. Deploying to Emulator or Connected Device
-To build GeckoView and directly push/install the Fenix debug application onto an active emulator or connected USB device running ADB:
 ```bash
 # For connected ARM64 device
 scripts/build-android.sh arm64 install
@@ -83,7 +81,7 @@ scripts/build-android.sh x86_64 install
 
 ## Cleaning the Build
 
-To wipe build caches and run a clean compilation:
+To wipe build caches:
 ```bash
 # Clobber build state for arm64
 scripts/build-android.sh arm64 clean
