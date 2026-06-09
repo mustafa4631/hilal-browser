@@ -126,6 +126,14 @@ foreach ($c in $mozBuildCandidates) {
 if ($mozBuild) {
     Write-Step "MozillaBuild: $mozBuild"
     $env:MOZILLABUILD = $mozBuild
+    # Add NSIS to PATH so mach package can find makensis.exe to build the Windows installer
+    $nsisPath = Join-Path $mozBuild "nsis"
+    if (Test-Path $nsisPath) {
+        Write-Step "Adding NSIS to PATH: $nsisPath"
+        $env:PATH = "$nsisPath;$env:PATH"
+    } else {
+        Write-Warn "NSIS directory not found in MozillaBuild: $nsisPath"
+    }
 } else {
     Write-Warn "MozillaBuild not found."
     Write-Host ""
