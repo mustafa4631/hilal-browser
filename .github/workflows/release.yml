@@ -94,6 +94,8 @@ jobs:
 
       - name: Create GitHub release (DRAFT)
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.vars.outputs.tag }}
           name: "Hilal Browser ${{ steps.vars.outputs.tag }} (build #${{ github.run_number }})"
@@ -266,6 +268,8 @@ jobs:
 
       - name: Upload assets
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           files: |
@@ -335,6 +339,8 @@ jobs:
 
       - name: Upload hil tool to release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           fail_on_unmatched_files: false
@@ -425,6 +431,8 @@ jobs:
       - name: Upload Linux Assets to release
         if: always()
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           fail_on_unmatched_files: false
@@ -498,6 +506,8 @@ jobs:
 
       - name: Upload hil.exe to release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           fail_on_unmatched_files: false
@@ -604,6 +614,8 @@ jobs:
       - name: Upload Windows Assets to release
         if: always()
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           fail_on_unmatched_files: false
