@@ -1,7 +1,7 @@
 diff --git a/browser/locales/en-US/browser/browser.ftl b/browser/locales/en-US/browser/browser.ftl
 --- a/browser/locales/en-US/browser/browser.ftl
 +++ b/browser/locales/en-US/browser/browser.ftl
-@@ -1618,3 +1618,121 @@ reduced-protection-infobar-reload-button = Reload
+@@ -1618,3 +1618,148 @@ reduced-protection-infobar-reload-button = Reload
    .accesskey = R
  reduced-protection-infobar-never-show-button = Don’t show again
    .accesskey = D
@@ -24,32 +24,50 @@ diff --git a/browser/locales/en-US/browser/browser.ftl b/browser/locales/en-US/b
 +hilal-welcome-step-label-layout = Look
 +hilal-welcome-step-label-shield = Privacy
 +hilal-welcome-step-label-search = Search
-+hilal-welcome-step-label-tabs = Workspaces
++hilal-welcome-step-label-tabs = Tabs
++hilal-welcome-step-label-spaces = Spaces
++hilal-welcome-step-label-pin = Pinned tabs
 +hilal-welcome-step-label-check = Ready
 +
 +hilal-welcome-stage-0-kicker = First choices
 +hilal-welcome-stage-0-title = Choose what starts with Hilal.
 +hilal-welcome-stage-0-subtitle = Bring only the data you need and decide whether links from the system should open here.
 +
-+hilal-welcome-stage-1-kicker = Look
-+hilal-welcome-stage-1-title = Shape the window before it opens.
-+hilal-welcome-stage-1-subtitle = Pick the density, tab direction, and spaces that should define the first Hilal window.
++hilal-welcome-stage-1-kicker = Layout
++hilal-welcome-stage-1-title = Pick a density.
++hilal-welcome-stage-1-subtitle = Standard keeps the toolbar visible at all times. Compact hides it until you need it.
 +
-+hilal-welcome-stage-2-kicker = Privacy
-+hilal-welcome-stage-2-title = Pick a protection posture.
-+hilal-welcome-stage-2-subtitle = Hilal can stay comfortable for daily browsing or tighten the surfaces that websites use to recognize you.
++hilal-welcome-stage-2-kicker = Tabs
++hilal-welcome-stage-2-title = Choose a tab direction.
++hilal-welcome-stage-2-subtitle = Vertical tabs sit in a sidebar. Horizontal tabs line up across the top of the window.
 +
-+hilal-welcome-stage-3-kicker = Search
-+hilal-welcome-stage-3-title = Choose the address-bar engine.
-+hilal-welcome-stage-3-subtitle = This is the engine Hilal uses when you type into the bar. You can change it whenever the browser is open.
++hilal-welcome-stage-3-kicker = Spaces
++hilal-welcome-stage-3-title = Separate your contexts.
++hilal-welcome-stage-3-subtitle = Spaces keep personal, work, and social tabs in their own groups so they never mix.
 +
-+hilal-welcome-stage-4-kicker = Spaces
-+hilal-welcome-stage-4-title = Start with fewer mixed tabs.
-+hilal-welcome-stage-4-subtitle = Create a small set of spaces now, or leave the browser empty and shape it later.
++hilal-welcome-stage-4-kicker = Toolbar
++hilal-welcome-stage-4-title = Control the toolbar.
++hilal-welcome-stage-4-subtitle = Auto-hide reveals the address bar only when you hover the top edge. Always visible keeps it fixed.
 +
-+hilal-welcome-stage-5-kicker = Finish
-+hilal-welcome-stage-5-title = Ready for a clean window.
-+hilal-welcome-stage-5-subtitle = Your choices are saved locally. Hilal will leave the setup layer and return the browser chrome.
++hilal-welcome-stage-5-kicker = Privacy
++hilal-welcome-stage-5-title = Pick a protection posture.
++hilal-welcome-stage-5-subtitle = Hilal can stay comfortable for daily browsing or tighten the surfaces that websites use to recognize you.
++
++hilal-welcome-stage-6-kicker = Search
++hilal-welcome-stage-6-title = Choose the address-bar engine.
++hilal-welcome-stage-6-subtitle = This is the engine Hilal uses when you type into the bar. You can change it whenever the browser is open.
++
++hilal-welcome-stage-7-kicker = Pinned tabs
++hilal-welcome-stage-7-title = Keep essentials one click away.
++hilal-welcome-stage-7-subtitle = Choose the sites Hilal should pin at startup. Netflix, Spotify, YouTube, GitHub, Reddit, Notion, and Gemini are ready to add.
++
++hilal-welcome-stage-8-kicker = Spaces
++hilal-welcome-stage-8-title = Start with fewer mixed tabs.
++hilal-welcome-stage-8-subtitle = Create a small set of spaces now, or leave the browser empty and shape it later.
++
++hilal-welcome-stage-9-kicker = Finish
++hilal-welcome-stage-9-title = Ready for a clean window.
++hilal-welcome-stage-9-subtitle = Your choices are saved locally. Hilal will leave the setup layer and return the browser chrome.
 +
 +hilal-welcome-home-preview-image-alt =
 +    .alt = Hilal Browser home page preview
@@ -87,6 +105,12 @@ diff --git a/browser/locales/en-US/browser/browser.ftl b/browser/locales/en-US/b
 +hilal-welcome-workspaces-disabled-label = Spaces are off
 +hilal-welcome-workspaces-disabled-desc = Hilal will open with one clean browser space. You can turn spaces on later in Settings.
 +
++hilal-welcome-pinned-preview-title = Pinned tabs
++hilal-welcome-pinned-public-label = Show pinned tabs in every space
++hilal-welcome-pinned-public-desc = On by default so the sites you pin stay visible when you switch workspaces.
++hilal-welcome-pinned-site-state-selected = Will be pinned
++hilal-welcome-pinned-site-state-skipped = Not selected
++
 +hilal-welcome-summary-layout = Layout
 +hilal-welcome-summary-layout-standard = Standard
 +hilal-welcome-summary-layout-compact = Compact
@@ -95,8 +119,11 @@ diff --git a/browser/locales/en-US/browser/browser.ftl b/browser/locales/en-US/b
 +hilal-welcome-summary-tabs-horizontal = Horizontal
 +hilal-welcome-summary-search = Search
 +hilal-welcome-summary-privacy = Privacy
++hilal-welcome-summary-pinned-tabs = Pinned tabs
++hilal-welcome-summary-pinned-everywhere = Pinned tabs in every space
 +hilal-welcome-summary-workspaces = Workspaces
 +hilal-welcome-summary-default-browser = Default browser
++hilal-welcome-summary-on = On
 +hilal-welcome-summary-off = Off
 +hilal-welcome-summary-none = None
 +hilal-welcome-summary-default-set = Set as default

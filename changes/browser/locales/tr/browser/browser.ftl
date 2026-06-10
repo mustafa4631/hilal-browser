@@ -13,7 +13,9 @@ hilal-welcome-step-label-settings = Seçimler
 hilal-welcome-step-label-layout = Görünüm
 hilal-welcome-step-label-shield = Gizlilik
 hilal-welcome-step-label-search = Arama
-hilal-welcome-step-label-tabs = Alanlar
+hilal-welcome-step-label-tabs = Sekmeler
+hilal-welcome-step-label-spaces = Alanlar
+hilal-welcome-step-label-pin = Pinli sekmeler
 hilal-welcome-step-label-check = Hazır
 
 hilal-welcome-stage-0-kicker = İlk seçimler
@@ -21,24 +23,40 @@ hilal-welcome-stage-0-title = Hilal'in neyle başlayacağını seçin.
 hilal-welcome-stage-0-subtitle = Yalnızca gereken verileri taşıyın ve sistem bağlantılarının burada açılıp açılmayacağına karar verin.
 
 hilal-welcome-stage-1-kicker = Görünüm
-hilal-welcome-stage-1-title = Pencereyi açılmadan şekillendirin.
-hilal-welcome-stage-1-subtitle = İlk Hilal penceresini tanımlayacak yoğunluğu, sekme yönünü ve alanları seçin.
+hilal-welcome-stage-1-title = Yoğunluğu seçin.
+hilal-welcome-stage-1-subtitle = Standart mod araç çubuğunu her zaman görünür tutar. Kompakt mod yalnızca ihtiyaç olduğunda gösterir.
 
-hilal-welcome-stage-2-kicker = Gizlilik
-hilal-welcome-stage-2-title = Koruma duruşunu seçin.
-hilal-welcome-stage-2-subtitle = Hilal günlük kullanım için uyumlu kalabilir veya sitelerin sizi tanımak için kullandığı yüzeyleri daha sıkı kapatabilir.
+hilal-welcome-stage-2-kicker = Sekmeler
+hilal-welcome-stage-2-title = Sekme yönünü seçin.
+hilal-welcome-stage-2-subtitle = Dikey sekmeler kenar çubuğunda durur. Yatay sekmeler pencerenin üstünde sıralanır.
 
-hilal-welcome-stage-3-kicker = Arama
-hilal-welcome-stage-3-title = Adres çubuğu motorunu seçin.
-hilal-welcome-stage-3-subtitle = Adres çubuğuna yazdığınızda Hilal bu motoru kullanır. Tarayıcı açıkken dilediğiniz zaman değiştirebilirsiniz.
+hilal-welcome-stage-3-kicker = Alanlar
+hilal-welcome-stage-3-title = Bağlamlarınızı ayırın.
+hilal-welcome-stage-3-subtitle = Alanlar kişisel, iş ve sosyal sekmeleri kendi gruplarında tutar; birbirlerine karışmazlar.
 
-hilal-welcome-stage-4-kicker = Alanlar
-hilal-welcome-stage-4-title = Karışan sekmeleri azaltın.
-hilal-welcome-stage-4-subtitle = İsterseniz şimdi birkaç başlangıç alanı oluşturun; isterseniz tarayıcıyı boş bırakıp sonra şekillendirin.
+hilal-welcome-stage-4-kicker = Araç çubuğu
+hilal-welcome-stage-4-title = Araç çubuğunu kontrol edin.
+hilal-welcome-stage-4-subtitle = Otomatik gizleme adres çubuğunu yalnızca üst kenara geldiğinizde gösterir. Her zaman görünür seçeneği sabit tutar.
 
-hilal-welcome-stage-5-kicker = Bitir
-hilal-welcome-stage-5-title = Temiz pencereye hazır.
-hilal-welcome-stage-5-subtitle = Seçimleriniz yerelde kaydedilir. Hilal kurulum katmanını kapatıp tarayıcı arayüzünü geri getirir.
+hilal-welcome-stage-5-kicker = Gizlilik
+hilal-welcome-stage-5-title = Koruma duruşunu seçin.
+hilal-welcome-stage-5-subtitle = Hilal günlük kullanım için uyumlu kalabilir veya sitelerin sizi tanımak için kullandığı yüzeyleri daha sıkı kapatabilir.
+
+hilal-welcome-stage-6-kicker = Arama
+hilal-welcome-stage-6-title = Adres çubuğu motorunu seçin.
+hilal-welcome-stage-6-subtitle = Adres çubuğuna yazdığınızda Hilal bu motoru kullanır. Tarayıcı açıkken dilediğiniz zaman değiştirebilirsiniz.
+
+hilal-welcome-stage-7-kicker = Pinli sekmeler
+hilal-welcome-stage-7-title = Vazgeçilmezleri tek tık uzağa alın.
+hilal-welcome-stage-7-subtitle = Hilal'in başlangıçta pinleyeceği siteleri seçin. Netflix, Spotify, YouTube, GitHub, Reddit, Notion ve Gemini eklemeye hazır.
+
+hilal-welcome-stage-8-kicker = Alanlar
+hilal-welcome-stage-8-title = Karışan sekmeleri azaltın.
+hilal-welcome-stage-8-subtitle = İsterseniz şimdi birkaç başlangıç alanı oluşturun; isterseniz tarayıcıyı boş bırakıp sonra şekillendirin.
+
+hilal-welcome-stage-9-kicker = Bitir
+hilal-welcome-stage-9-title = Temiz pencereye hazır.
+hilal-welcome-stage-9-subtitle = Seçimleriniz yerelde kaydedilir. Hilal kurulum katmanını kapatıp tarayıcı arayüzünü geri getirir.
 
 hilal-welcome-home-preview-image-alt =
     .alt = Hilal Tarayıcı ana sayfa önizlemesi
@@ -76,6 +94,12 @@ hilal-welcome-workspace-state-skipped = Atlandı
 hilal-welcome-workspaces-disabled-label = Alanlar kapalı
 hilal-welcome-workspaces-disabled-desc = Hilal tek temiz tarayıcı alanıyla açılacak. Alanları daha sonra Ayarlar'dan açabilirsiniz.
 
+hilal-welcome-pinned-preview-title = Pinli sekmeler
+hilal-welcome-pinned-public-label = Pinli sekmeleri her alanda göster
+hilal-welcome-pinned-public-desc = Varsayılan olarak açık; pinlediğiniz siteler alan değiştirirken de görünür kalır.
+hilal-welcome-pinned-site-state-selected = Pinlenecek
+hilal-welcome-pinned-site-state-skipped = Seçilmedi
+
 hilal-welcome-summary-layout = Görünüm
 hilal-welcome-summary-layout-standard = Standart
 hilal-welcome-summary-layout-compact = Kompakt
@@ -84,8 +108,11 @@ hilal-welcome-summary-tabs-vertical = Dikey
 hilal-welcome-summary-tabs-horizontal = Yatay
 hilal-welcome-summary-search = Arama
 hilal-welcome-summary-privacy = Gizlilik
+hilal-welcome-summary-pinned-tabs = Pinli sekmeler
+hilal-welcome-summary-pinned-everywhere = Pinli sekmeler her alanda
 hilal-welcome-summary-workspaces = Alanlar
 hilal-welcome-summary-default-browser = Varsayılan tarayıcı
+hilal-welcome-summary-on = Açık
 hilal-welcome-summary-off = Kapalı
 hilal-welcome-summary-none = Yok
 hilal-welcome-summary-default-set = Varsayılan yapıldı

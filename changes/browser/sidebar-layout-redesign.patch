@@ -1267,7 +1267,7 @@ diff --git a/browser/components/sidebar/sidebar-main.mjs b/browser/components/si
 +    }
 +    const pinnedIsPublic = Services.prefs.getBoolPref(
 +      "hilal.workspaces.pinned.public",
-+      false
++      true
 +    );
 +    const groupsIsPublic = Services.prefs.getBoolPref(
 +      "hilal.workspaces.groups.public",

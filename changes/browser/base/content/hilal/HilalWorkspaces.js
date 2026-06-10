@@ -174,7 +174,7 @@
     }
 
     get _pinnedIsPublic() {
-      return Services.prefs.getBoolPref("hilal.workspaces.pinned.public", false);
+      return Services.prefs.getBoolPref("hilal.workspaces.pinned.public", true);
     }
 
     get _groupsIsPublic() {

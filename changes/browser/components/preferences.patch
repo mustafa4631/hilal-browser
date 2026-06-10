@@ -71,7 +71,7 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
 +    if (hilalWsPinnedPublicCheckbox) {
 +      hilalWsPinnedPublicCheckbox.checked = Services.prefs.getBoolPref(
 +        "hilal.workspaces.pinned.public",
-+        false
++        true
 +      );
 +      hilalWsPinnedPublicCheckbox.addEventListener("command", function () {
 +        Services.prefs.setBoolPref(
@@ -104,13 +104,13 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
 +        Services.prefs.setStringPref("hilal.workspaces.data", "[]");
 +        Services.prefs.setStringPref("hilal.workspaces.active", "default");
 +        Services.prefs.setBoolPref("hilal.workspaces.enabled", true);
-+        Services.prefs.setBoolPref("hilal.workspaces.pinned.public", false);
++        Services.prefs.setBoolPref("hilal.workspaces.pinned.public", true);
 +        Services.prefs.setBoolPref("hilal.workspaces.groups.public", false);
 +        if (hilalWsCheckbox) {
 +          hilalWsCheckbox.checked = true;
 +        }
 +        if (hilalWsPinnedPublicCheckbox) {
-+          hilalWsPinnedPublicCheckbox.checked = false;
++          hilalWsPinnedPublicCheckbox.checked = true;
 +        }
 +        if (hilalWsGroupsPublicCheckbox) {
 +          hilalWsGroupsPublicCheckbox.checked = false;

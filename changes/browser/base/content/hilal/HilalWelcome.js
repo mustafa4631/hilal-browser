@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global Services, MigrationUtils, ChromeUtils, MozXULElement, gURLBar */
+/* global Services, MigrationUtils, ChromeUtils, MozXULElement, gURLBar, gBrowser */
 
 (function () {
   "use strict";
@@ -26,11 +26,12 @@
     { title: "First choices", icon: "settings" },
     { title: "Layout", icon: "layout" },
     { title: "Tabs", icon: "tabs" },
-    { title: "Spaces", icon: "tabs" },
+    { title: "Spaces", icon: "spaces" },
     { title: "Toolbar", icon: "layout" },
     { title: "Privacy", icon: "shield" },
     { title: "Search", icon: "search" },
-    { title: "Spaces setup", icon: "tabs" },
+    { title: "Pinned tabs", icon: "pin" },
+    { title: "Spaces setup", icon: "spaces" },
     { title: "Ready", icon: "check" },
   ];
   const STAGE_TOOLBAR = 4;
@@ -45,6 +46,9 @@
   const PREF_COMPACT_HIDE_TOOLBOX = "hilal.compact.hide_toolbox";
   const PREF_VERTICAL_TABS = "sidebar.verticalTabs";
   const PREF_WORKSPACES_ENABLED = "hilal.workspaces.enabled";
+  const PREF_PINNED_PUBLIC = "hilal.workspaces.pinned.public";
+  const TOPSITE_IMAGE_BASE =
+    "chrome://activity-stream/content/data/content/tippytop/images/";
   const SEARCH_ENGINE_PLACEHOLDER =
     "chrome://browser/skin/search-engine-placeholder.png";
   const SEARCH_ENGINE_PLACEHOLDER_2X =
@@ -115,6 +119,60 @@
     },
   ];
 
+  const PINNED_SITE_PRESETS = [
+    {
+      key: "netflix",
+      label: "Netflix",
+      url: "https://www.netflix.com/",
+      initial: "N",
+      color: "#e50914",
+    },
+    {
+      key: "spotify",
+      label: "Spotify",
+      url: "https://open.spotify.com/",
+      initial: "S",
+      color: "#1ed760",
+    },
+    {
+      key: "youtube",
+      label: "YouTube",
+      url: "https://www.youtube.com/",
+      initial: "Y",
+      color: "#ff0033",
+      iconURL: `${TOPSITE_IMAGE_BASE}youtube-com@2x.png`,
+    },
+    {
+      key: "github",
+      label: "GitHub",
+      url: "https://github.com/",
+      initial: "G",
+      color: "#f0f6fc",
+    },
+    {
+      key: "reddit",
+      label: "Reddit",
+      url: "https://www.reddit.com/",
+      initial: "R",
+      color: "#ff4500",
+      iconURL: `${TOPSITE_IMAGE_BASE}reddit-com@2x.png`,
+    },
+    {
+      key: "notion",
+      label: "Notion",
+      url: "https://www.notion.so/",
+      initial: "N",
+      color: "#ffffff",
+    },
+    {
+      key: "gemini",
+      label: "Gemini",
+      url: "https://gemini.google.com/",
+      initial: "G",
+      color: "#8ab4f8",
+    },
+  ];
+
   class HilalWelcome {
     constructor(workspacesController) {
       this._workspaces = workspacesController;
@@ -143,6 +201,13 @@
       this._workspacesEnabledSelected = Services.prefs.getBoolPref(
         PREF_WORKSPACES_ENABLED,
         true
+      );
+      this._pinnedPublicSelected = Services.prefs.getBoolPref(
+        PREF_PINNED_PUBLIC,
+        true
+      );
+      this._pinnedSitesSelected = Object.fromEntries(
+        PINNED_SITE_PRESETS.map(site => [site.key, false])
       );
       this._workspacesSelected = { personal: true, work: true, social: true };
       this._hiddenChrome = new Map();
@@ -544,6 +609,12 @@
             "This is the engine Hilal uses when you type into the bar. You can change it whenever the browser is open.",
         },
         {
+          kicker: "Pinned tabs",
+          title: "Keep essentials one click away.",
+          subtitle:
+            "Choose the sites Hilal should pin at startup. Netflix, Spotify, YouTube, GitHub, Reddit, Notion, and Gemini are ready to add.",
+        },
+        {
           kicker: "Spaces",
           title: "Start with fewer mixed tabs.",
           subtitle:
@@ -614,12 +685,14 @@
             </div>
           `;
         case 7:
+          return this._pinnedTabsHTML();
+        case 8:
           return `
             <div class="hw-workspace-list">
               ${this._workspacesHTML()}
             </div>
           `;
-        case 8:
+        case 9:
           return `
             <div class="hw-summary">
               ${this._summaryHTML()}
@@ -797,6 +870,106 @@
         : "standard";
     }
 
+    _selectedPinnedSites() {
+      return PINNED_SITE_PRESETS.filter(
+        site => this._pinnedSitesSelected[site.key]
+      );
+    }
+
+    _pinnedTabsHTML() {
+      return `
+        <div class="hw-pinned-builder">
+          <div class="hw-pinned-preview" aria-label="Pinned tabs sidebar preview">
+            <div class="hw-pinned-window">
+              <aside class="hw-pinned-sidebar">
+                <div class="hw-window-dots" aria-hidden="true">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <div class="hw-pinned-section-label" data-l10n-id="hilal-welcome-pinned-preview-title">Pinned tabs</div>
+                <div class="hw-pinned-preview-grid">
+                  ${this._pinnedPreviewTabsHTML()}
+                </div>
+                <div class="hw-pinned-workspace-preview" aria-hidden="true">
+                  <span class="hw-pinned-workspace-row hw-pinned-workspace-active"></span>
+                  <span class="hw-pinned-workspace-row"></span>
+                  <span class="hw-pinned-workspace-row"></span>
+                </div>
+              </aside>
+              <div class="hw-pinned-page-preview">
+                <div class="hw-pinned-urlbar"></div>
+                <div class="hw-pinned-page-lines">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hw-pinned-controls">
+            <label class="hw-line-choice" for="hw-pinned-public-toggle">
+              <span class="hw-line-icon hw-icon hw-icon-tabs"></span>
+              <span class="hw-line-copy">
+                <span class="hw-line-title" data-l10n-id="hilal-welcome-pinned-public-label">Show pinned tabs in every space</span>
+                <span class="hw-line-desc" data-l10n-id="hilal-welcome-pinned-public-desc">On by default so the sites you pin stay visible when you switch workspaces.</span>
+              </span>
+              <span class="hw-toggle">
+                <input type="checkbox" id="hw-pinned-public-toggle"${this._pinnedPublicSelected ? ' checked="checked"' : ""}/>
+                <span class="hw-toggle-track"></span>
+              </span>
+            </label>
+            <div class="hw-pinned-site-list">
+              ${this._pinnedSiteChoicesHTML()}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    _pinnedPreviewTabsHTML() {
+      return PINNED_SITE_PRESETS.map(site => {
+        const active = this._pinnedSitesSelected[site.key];
+        return `
+          <button type="button" class="hw-pinned-preview-tab${active ? " hw-pinned-preview-active" : ""}" data-pinned-site="${site.key}" aria-pressed="${active}" title="${this._escapeHTML(site.label)}">
+            ${this._pinnedSiteIconHTML(site)}
+          </button>
+        `;
+      }).join("");
+    }
+
+    _pinnedSiteChoicesHTML() {
+      return PINNED_SITE_PRESETS.map(site => {
+        const active = this._pinnedSitesSelected[site.key];
+        return `
+          <button type="button" class="hw-pinned-site-choice${active ? " hw-choice-active" : ""}" data-pinned-site="${site.key}" aria-pressed="${active}">
+            ${this._pinnedSiteIconHTML(site)}
+            <span class="hw-pinned-site-copy">
+              <span class="hw-choice-title">${this._escapeHTML(site.label)}</span>
+              <span class="hw-choice-desc">${this._escapeHTML(site.url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</span>
+            </span>
+            <span class="hw-pinned-site-state" data-l10n-id="hilal-welcome-pinned-site-state-${active ? "selected" : "skipped"}">${active ? "Will be pinned" : "Not selected"}</span>
+          </button>
+        `;
+      }).join("");
+    }
+
+    _pinnedSiteIconHTML(site) {
+      const style = `style="--hw-pinned-color: ${this._escapeHTML(site.color)}"`;
+      if (site.iconURL) {
+        return `
+          <span class="hw-pinned-site-icon" ${style}>
+            <img src="${this._escapeHTML(site.iconURL)}" alt="" />
+          </span>
+        `;
+      }
+      return `
+        <span class="hw-pinned-site-icon" ${style}>
+          <span>${this._escapeHTML(site.initial)}</span>
+        </span>
+      `;
+    }
+
     _workspacesHTML() {
       if (!this._workspacesEnabledSelected) {
         return `
@@ -835,6 +1008,10 @@
       const activePresets = WORKSPACE_PRESETS.filter(
         item => this._workspacesSelected[item.key]
       );
+      const selectedPinnedSites = this._selectedPinnedSites();
+      const pinnedTabsHTML = selectedPinnedSites.length
+        ? selectedPinnedSites.map(site => this._escapeHTML(site.label)).join(", ")
+        : `<span data-l10n-id="hilal-welcome-summary-none">None</span>`;
       let workspacesHTML = `<span data-l10n-id="hilal-welcome-summary-off">Off</span>`;
       if (this._workspacesEnabledSelected) {
         workspacesHTML = activePresets.length
@@ -863,6 +1040,14 @@
         <div class="hw-summary-row">
           <span data-l10n-id="hilal-welcome-summary-privacy">Privacy</span>
           <strong>${this._escapeHTML(privacyLevel.label)}</strong>
+        </div>
+        <div class="hw-summary-row">
+          <span data-l10n-id="hilal-welcome-summary-pinned-tabs">Pinned tabs</span>
+          <strong>${pinnedTabsHTML}</strong>
+        </div>
+        <div class="hw-summary-row">
+          <span data-l10n-id="hilal-welcome-summary-pinned-everywhere">Pinned tabs in every space</span>
+          <strong data-l10n-id="hilal-welcome-summary-${this._pinnedPublicSelected ? "on" : "off"}">${this._pinnedPublicSelected ? "On" : "Off"}</strong>
         </div>
         <div class="hw-summary-row">
           <span data-l10n-id="hilal-welcome-summary-workspaces">Spaces</span>
@@ -973,6 +1158,23 @@
           this._renderStage();
         });
       });
+
+      const pinnedPublicToggle = document.getElementById(
+        "hw-pinned-public-toggle"
+      );
+      if (pinnedPublicToggle) {
+        pinnedPublicToggle.addEventListener("change", event => {
+          this._pinnedPublicSelected = event.target.checked;
+        });
+      }
+
+      this._overlay.querySelectorAll("[data-pinned-site]").forEach(choice => {
+        choice.addEventListener("click", () => {
+          const key = choice.dataset.pinnedSite;
+          this._pinnedSitesSelected[key] = !this._pinnedSitesSelected[key];
+          this._renderStage();
+        });
+      });
     }
 
     _shouldSkipStage(stage) {
@@ -1025,6 +1227,8 @@
         }
       }
 
+      await this._createPinnedTabs();
+
       if (this._selectedEngine?.originalEngine && SearchService) {
         try {
           if (SearchService.setDefault) {
@@ -1068,6 +1272,57 @@
       this._teardown();
     }
 
+    async _createPinnedTabs() {
+      const selectedSites = this._selectedPinnedSites();
+      if (
+        !selectedSites.length ||
+        typeof gBrowser === "undefined" ||
+        typeof gBrowser.addTrustedTab !== "function" ||
+        typeof gBrowser.pinTab !== "function"
+      ) {
+        return;
+      }
+
+      const userContextId = this._workspaces?.activeContainerId || 0;
+      for (const site of selectedSites) {
+        try {
+          let tab = this._findExistingTabForURL(site.url);
+          if (!tab) {
+            tab = gBrowser.addTrustedTab(site.url, {
+              inBackground: true,
+              createLazyBrowser: true,
+              userContextId,
+            });
+          }
+          if (tab && !tab.pinned) {
+            gBrowser.pinTab(tab);
+          }
+        } catch (e) {
+          console.error(`HilalWelcome: failed to pin ${site.label}`, e);
+        }
+      }
+    }
+
+    _findExistingTabForURL(url) {
+      const normalizedURL = this._normalizeURLForCompare(url);
+      for (const tab of gBrowser.tabs) {
+        const tabURL = this._normalizeURLForCompare(
+          tab.linkedBrowser?.currentURI?.spec || ""
+        );
+        if (tabURL && tabURL === normalizedURL) {
+          return tab;
+        }
+      }
+      return null;
+    }
+
+    _normalizeURLForCompare(url) {
+      return String(url || "")
+        .trim()
+        .replace(/\/+$/, "")
+        .toLowerCase();
+    }
+
     _saveLayoutPrefs() {
       try {
         Services.prefs.setBoolPref(PREF_COMPACT_ENABLED, this._compactSelected);
@@ -1085,6 +1340,10 @@
         Services.prefs.setBoolPref(
           PREF_WORKSPACES_ENABLED,
           this._workspacesEnabledSelected
+        );
+        Services.prefs.setBoolPref(
+          PREF_PINNED_PUBLIC,
+          this._pinnedPublicSelected
         );
       } catch (e) {
         console.error("HilalWelcome: failed to save layout prefs", e);

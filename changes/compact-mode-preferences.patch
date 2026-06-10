@@ -1250,7 +1250,7 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
          Services.prefs.getStringPref("hilal.privacy.level", "standard")
 @@ -1885,6 +1911,8 @@ var gHilalPane = {
          Services.prefs.setBoolPref("hilal.workspaces.enabled", true);
-         Services.prefs.setBoolPref("hilal.workspaces.pinned.public", false);
+         Services.prefs.setBoolPref("hilal.workspaces.pinned.public", true);
          Services.prefs.setBoolPref("hilal.workspaces.groups.public", false);
 +        Services.prefs.setBoolPref("hilal.compact.enabled", false);
 +        Services.prefs.setBoolPref("hilal.compact.hide_toolbox", true);

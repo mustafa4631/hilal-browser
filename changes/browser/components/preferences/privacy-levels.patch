@@ -32,7 +32,7 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
          Services.prompt.confirm(
 @@ -1870,6 +1885,7 @@ var gHilalPane = {
          Services.prefs.setBoolPref("hilal.workspaces.enabled", true);
-         Services.prefs.setBoolPref("hilal.workspaces.pinned.public", false);
+         Services.prefs.setBoolPref("hilal.workspaces.pinned.public", true);
          Services.prefs.setBoolPref("hilal.workspaces.groups.public", false);
 +        Services.prefs.setStringPref("hilal.privacy.level", "standard");
          if (hilalWsCheckbox) {

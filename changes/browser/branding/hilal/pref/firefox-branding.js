@@ -166,7 +166,7 @@ pref("browser.ml.linkPreview.enabled", false);
 pref("hilal.workspaces.enabled", true);
 pref("hilal.workspaces.data", "[]");
 pref("hilal.workspaces.active", "default");
-pref("hilal.workspaces.pinned.public", false);
+pref("hilal.workspaces.pinned.public", true);
 pref("hilal.workspaces.groups.public", false);
 
 // Permission defaults.
@@ -197,4 +197,3 @@ pref("hilal.toolbar.initialized", false);
 // Site Customizer and dynamic UI tinting preferences
 pref("hilal.boosts.auto_palette.enabled", false);
 pref("hilal.boosts.browser_ui.enabled", false);
-
