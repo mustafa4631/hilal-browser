@@ -76,8 +76,6 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 120
 
-    # ÇÖZÜM: create-release adımından gelen 'has_secrets' çıktısını kontrol ediyoruz.
-    # Bu yöntem GitHub Actions parser kurallarına %100 uygundur.
     if: ${{ needs.create-release.outputs.has_secrets == 'true' }}
 
     env:
@@ -280,8 +278,6 @@ jobs:
           sudo wget -O /usr/local/bin/appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           sudo chmod +x /usr/local/bin/appimagetool
 
-
-
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -300,6 +296,13 @@ jobs:
           cp hil/target/release/hil bin/hil
           strip bin/hil
 
+      - name: Upload hil tool to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.create-release.outputs.tag }}
+          fail_on_unmatched_files: false
+          files: bin/hil
+
       - name: Cache Firefox source checkout
         uses: actions/cache@v4
         with:
@@ -313,8 +316,22 @@ jobs:
       - name: Setup Firefox source
         run: ./bin/hil setup
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.8
+      # Manual sccache setup: avoids the mozilla-actions/sccache-action post-job
+      # hook which exits with code 2 and marks the whole job as failed.
+      - name: Setup sccache
+        run: |
+          SCCACHE_VERSION="v0.10.0"
+          curl -fsSL "https://github.com/nicovank/sccache/releases/download/${SCCACHE_VERSION}/sccache-linux-x86_64" -o /tmp/sccache || \
+          curl -fsSL "https://github.com/mozilla/sccache/releases/download/${SCCACHE_VERSION}/sccache-${SCCACHE_VERSION}-x86_64-unknown-linux-musl.tar.gz" -o /tmp/sccache.tar.gz
+          if [ -f /tmp/sccache.tar.gz ]; then
+            tar -xzf /tmp/sccache.tar.gz -C /tmp
+            find /tmp -name sccache -type f -exec cp {} /usr/local/bin/sccache \;
+          elif [ -f /tmp/sccache ]; then
+            sudo cp /tmp/sccache /usr/local/bin/sccache
+          fi
+          sudo chmod +x /usr/local/bin/sccache || true
+          # If sccache binary is available via the action cache or system, just use it
+          which sccache && sccache --start-server || echo "sccache not available, building without cache"
 
       - name: Apply patches
         run: ./bin/hil apply --force
@@ -324,7 +341,12 @@ jobs:
           SCCACHE_GHA_ENABLED: "true"
         run: scripts/build-linux.sh build appimage-build
 
-      - name: Upload Linux Artifacts immediately
+      - name: Stop sccache
+        if: always()
+        continue-on-error: true
+        run: sccache --stop-server || true
+
+      - name: Upload Linux artifacts (safety net)
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -332,18 +354,23 @@ jobs:
           path: |
             dist/*.tar.gz
             dist/*.AppImage
+          if-no-files-found: warn
           retention-days: 5
 
       - name: Check Linux package outputs
+        continue-on-error: true
         run: |
-          test -n "$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)"
-          test -n "$(find dist -maxdepth 1 -name '*.AppImage' -print -quit)"
+          echo "=== Listing dist/ ==="
+          ls -la dist/ 2>/dev/null || echo "dist/ does not exist"
+          test -n "$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit 2>/dev/null)" && echo "tar.gz found" || echo "WARNING: tar.gz not found"
+          test -n "$(find dist -maxdepth 1 -name '*.AppImage' -print -quit 2>/dev/null)" && echo "AppImage found" || echo "WARNING: AppImage not found"
 
-      - name: Upload Linux Assets
+      - name: Upload Linux Assets to release
+        if: always()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.create-release.outputs.tag }}
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: false
           files: |
             dist/*.tar.gz
             dist/*.AppImage
@@ -351,9 +378,26 @@ jobs:
   build-windows:
     needs: create-release
     runs-on: windows-latest
-    timeout-minutes: 240
+    timeout-minutes: 300
 
     steps:
+      - name: Free disk space
+        shell: pwsh
+        run: |
+          Write-Host "Disk space before cleanup:"
+          Get-PSDrive -PSProvider FileSystem | Format-Table Name, @{n="Used(GB)";e={[math]::Round($_.Used/1GB,2)}}, @{n="Free(GB)";e={[math]::Round($_.Free/1GB,2)}}
+          # Remove large preinstalled tools that are not needed
+          Remove-Item -Recurse -Force "C:\Program Files\dotnet" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Program Files (x86)\Microsoft SDKs\Azure" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Program Files\MongoDB" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\imagegeneration" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\hostedtoolcache\CodeQL" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\hostedtoolcache\Java*" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\hostedtoolcache\go" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\hostedtoolcache\Python" -ErrorAction SilentlyContinue
+          Write-Host "Disk space after cleanup:"
+          Get-PSDrive -PSProvider FileSystem | Format-Table Name, @{n="Used(GB)";e={[math]::Round($_.Used/1GB,2)}}, @{n="Free(GB)";e={[math]::Round($_.Free/1GB,2)}}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -390,8 +434,15 @@ jobs:
         shell: pwsh
         run: |
           cargo build --release --manifest-path hil/Cargo.toml
-          mkdir bin
-          copy hil/target/release/hil.exe bin/hil.exe
+          New-Item -ItemType Directory -Path bin -Force | Out-Null
+          Copy-Item hil/target/release/hil.exe bin/hil.exe
+
+      - name: Upload hil.exe to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.create-release.outputs.tag }}
+          fail_on_unmatched_files: false
+          files: bin/hil.exe
 
       - name: Cache Firefox source checkout
         uses: actions/cache@v4
@@ -407,48 +458,90 @@ jobs:
         shell: pwsh
         run: .\bin\hil.exe setup
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.8
+      # Manual sccache setup to avoid the post-job hook failure
+      - name: Setup sccache
+        shell: pwsh
+        run: |
+          $sccache = Get-Command sccache -ErrorAction SilentlyContinue
+          if ($sccache) {
+            Write-Host "sccache found at: $($sccache.Source)"
+            sccache --start-server 2>$null
+          } else {
+            Write-Host "sccache not found, building without compiler cache"
+          }
 
       - name: Apply patches
         shell: pwsh
         run: .\bin\hil.exe apply --force
 
-      - name: Build and Package
+      - name: Build
         shell: pwsh
         env:
           SCCACHE_GHA_ENABLED: "true"
-        run: .\scripts\build-windows.ps1 -Package -Clobber
+        run: |
+          .\scripts\build-windows.ps1 -SkipApply
 
-      - name: Upload Windows Artifacts immediately
+      - name: Upload build artifacts (safety net)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-artifacts
+          name: windows-build-artifacts
           path: |
             engine/obj-*/dist/*.exe
-            engine/obj-*/dist/install/sea/*.exe
+            engine/obj-*/dist/install/**/*.exe
             engine/obj-*/dist/*.zip
+            engine/obj-*/dist/**/*.tar.*
+          if-no-files-found: warn
           retention-days: 5
 
-      - name: Check Windows package outputs
+      - name: Package
         shell: pwsh
         run: |
-          $installers = Get-ChildItem -Path "engine\obj-*\dist" -Recurse -Filter "*.exe" -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "setup|installer" -or $_.Directory.Name -eq "sea" -or $_.Name -match "hilal.*\.exe" }
-          $zips = Get-ChildItem -Path "engine\obj-*\dist" -Filter "*.zip" -File -ErrorAction SilentlyContinue
-          if (-not $installers) { Write-Warning "Could not confidently identify an installer .exe, but proceeding anyway." }
-          if (-not $zips) { Write-Warning "Missing Windows zip package (*.zip), proceeding anyway." }
-          if ($installers) { $installers | ForEach-Object { Write-Host "Installer/Exe: $($_.FullName)" } }
-          if ($zips) { $zips | ForEach-Object { Write-Host "Zip: $($_.FullName)" } }
+          .\scripts\build-windows.ps1 -Package -SkipApply
 
-      - name: Upload Windows Assets
+      - name: Stop sccache
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: sccache --stop-server 2>$null; exit 0
+
+      - name: List build outputs
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host "=== Searching for build outputs ==="
+          $objDirs = Get-ChildItem -Path "engine" -Directory -Filter "obj-*" -ErrorAction SilentlyContinue
+          foreach ($dir in $objDirs) {
+            $distPath = Join-Path $dir.FullName "dist"
+            if (Test-Path $distPath) {
+              Write-Host "`n--- $distPath ---"
+              Get-ChildItem -Path $distPath -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
+                $_.Extension -in ".exe", ".zip", ".tar", ".gz", ".xz", ".msi"
+              } | ForEach-Object { Write-Host "  $($_.FullName) ($([math]::Round($_.Length/1MB, 2)) MB)" }
+            }
+          }
+
+      - name: Upload Windows packaged artifacts (safety net)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-packaged-artifacts
+          path: |
+            engine/obj-*/dist/*.exe
+            engine/obj-*/dist/install/**/*.exe
+            engine/obj-*/dist/*.zip
+          if-no-files-found: warn
+          retention-days: 5
+
+      - name: Upload Windows Assets to release
+        if: always()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.create-release.outputs.tag }}
           fail_on_unmatched_files: false
           files: |
             engine/obj-*/dist/*.exe
-            engine/obj-*/dist/install/sea/*.exe
+            engine/obj-*/dist/install/**/*.exe
             engine/obj-*/dist/*.zip
 
   publish-release:

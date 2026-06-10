@@ -1,1 +1,6 @@
 . "$topsrcdir/../mozconfigs/base"
+
+# GitHub Actions free runners have only 7 GB RAM.  Full parallelism causes
+# the linker and compiler to OOM-kill the VM.  Cap at 2 parallel jobs so
+# the build actually finishes.
+mk_add_options MOZ_MAKE_FLAGS="-j2"
