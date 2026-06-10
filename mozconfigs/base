@@ -2,9 +2,18 @@ ac_add_options --enable-application=browser
 ac_add_options --with-branding=browser/branding/hilal
 ac_add_options --with-l10n-base="$topsrcdir/browser/locales"
 ac_add_options --enable-optimize
+ac_add_options --enable-release
 ac_add_options --disable-debug
 ac_add_options --disable-tests
 ac_add_options --disable-crashreporter
+ac_add_options --disable-lto
+ac_add_options --enable-linker=lld
+ac_add_options --without-wasm-sandboxed-libraries
+
+# Use sccache for compiler caching if installed
+if which sccache >/dev/null 2>&1; then
+  ac_add_options --with-ccache=sccache
+fi
 
 # Hilal desktop builds ship Firefox's application updater. The update server is
 # selected through the bundled enterprise policy in patches/0014.

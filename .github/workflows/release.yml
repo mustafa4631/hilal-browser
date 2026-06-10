@@ -357,39 +357,41 @@ jobs:
       # The action's post-job hook exits with code 2 and marks the entire job as
       # failed even though every real step succeeded.
       - name: Setup sccache
+        continue-on-error: true
+        env:
+          SCCACHE_GHA_ENABLED: "true"
         run: |
-          set +e
-          # sccache is pre-installed on GitHub-hosted runners in the tool cache
-          SCCACHE_BIN=""
-          # Check if already on PATH
+          # Check if sccache is already on PATH
           if command -v sccache >/dev/null 2>&1; then
-            SCCACHE_BIN="$(command -v sccache)"
-          else
-            # Search the hosted tool cache
-            SCCACHE_BIN="$(find /opt/hostedtoolcache/sccache -name sccache -type f 2>/dev/null | head -1 || true)"
-            if [ -n "$SCCACHE_BIN" ]; then
-              SCCACHE_DIR="$(dirname "$SCCACHE_BIN")"
-              echo "$SCCACHE_DIR" >> "$GITHUB_PATH"
-              echo "Added $SCCACHE_DIR to PATH"
-            fi
+            echo "sccache found: $(command -v sccache)"
+            sccache --version
+            sccache --start-server || true
+            exit 0
+          fi
+          # Search the hosted tool cache (GitHub runners store tools here)
+          SCCACHE_BIN="$(find /opt/hostedtoolcache/sccache -name sccache -type f 2>/dev/null | head -1)" || true
+          if [ -n "$SCCACHE_BIN" ] && [ -x "$SCCACHE_BIN" ]; then
+            SCCACHE_DIR="$(dirname "$SCCACHE_BIN")"
+            echo "$SCCACHE_DIR" >> "$GITHUB_PATH"
+            export PATH="$SCCACHE_DIR:$PATH"
+            echo "Found sccache in tool cache: $SCCACHE_BIN"
+            sccache --version
+            sccache --start-server || true
+            exit 0
           fi
           # Fallback: download a known-good release
-          if [ -z "$SCCACHE_BIN" ] || [ ! -x "$SCCACHE_BIN" ]; then
-            echo "Downloading sccache v0.8.2..."
-            SCCACHE_ARCHIVE="sccache-v0.8.2-x86_64-unknown-linux-musl"
-            curl -fsSL "https://github.com/mozilla/sccache/releases/download/v0.8.2/${SCCACHE_ARCHIVE}.tar.gz" -o /tmp/sccache.tar.gz || true
-            if [ -f /tmp/sccache.tar.gz ]; then
-              tar -xzf /tmp/sccache.tar.gz -C /tmp
-              if [ -f "/tmp/${SCCACHE_ARCHIVE}/sccache" ]; then
-                sudo cp "/tmp/${SCCACHE_ARCHIVE}/sccache" /usr/local/bin/sccache
-                sudo chmod +x /usr/local/bin/sccache
-                echo "Installed sccache from release archive"
-              fi
-            fi
+          echo "Downloading sccache v0.8.2..."
+          SCCACHE_ARCHIVE="sccache-v0.8.2-x86_64-unknown-linux-musl"
+          if curl -fsSL "https://github.com/mozilla/sccache/releases/download/v0.8.2/${SCCACHE_ARCHIVE}.tar.gz" -o /tmp/sccache.tar.gz; then
+            tar -xzf /tmp/sccache.tar.gz -C /tmp
+            sudo cp "/tmp/${SCCACHE_ARCHIVE}/sccache" /usr/local/bin/sccache
+            sudo chmod +x /usr/local/bin/sccache
+            echo "Installed sccache v0.8.2"
+            sccache --version
+            sccache --start-server || true
+          else
+            echo "Could not install sccache -- building without compiler cache"
           fi
-          # Start the server (non-fatal if it fails)
-          sccache --version 2>/dev/null && sccache --start-server 2>/dev/null || echo "sccache unavailable, building without compiler cache"
-          exit 0
 
       - name: Apply patches
         run: ./bin/hil apply --force
@@ -517,6 +519,9 @@ jobs:
 
       # Install sccache manually to avoid post-job hook failures.
       - name: Setup sccache
+        continue-on-error: true
+        env:
+          SCCACHE_GHA_ENABLED: "true"
         shell: pwsh
         run: |
           $sccache = Get-Command sccache -ErrorAction SilentlyContinue
@@ -527,6 +532,7 @@ jobs:
               $sccacheDir = $found.DirectoryName
               Write-Host "Found sccache at: $sccacheDir"
               echo "$sccacheDir" | Out-File -FilePath $env:GITHUB_PATH -Append
+              $env:PATH = "$sccacheDir;$env:PATH"
             } else {
               Write-Host "Downloading sccache v0.8.2..."
               $archive = "sccache-v0.8.2-x86_64-pc-windows-msvc"
@@ -542,8 +548,12 @@ jobs:
               }
             }
           }
-          try { sccache --version } catch { Write-Host "sccache not available" }
-          try { sccache --start-server 2>$null } catch { Write-Host "sccache server start skipped" }
+          try {
+            sccache --version
+            sccache --start-server
+          } catch {
+            Write-Host "sccache server failed to start: $_"
+          }
 
       - name: Apply patches
         shell: pwsh
