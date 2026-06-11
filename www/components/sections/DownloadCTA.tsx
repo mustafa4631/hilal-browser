@@ -45,7 +45,7 @@ export default function DownloadCTA() {
   return (
     <section
       ref={containerRef}
-      className="relative overflow-hidden py-32 px-6 bg-[#0A0A0A] text-white"
+      className="relative overflow-hidden py-32 px-6 bg-surface-elevated border-t border-border"
     >
       {/* BACKGROUND EFFECTS */}
       {/* 1. Large Radial Glow */}
@@ -53,13 +53,13 @@ export default function DownloadCTA() {
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full -z-10 pointer-events-none"
         style={{
           backgroundImage:
-            "radial-gradient(circle, rgba(107, 70, 255, 0.2) 0%, transparent 70%)",
+            "radial-gradient(circle, rgba(107, 70, 255, 0.12) 0%, transparent 70%)",
         }}
       />
 
       {/* 2. Grid Pattern */}
       <div
-        className="absolute inset-0 -z-10 text-white/[0.03] opacity-100 pointer-events-none"
+        className="absolute inset-0 -z-10 text-foreground/[0.03] pointer-events-none"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='currentColor' stroke-width='1'/%3E%3C/svg%3E\")",
@@ -73,7 +73,7 @@ export default function DownloadCTA() {
           variants={contentVariants}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8 border border-white/10 bg-white/5 text-xs font-medium text-white/70 select-none"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8 border border-border bg-background/60 text-xs font-medium text-muted-foreground select-none"
         >
           <span>✦ Ücretsiz & Açık Kaynak</span>
         </motion.div>
@@ -83,7 +83,7 @@ export default function DownloadCTA() {
           variants={contentVariants}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
-          className="text-5xl lg:text-6xl font-bold tracking-tight text-white leading-[1.05] whitespace-pre-line mb-4"
+          className="text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.05] whitespace-pre-line mb-4"
         >
           Bugün İndir,{"\n"}
           <span className="text-primary">Farkı</span> Hemen Hisset
@@ -94,7 +94,7 @@ export default function DownloadCTA() {
           variants={contentVariants}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
-          className="text-base text-white/60 max-w-md mx-auto mb-10 leading-relaxed"
+          className="text-base text-muted-foreground max-w-md mx-auto mb-10 leading-relaxed"
         >
           Hüma Browser'ı indirmek ücretsizdir. Reklam yok, abonelik yok, gizli
           ücret yok.
@@ -132,14 +132,14 @@ export default function DownloadCTA() {
           >
             <Link
               href="/download"
-              className="px-6 py-3 rounded-xl flex items-center gap-3 bg-white/10 hover:bg-white/15 border border-white/5 transition-all duration-200 shadow-sm w-56 text-left"
+              className="px-6 py-3 rounded-xl flex items-center gap-3 bg-surface border border-border hover:border-border/60 transition-all duration-200 shadow-sm w-56 text-left"
             >
-              <Laptop size={18} className="text-white/70 shrink-0" />
+              <Laptop size={18} className="text-muted-foreground shrink-0" />
               <div>
-                <div className="text-[10px] text-white/50 leading-tight">
+                <div className="text-[10px] text-muted-foreground leading-tight">
                   macOS için indir
                 </div>
-                <div className="text-sm font-semibold text-white leading-tight">
+                <div className="text-sm font-semibold text-foreground leading-tight">
                   macOS 12+
                 </div>
               </div>
@@ -154,14 +154,14 @@ export default function DownloadCTA() {
           >
             <Link
               href="/download"
-              className="px-6 py-3 rounded-xl flex items-center gap-3 bg-white/10 hover:bg-white/15 border border-white/5 transition-all duration-200 shadow-sm w-56 text-left"
+              className="px-6 py-3 rounded-xl flex items-center gap-3 bg-surface border border-border hover:border-border/60 transition-all duration-200 shadow-sm w-56 text-left"
             >
-              <Terminal size={18} className="text-white/70 shrink-0" />
+              <Terminal size={18} className="text-muted-foreground shrink-0" />
               <div>
-                <div className="text-[10px] text-white/50 leading-tight">
+                <div className="text-[10px] text-muted-foreground leading-tight">
                   Linux için indir
                 </div>
-                <div className="text-sm font-semibold text-white leading-tight">
+                <div className="text-sm font-semibold text-foreground leading-tight">
                   Ubuntu / Debian
                 </div>
               </div>
@@ -176,19 +176,19 @@ export default function DownloadCTA() {
           animate={isInView ? "visible" : "hidden"}
           className="mt-12 flex flex-wrap gap-6 justify-center select-none"
         >
-          <div className="flex items-center gap-2 text-white/40 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs">
             <ShieldCheck size={14} />
             <span>Virüs taramalı</span>
           </div>
-          <div className="flex items-center gap-2 text-white/40 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs">
             <Lock size={14} />
             <span>Açık kaynak</span>
           </div>
-          <div className="flex items-center gap-2 text-white/40 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs">
             <Zap size={14} />
             <span>10MB kurulum</span>
           </div>
-          <div className="flex items-center gap-2 text-white/40 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs">
             <Star size={14} />
             <span>4.8 yıldız</span>
           </div>
