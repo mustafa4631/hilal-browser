@@ -11,9 +11,6 @@ import { cn } from "@/lib/utils";
 const navLinks = [
   { name: "İndir", path: "/download" },
   { name: "Özellikler", path: "/#features" },
-  { name: "Blog", path: "/blog" },
-  { name: "Dokümantasyon", path: "/docs" },
-  { name: "Değişiklik Günlüğü", path: "/changelog" },
   { name: "Hakkında", path: "/about" },
 ];
 
